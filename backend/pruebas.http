@@ -1,0 +1,25 @@
+### 1. Probar el servidor (GET)
+GET http://localhost:5000/api/health
+
+###
+
+### 2. Registrar Usuario (POST) - ¡EJECUTA ESTE PRIMERO!
+POST http://localhost:5000/api/auth/register
+Content-Type: application/json
+
+{
+  "nombre": "Gerardo Barreno",
+  "email": "test@espoch.edu.ec",
+  "password": "Password123"
+}
+
+###
+
+### 3. Iniciar Sesión (POST) - ¡EJECUTA ESTE DESPUÉS!
+POST http://localhost:5000/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "test@espoch.edu.ec",
+  "password": "Password123"
+}
