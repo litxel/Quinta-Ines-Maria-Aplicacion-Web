@@ -3,23 +3,41 @@ GET http://localhost:5000/api/health
 
 ###
 
-### 2. Registrar Usuario (POST) - ¡EJECUTA ESTE PRIMERO!
+### 2. Registrar Usuario (POST) - 
 POST http://localhost:5000/api/auth/register
 Content-Type: application/json
 
 {
-  "nombre": "Gerardo Barreno",
-  "email": "test@espoch.edu.ec",
-  "password": "Password123"
+  "nombre": "Kevin kinso",
+  "email": "test3@espoch.edu.ec",
+  "password": "Password845"
 }
 
 ###
 
-### 3. Iniciar Sesión (POST) - ¡EJECUTA ESTE DESPUÉS!
+### 3. Iniciar Sesión (POST) - 
 POST http://localhost:5000/api/auth/login
 Content-Type: application/json
 
 {
-  "email": "test@espoch.edu.ec",
-  "password": "Password123"
+  "email": "test3@espoch.edu.ec",
+  "password": "Password854"
 }
+
+
+### 4. Prueba de Encriptación AES-256 
+POST http://localhost:5000/api/test-encriptacion
+Content-Type: application/json
+
+{
+  "nombre": "santi olmedo",
+  "telefono": "0959590431"
+}
+
+###
+
+### 5. Recuperar y Desencriptar Teléfono (GET)
+GET http://localhost:5000/api/test-desencriptacion
+
+### Obtener todos los paquetes (con servicios)
+GET http://localhost:5000/api/catalogo/paquetes
