@@ -55,3 +55,9 @@ export const calcularPrecioServidor = async ({ paquete_id, num_invitados, centro
   });
   return data.data; // { total, subtotal_paquete, subtotal_mesas, subtotal_adicionales, num_mesas, num_meseros }
 };
+
+// ── GET Fechas Ocupadas ──────────────────────────────────────────────────────
+export const fetchFechasOcupadas = async () => {
+  const { data } = await api.get('/configurador/fechas-ocupadas');
+  return data.data; // Devuelve un array de strings: ['2026-08-15', '2026-10-20']
+};

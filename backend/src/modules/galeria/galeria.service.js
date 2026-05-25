@@ -27,8 +27,9 @@ const obtenerTodasImagenesAdmin = async () => {
 
 const agregarImagen = async ({ url_original, titulo, alt_text, categoria_id, orden_display = 99 }) => {
   const { rows } = await pool.query(
-    `INSERT INTO eqim_galeria.imagenes (url_original, titulo, alt_text, categoria_id, orden_display)
-     VALUES ($1, $2, $3, $4, $5) RETURNING *`,
+    // Añadimos url_thumbnail a la consulta y usamos $1 para repetir la url_original
+    `INSERT INTO eqim_galeria.imagenes (url_original, url_thumbnail, titulo, alt_text, categoria_id, orden_display)
+     VALUES ($1, $1, $2, $3, $4, $5) RETURNING *`,
     [url_original, titulo, alt_text, categoria_id, orden_display]
   );
   return rows[0];
@@ -60,4 +61,16 @@ const obtenerCategorias = async () => {
   return rows;
 };
 
-module.exports = { obtenerImagenesPublicas, obtenerTodasImagenesAdmin, agregarImagen, actualizarImagen, eliminarImagen, obtenerCategorias };
+const crearCategoria = async ({ nombre, descripcion }) => {
+  // Generamos un slug automático (Ej: "Fiestas Infantiles" -> "fiestas-infantiles")
+  const slug = nombre.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
+  
+  const { rows } = await pool.query(
+    `INSERT INTO eqim_galeria.categorias (nombre, slug, descripcion, orden_display, activo)
+     VALUES ($1, $2, $3, 99, true) RETURNING *`,
+    [nombre, slug, descripcion]
+  );
+  return rows[0];
+};
+
+module.exports = { obtenerImagenesPublicas, obtenerTodasImagenesAdmin, agregarImagen, actualizarImagen, eliminarImagen, obtenerCategorias, crearCategoria};

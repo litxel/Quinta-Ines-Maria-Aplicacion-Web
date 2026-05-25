@@ -31,9 +31,26 @@ const softAuth = (req, res, next) => {
 router.get( '/datos',              ctrl.getDatosConfiguracion);
 router.post('/calcular-precio',    ctrl.calcularPrecio);
 
+// ── NUEVO — Asistente IA (público: el asistente es accesible para todos) ─────
+// No requiere login para que el usuario pueda consultar antes de registrarse.
+// Tiene su propio manejo de errores y fallback controlado en gemini.js.
+router.post('/recomendar', ctrl.recomendarConIA);
+
 // Rutas con soft auth (funcionan con y sin login)
 router.post('/sesion',             softAuth, ctrl.crearSesion);
 router.put( '/sesion/:sesionId',   softAuth, ctrl.actualizarSesion);
 router.get( '/sesion/:sesionId',   softAuth, ctrl.getSesion);
+
+// ── RUTAS ADMIN CALENDARIO ───────────────────────────────────────────────────
+// Usamos verifyToken para asegurar que solo usuarios logueados (admins) accedan
+router.get('/admin/calendario', verifyToken, ctrl.getCalendarioAdmin);
+router.post('/admin/calendario', verifyToken, ctrl.bloquearFecha);
+router.delete('/admin/calendario/:id', verifyToken, ctrl.desbloquearFecha);
+
+// --RUTA enviar solicitud--
+router.post('/enviar-solicitud', ctrl.enviarSolicitudFinal);
+
+//calendario rutas 
+router.get('/fechas-ocupadas', ctrl.getFechasOcupadas);
 
 module.exports = router;

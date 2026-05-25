@@ -13,5 +13,6 @@ router.get('/admin', verifyToken, isAdmin, ctrl.listarTodasAdmin);
 router.post('/admin', verifyToken, isAdmin, ctrl.agregarImagen);
 router.put('/admin/:id', verifyToken, isAdmin, ctrl.actualizarImagen);
 router.delete('/admin/:id', verifyToken, isAdmin, ctrl.eliminarImagen);
+router.post('/admin/categorias', verifyToken, isAdmin, ctrl.agregarCategoria);
 
 module.exports = router;

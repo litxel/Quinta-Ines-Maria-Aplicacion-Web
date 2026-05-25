@@ -1,66 +1,108 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+
 import { useConfiguradorStore } from '../store/useConfiguradorStore';
+import AsistenteIA from '../components/configurador/AsistenteIA';
+import { fetchPaquetePorCodigo } from '../services/catalogo.service';
 import {
   fetchDatosConfiguracion,
   crearSesion,
   actualizarSesion,
   calcularPrecioServidor,
+  fetchFechasOcupadas
 } from '../services/configurador.service';
 
-// ─── Constantes de los 7 pasos (mapean a sesiones) ────────────────────────────
 const PASOS = [
   { num: 1, label: 'Evento',      campo: 'tipo_evento_id'   },
   { num: 2, label: 'Paquete',     campo: 'paquete_id'       },
   { num: 3, label: 'Invitados',   campo: 'num_invitados'    },
-  { num: 4, label: 'Colores',     campo: 'color_primario'   },
-  { num: 5, label: 'Decoración',  campo: 'estilo_deco_id'   },
-  { num: 6, label: 'Extras',      campo: 'sesion_servicios' },
-  { num: 7, label: 'Resumen',     campo: 'precio_estimado'  },
+  { num: 4, label: 'Fecha',       campo: 'fecha_evento'     },
+  { num: 5, label: 'Colores',     campo: 'color_primario'   },
+  { num: 6, label: 'Decoración',  campo: 'estilo_deco_id'   },
+  { num: 7, label: 'Extras',      campo: 'sesion_servicios' },
+  { num: 8, label: 'Resumen',     campo: 'precio_estimado'  },
 ];
 
-// ─── Colores de muestra para el selector ──────────────────────────────────────
 const COLORES_PALETA = [
-  { hex: '#0D2137', nombre: 'Azul Marino'     },
-  { hex: '#B7950B', nombre: 'Dorado'          },
-  { hex: '#8B0000', nombre: 'Rojo Vino'       },
-  { hex: '#1F3864', nombre: 'Azul Corporativo'},
-  { hex: '#2E4053', nombre: 'Gris Pizarra'    },
-  { hex: '#4A235A', nombre: 'Púrpura'         },
-  { hex: '#145A32', nombre: 'Verde Bosque'    },
-  { hex: '#784212', nombre: 'Café Tierra'     },
-  { hex: '#C0392B', nombre: 'Rojo'            },
-  { hex: '#1A5276', nombre: 'Azul Océano'     },
-  { hex: '#F5F5F5', nombre: 'Blanco Hueso'    },
-  { hex: '#212121', nombre: 'Negro Elegante'  },
+  { hex: '#0D2137', nombre: 'Azul Marino'     }, { hex: '#B7950B', nombre: 'Dorado'          },
+  { hex: '#8B0000', nombre: 'Rojo Vino'       }, { hex: '#1F3864', nombre: 'Azul Corporativo'},
+  { hex: '#2E4053', nombre: 'Gris Pizarra'    }, { hex: '#4A235A', nombre: 'Púrpura'         },
+  { hex: '#145A32', nombre: 'Verde Bosque'    }, { hex: '#784212', nombre: 'Café Tierra'     },
+  { hex: '#C0392B', nombre: 'Rojo'            }, { hex: '#1A5276', nombre: 'Azul Océano'     },
+  { hex: '#F5F5F5', nombre: 'Blanco Hueso'    }, { hex: '#212121', nombre: 'Negro Elegante'  },
 ];
 
 export default function Configurador() {
   const navigate  = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const store     = useConfiguradorStore();
 
-  // Catálogos cargados desde la API
   const [catalogos,   setCatalogos]   = useState(null);
+  const [fechasOcupadas, setFechasOcupadas] = useState([]);
   const [loadingCat,  setLoadingCat]  = useState(true);
   const [guardando,   setGuardando]   = useState(false);
   const [errorMsg,    setErrorMsg]    = useState('');
+  
+  const [alertaMagica, setAlertaMagica] = useState(null);
 
-  // ── Cargar catálogos una sola vez ────────────────────────────────────────
   useEffect(() => {
-    fetchDatosConfiguracion()
-      .then(setCatalogos)
-      .catch((e) => setErrorMsg(e.message))
-      .finally(() => setLoadingCat(false));
+    const iniciarConfigurador = async () => {
+      try {
+        const [datos, fechasBloqueadas] = await Promise.all([
+          fetchDatosConfiguracion(),
+          fetchFechasOcupadas()
+        ]);
+        
+        setCatalogos(datos);
+        setFechasOcupadas(fechasBloqueadas || []); 
+
+        const urlEvento    = searchParams.get('evento');
+        const urlPaquete   = searchParams.get('paquete');
+        const urlInvitados = searchParams.get('invitados');
+        const urlFecha     = searchParams.get('fecha');
+
+        if (urlPaquete && urlInvitados && urlFecha) {
+          const paq = await fetchPaquetePorCodigo(urlPaquete);
+          
+          let tipoEventoEncontrado = null;
+          if (urlEvento) {
+            tipoEventoEncontrado = datos.tipos_evento.find(t => 
+              t.tipo_nombre.toLowerCase().includes(urlEvento.toLowerCase())
+            );
+          }
+
+          if (tipoEventoEncontrado) store.setTipoEvento(tipoEventoEncontrado);
+          store.setPaquete(paq);
+          store.setNumInvitados(urlInvitados);
+          store.setFechaEvento(urlFecha);
+          
+          store.setPaso(5);
+          setSearchParams({});
+          
+          setAlertaMagica({
+            titulo: '✨ ¡Magia Aplicada!',
+            mensaje: `Hemos pre-cargado el ${paq.paquete_nombre} para ${urlInvitados} personas. Por favor, continúa personalizando tu evento.`
+          });
+        }
+      } catch (e) {
+        setErrorMsg(e.message);
+      } finally {
+        setLoadingCat(false);
+      }
+    };
+    iniciarConfigurador();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ── Guardar / actualizar sesión en BD al avanzar de paso ─────────────────
   const persistirSesion = useCallback(async (pasoNuevo) => {
     setGuardando(true);
+    setErrorMsg('');
     try {
       const payload = {
         tipo_evento_id:   store.tipo_evento_id,
         paquete_id:       store.paquete_id,
         num_invitados:    store.num_invitados,
+        fecha_evento:     store.fecha_evento,
         color_primario:   store.color_primario,
         color_secundario: store.color_secundario,
         estilo_deco_id:   store.estilo_deco_id,
@@ -68,7 +110,7 @@ export default function Configurador() {
         num_mesas:        store.num_mesas,
         num_meseros:      store.num_meseros,
         paso_actual:      pasoNuevo,
-        completada:       pasoNuevo === 7 && store.completada,
+        completada:       false, 
         precio_estimado:  store.precio_estimado,
         servicios:        store.servicios.map((s) => ({
           adicional_id:    s.adicional_id,
@@ -79,13 +121,26 @@ export default function Configurador() {
 
       let sesion;
       if (store.sesion_id) {
-        sesion = await actualizarSesion(store.sesion_id, payload);
+        try {
+          sesion = await actualizarSesion(store.sesion_id, payload);
+        } catch (errorDb) {
+          if (errorDb.response?.status === 404 || errorDb.status === 404) {
+            sesion = await crearSesion(payload);
+            const newId = sesion.sesion_id || sesion.data?.sesion_id || sesion.id;
+            store.setSesionId(newId);
+          } else {
+            throw errorDb;
+          }
+        }
       } else {
         sesion = await crearSesion(payload);
-        store.setSesionId(sesion.sesion_id);
+        const newId = sesion.sesion_id || sesion.data?.sesion_id || sesion.id;
+        store.setSesionId(newId);
       }
+      return true; 
     } catch (e) {
       setErrorMsg(e.response?.data?.message ?? e.message);
+      return false; 
     } finally {
       setGuardando(false);
     }
@@ -94,314 +149,276 @@ export default function Configurador() {
   const handleNext = async () => {
     setErrorMsg('');
     const siguiente = store.paso_actual + 1;
-    await persistirSesion(siguiente);
-    store.nextPaso();
+    
+    const exito = await persistirSesion(siguiente);
+    
+    if (exito) {
+      store.nextPaso();
 
-    // En paso 7, calcular precio definitivo desde el servidor
-    if (siguiente === 7 && store.paquete_id) {
-      try {
-        const resultado = await calcularPrecioServidor({
-          paquete_id:    store.paquete_id,
-          num_invitados: store.num_invitados,
-          centro_mesa_id: store.centro_mesa_id,
-          servicios: store.servicios.map((s) => ({
-            adicional_id: s.adicional_id,
-            cantidad:     s.cantidad,
-          })),
-        });
-        store.setPrecioServidor(resultado);
-      } catch (e) {
-        console.warn('No se pudo calcular el precio del servidor:', e.message);
+      if (siguiente === 8 && store.paquete_id) {
+        try {
+          const resultado = await calcularPrecioServidor({
+            paquete_id:    store.paquete_id,
+            num_invitados: store.num_invitados,
+            centro_mesa_id: store.centro_mesa_id,
+            servicios: store.servicios.map((s) => ({ adicional_id: s.adicional_id, cantidad: s.cantidad })),
+          });
+          store.setPrecioServidor(resultado);
+        } catch (e) {
+          console.warn('Error cálculo servidor:', e.message);
+        }
       }
     }
   };
 
   const handlePrev = () => { setErrorMsg(''); store.prevPaso(); };
 
-  // ── Validación por paso ───────────────────────────────────────────────────
-  const pasoValido = () => {
-    switch (store.paso_actual) {
+  const saltarAPaso = async (pasoDestino) => {
+    if (pasoDestino > store.paso_actual && !pasoValido(store.paso_actual)) return;
+    setErrorMsg('');
+    const exito = await persistirSesion(pasoDestino);
+    if (exito) {
+      store.setPaso(pasoDestino);
+    }
+  };
+
+  const pasoValido = (pasoValidar = store.paso_actual) => {
+    switch (pasoValidar) {
       case 1: return !!store.tipo_evento_id;
       case 2: return !!store.paquete_id;
       case 3: return store.num_invitados >= 100;
-      case 4: return !!store.color_primario;
-      case 5: return true;    // estilo y centro son opcionales
-      case 6: return true;
-      case 7: return true;
+      case 4: return !!store.fecha_evento;
+      case 5: return !!store.color_primario;
+      case 6: return true; 
+      case 7: return true; 
+      case 8: return true;
       default: return true;
     }
   };
 
-  if (loadingCat) {
-    return (
-      <main className="min-h-screen pt-24 flex items-center justify-center">
-        <div className="spinner" />
-        <span className="sr-only">Cargando opciones del configurador…</span>
-      </main>
-    );
-  }
+  const handleFechaChange = (e) => {
+    const seleccionada = e.target.value;
+    if (fechasOcupadas.includes(seleccionada)) {
+      setAlertaMagica({
+        titulo: '📅 Fecha Ocupada',
+        mensaje: 'Lo sentimos, esa fecha ya está reservada por otro cliente. Por favor elige otra disponibilidad.'
+      });
+      store.setFechaEvento('');
+    } else {
+      store.setFechaEvento(seleccionada);
+    }
+  };
+
+  const hoy = new Date().toISOString().split('T')[0];
+
+  if (loadingCat) return <main className="min-h-screen pt-24 flex items-center justify-center"><div className="spinner" /></main>;
 
   return (
-    <main className="min-h-screen pt-20 pb-16 bg-[#FDF8F0]">
+    <main className="min-h-screen pt-28 pb-16 bg-[#FDF8F0] relative">
+      
+      {alertaMagica && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-[#0D2137]/60 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl text-center animate-in zoom-in-95">
+            <div className="w-16 h-16 bg-[#B7950B]/10 text-[#B7950B] rounded-full flex items-center justify-center text-3xl mx-auto mb-4">
+              ✨
+            </div>
+            <h2 className="text-2xl font-bold text-[#0D2137] mb-2 font-display">{alertaMagica.titulo}</h2>
+            <p className="text-slate-600 mb-6 leading-relaxed text-sm">{alertaMagica.mensaje}</p>
+            <button onClick={() => setAlertaMagica(null)} className="w-full py-3.5 bg-[#0D2137] text-white font-bold rounded-xl hover:bg-[#1A6BAC] shadow-md">
+              Aceptar
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="max-w-4xl mx-auto px-4 sm:px-6">
 
-        {/* Título */}
         <div className="text-center pt-8 mb-8">
-          <h1 className="font-display text-4xl font-bold text-[#0D2137]">
-            Configura tu Evento
-          </h1>
+          <h1 className="font-display text-4xl font-bold text-[#0D2137]">Configura tu Evento</h1>
           <p className="mt-2 text-slate-500 text-sm">
-            Personaliza cada detalle y obtén tu cotización en tiempo real.
+            Personaliza cada detalle. <span className="text-[#B7950B] font-medium">✨ Consulta al Asistente IA.</span>
           </p>
         </div>
 
-        {/* Stepper */}
+        {/* ── BARRA DE PROGRESO ── */}
         <nav aria-label="Progreso" className="mb-8">
           <div className="relative h-1.5 bg-slate-200 rounded-full mb-5">
-            <div
-              className="absolute h-full bg-[#0D2137] rounded-full transition-all duration-500"
-              style={{ width: `${((store.paso_actual - 1) / 6) * 100}%` }}
-              role="progressbar"
-              aria-valuenow={store.paso_actual}
-              aria-valuemin={1}
-              aria-valuemax={7}
-            />
+            <div className="absolute h-full bg-[#0D2137] rounded-full transition-all duration-500" style={{ width: `${((store.paso_actual - 1) / 7) * 100}%` }} />
           </div>
           <ol className="hidden sm:flex justify-between">
-            {PASOS.map((p) => (
-              <li key={p.num} className="flex flex-col items-center gap-1">
-                <span className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold border-2 transition-colors ${
-                  p.num < store.paso_actual  ? 'bg-[#0D2137] border-[#0D2137] text-white'
-                  : p.num === store.paso_actual ? 'bg-white border-[#0D2137] text-[#0D2137]'
-                  : 'bg-white border-slate-300 text-slate-400'
-                }`}>
-                  {p.num < store.paso_actual ? '✓' : p.num}
-                </span>
-                <span className={`text-[9px] font-medium text-center ${
-                  p.num === store.paso_actual ? 'text-[#0D2137]' : 'text-slate-400'
-                }`}>{p.label}</span>
-              </li>
-            ))}
+            {PASOS.map((p) => {
+              const completado = p.num < store.paso_actual;
+              const actual     = p.num === store.paso_actual;
+              const clickable  = completado || actual || (p.num === store.paso_actual + 1 && pasoValido());
+
+              return (
+                <li key={p.num} className="flex flex-col items-center gap-1 relative group">
+                  <button
+                    onClick={() => clickable ? saltarAPaso(p.num) : null}
+                    disabled={!clickable}
+                    className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold border-2 transition-all ${
+                      actual ? 'bg-white border-[#0D2137] text-[#0D2137] scale-110 shadow-sm'
+                      : completado ? 'bg-[#0D2137] border-[#0D2137] text-white cursor-pointer hover:shadow-lg'
+                      : 'bg-white border-slate-300 text-slate-400 cursor-not-allowed'
+                    }`}
+                  >
+                    {completado ? '✓' : p.num}
+                  </button>
+                  <span className={`text-[9px] font-medium text-center mt-1 ${actual ? 'text-[#0D2137] font-bold' : 'text-slate-400'}`}>
+                    {p.label}
+                  </span>
+                </li>
+              );
+            })}
           </ol>
-          <p className="sm:hidden text-center text-sm text-slate-600 font-medium">
-            Paso {store.paso_actual}/7 — {PASOS[store.paso_actual - 1].label}
-          </p>
         </nav>
 
-        {/* Panel del paso actual */}
         <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 sm:p-8 min-h-[340px]">
+          {errorMsg && <div role="alert" className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm">⚠ {errorMsg}</div>}
 
-          {/* Error global */}
-          {errorMsg && (
-            <div role="alert" className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm">
-              ⚠ {errorMsg}
-            </div>
-          )}
-
-          {/* ── PASO 1: Tipo de evento ──────────────────────────────────────────── */}
+          {/* PASO 1 */}
           {store.paso_actual === 1 && (
-            <section aria-labelledby="h-paso1">
-              <h2 id="h-paso1" className="font-display text-2xl text-[#0D2137] mb-1">
-                ¿Qué tipo de evento vas a celebrar?
-              </h2>
-              <p className="text-slate-400 text-sm mb-6">
-                Los 12 tipos vienen de <code className="bg-slate-100 px-1 rounded">eqim_catalogo.tipos_evento</code>
-              </p>
-              {/* tipo_icono, tipo_nombre — columnas reales */}
+            <section className="animate-in fade-in slide-in-from-bottom-4 duration-300">
+              <h2 className="font-display text-2xl text-[#0D2137] mb-6">¿Qué tipo de evento vas a celebrar?</h2>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 {(catalogos?.tipos_evento ?? []).map((tipo) => (
-                  <button
-                    key={tipo.tipo_id}
-                    onClick={() => store.setTipoEvento(tipo)}
-                    aria-pressed={store.tipo_evento_id === tipo.tipo_id}
-                    className={`rounded-xl border-2 p-4 text-center transition-all focus:outline-none focus:ring-2 focus:ring-[#1A6BAC] ${
-                      store.tipo_evento_id === tipo.tipo_id
-                        ? 'border-[#0D2137] bg-[#0D2137]/5 shadow-sm'
+                  <button 
+                    key={tipo.tipo_id} 
+                    onClick={() => store.setTipoEvento(tipo)} 
+                    className={`rounded-xl border-2 p-4 text-center transition-all ${
+                      store.tipo_evento_id === tipo.tipo_id 
+                        ? 'border-[#0D2137] bg-[#0D2137]/5 shadow-sm scale-[1.02]' 
                         : 'border-slate-200 hover:border-[#0D2137]/40'
                     }`}
                   >
-                    {/* tipo_icono es un string como "icon-rings" — usamos emoji fallback */}
-                    <span className="text-2xl block mb-1.5" aria-hidden="true">
-                      {iconoEvento(tipo.tipo_codigo)}
-                    </span>
-                    <span className="text-xs font-medium text-slate-700 leading-tight">
-                      {tipo.tipo_nombre}
-                    </span>
+                    <span className="text-2xl block mb-1.5">{iconoEvento(tipo.tipo_codigo)}</span>
+                    <span className="text-xs font-medium text-slate-700">{tipo.tipo_nombre}</span>
                   </button>
                 ))}
               </div>
             </section>
           )}
 
-          {/* ── PASO 2: Paquete ────────────────────────────────────────────────── */}
+          {/* PASO 2 */}
           {store.paso_actual === 2 && (
-            <section aria-labelledby="h-paso2">
-              <h2 id="h-paso2" className="font-display text-2xl text-[#0D2137] mb-1">
-                Selecciona tu paquete
-              </h2>
-              <p className="text-slate-400 text-sm mb-5">
-                El paquete que elegiste en la vitrina ya está pre-cargado.
-              </p>
-              {store.paqueteSeleccionado ? (
-                <div
-                  className="rounded-xl border-2 p-5"
-                  style={{ borderColor: store.paqueteSeleccionado.color_principal }}
-                >
-                  <div className="flex items-center gap-3">
-                    <span
-                      className="w-10 h-10 rounded-full shrink-0"
-                      style={{ backgroundColor: store.paqueteSeleccionado.color_principal }}
-                      aria-hidden="true"
-                    />
-                    <div>
-                      <p className="font-bold text-[#0D2137] text-lg">
-                        {store.paqueteSeleccionado.paquete_nombre}
-                      </p>
-                      <p className="text-slate-500 text-sm">
-                        ${parseFloat(store.paqueteSeleccionado.precio_persona).toFixed(2)} /persona
-                        · Mín. {store.paqueteSeleccionado.minimo_invitados} personas
-                      </p>
+            <section className="animate-in fade-in slide-in-from-bottom-4 duration-300">
+              <h2 className="font-display text-2xl text-[#0D2137] mb-6">Selecciona o cambia tu paquete</h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+                {(catalogos?.paquetes ?? []).map((paq) => (
+                  <button 
+                    key={paq.paquete_id} 
+                    onClick={() => store.setPaquete(paq)} 
+                    className={`relative rounded-xl border-2 p-4 text-left transition-all overflow-hidden ${store.paquete_id === paq.paquete_id ? 'border-[#0D2137] bg-[#0D2137]/5 shadow-md scale-[1.02]' : 'border-slate-200 hover:border-slate-300'}`}
+                  >
+                    <div className="absolute top-0 left-0 bottom-0 w-2" style={{ backgroundColor: paq.color_principal || '#B7950B' }} />
+                    <div className="pl-3">
+                      <p className="font-bold text-[#0D2137] text-sm">{paq.paquete_nombre}</p>
+                      <p className="text-[#B7950B] font-bold text-lg mt-1">${parseFloat(paq.precio_persona).toFixed(2)}</p>
+                      <p className="text-slate-400 text-[10px] uppercase mt-0.5">Desde {paq.minimo_invitados} pax</p>
                     </div>
+                  </button>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* PASO 3 */}
+          {store.paso_actual === 3 && (
+            <section className="animate-in fade-in slide-in-from-bottom-4 duration-300">
+              <h2 className="font-display text-2xl text-[#0D2137] mb-6">¿Cuántos invitados asistirán?</h2>
+              <div className="max-w-xs mx-auto">
+                <input type="number" min={100} max={500} value={store.num_invitados} onChange={(e) => store.setNumInvitados(e.target.value)} className="w-full px-4 py-4 border-2 border-slate-200 rounded-xl text-3xl font-bold text-center text-[#0D2137] focus:border-[#1A6BAC] focus:outline-none shadow-inner" />
+                <div className="mt-4 flex justify-between px-2 text-xs font-bold text-slate-500 uppercase">
+                  <span>🪑 {store.num_mesas} mesas</span>
+                  <span>🤵 {store.num_meseros} meseros</span>
+                </div>
+              </div>
+              <PrecioEstimado store={store} />
+            </section>
+          )}
+
+          {/* PASO 4 */}
+          {store.paso_actual === 4 && (
+            <section className="animate-in fade-in slide-in-from-bottom-4 duration-300">
+              <h2 className="font-display text-2xl text-[#0D2137] mb-6">¿Qué día será tu evento?</h2>
+              <div className="max-w-sm mx-auto">
+                <label className="block text-sm font-bold text-slate-700 mb-2">Selecciona la fecha:</label>
+                <input 
+                  type="date" 
+                  min={hoy}
+                  value={store.fecha_evento || ''}
+                  onChange={handleFechaChange}
+                  className="w-full px-4 py-4 border-2 border-slate-200 rounded-xl text-xl font-bold text-center text-[#0D2137] focus:border-[#B7950B] focus:outline-none shadow-inner cursor-pointer"
+                />
+                
+                <div className="mt-6 bg-[#0D2137]/5 border border-[#0D2137]/10 p-4 rounded-xl text-center">
+                  <h3 className="font-bold text-[#0D2137] text-sm mb-1">📅 Fechas Ocupadas</h3>
+                  <div className="flex flex-wrap gap-2 justify-center mt-2">
+                    {fechasOcupadas.length === 0 ? (
+                      <span className="text-xs text-green-600 font-medium">¡Todas las fechas disponibles!</span>
+                    ) : (
+                      fechasOcupadas.map((f, i) => (
+                        <span key={i} className="text-xs bg-slate-200 text-slate-600 px-2 py-1 rounded-md line-through">{f}</span>
+                      ))
+                    )}
                   </div>
                 </div>
-              ) : (
-                <div className="text-center py-12">
-                  <p className="text-slate-400 mb-5">No has seleccionado un paquete.</p>
-                  <a href="/paquetes" className="px-6 py-2.5 bg-[#0D2137] text-white rounded-full text-sm font-semibold hover:bg-[#1A6BAC] transition-colors">
-                    Ver paquetes
-                  </a>
-                </div>
-              )}
-            </section>
-          )}
-
-          {/* ── PASO 3: Número de invitados ─────────────────────────────────────── */}
-          {store.paso_actual === 3 && (
-            <section aria-labelledby="h-paso3">
-              <h2 id="h-paso3" className="font-display text-2xl text-[#0D2137] mb-1">
-                ¿Cuántos invitados asistirán?
-              </h2>
-              <p className="text-slate-400 text-sm mb-6">Mínimo 100 personas · Máximo 500</p>
-              <div className="max-w-xs">
-                <label htmlFor="inp-invitados" className="block text-sm font-medium text-slate-700 mb-2">
-                  Número de invitados
-                </label>
-                <input
-                  id="inp-invitados"
-                  type="number"
-                  min={100} max={500}
-                  value={store.num_invitados}
-                  onChange={(e) => store.setNumInvitados(e.target.value)}
-                  className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl text-2xl font-bold text-center text-[#0D2137] focus:outline-none focus:border-[#1A6BAC]"
-                  aria-describedby="inv-hint"
-                />
-                <p id="inv-hint" className="mt-1.5 text-xs text-slate-400">
-                  Mesas: {store.num_mesas} · Meseros: {store.num_meseros}
-                </p>
-                {store.num_invitados < 100 && (
-                  <p role="alert" className="mt-2 text-xs font-medium text-red-600">
-                    ⚠ El mínimo es 100 personas.
-                  </p>
-                )}
               </div>
               <PrecioEstimado store={store} />
             </section>
           )}
 
-          {/* ── PASO 4: Colores ──────────────────────────────────────────────────── */}
-          {store.paso_actual === 4 && (
-            <section aria-labelledby="h-paso4">
-              <h2 id="h-paso4" className="font-display text-2xl text-[#0D2137] mb-1">
-                Elige tus colores
-              </h2>
-              <p className="text-slate-400 text-sm mb-6">
-                Se guardan en <code className="bg-slate-100 px-1 rounded">color_primario</code> y{' '}
-                <code className="bg-slate-100 px-1 rounded">color_secundario</code> de la sesión.
-              </p>
-              <div className="space-y-6">
-                <ColorSelector
-                  label="Color principal"
-                  valor={store.color_primario}
-                  onChange={(hex) => store.setColores(hex, store.color_secundario)}
-                  idHint="color-ppal-hint"
-                  hint="Define el color dominante de la decoración"
-                />
-                <ColorSelector
-                  label="Color secundario"
-                  valor={store.color_secundario}
-                  onChange={(hex) => store.setColores(store.color_primario, hex)}
-                  idHint="color-sec-hint"
-                  hint="Complementa el color principal"
-                />
-              </div>
-              {/* Vista previa */}
-              <div
-                className="mt-6 rounded-xl h-16 border border-slate-200 flex overflow-hidden"
-                aria-label={`Vista previa: ${store.color_primario} y ${store.color_secundario}`}
-              >
-                <div className="flex-1" style={{ backgroundColor: store.color_primario }} />
-                <div className="flex-1" style={{ backgroundColor: store.color_secundario }} />
-              </div>
-              <PrecioEstimado store={store} />
-            </section>
-          )}
-
-          {/* ── PASO 5: Decoración ────────────────────────────────────────────────── */}
+          {/* PASO 5 */}
           {store.paso_actual === 5 && (
-            <section aria-labelledby="h-paso5">
-              <h2 id="h-paso5" className="font-display text-2xl text-[#0D2137] mb-1">
-                Estilo de decoración y centro de mesa
-              </h2>
-              <p className="text-slate-400 text-sm mb-5">
-                Guarda <code className="bg-slate-100 px-1 rounded">estilo_deco_id</code> y{' '}
-                <code className="bg-slate-100 px-1 rounded">centro_mesa_id</code> en la sesión.
-              </p>
+            <section className="animate-in fade-in slide-in-from-bottom-4 duration-300">
+              <h2 className="font-display text-2xl text-[#0D2137] mb-6">Elige tus colores</h2>
+              <div className="space-y-6">
+                <ColorSelector label="Color principal" valor={store.color_primario} onChange={(hex) => store.setColores(hex, store.color_secundario)} />
+                <ColorSelector label="Color secundario" valor={store.color_secundario} onChange={(hex) => store.setColores(store.color_primario, hex)} />
+              </div>
+              <PrecioEstimado store={store} />
+            </section>
+          )}
 
-              {/* Estilos de decoración — estilo_id, nombre, costo_adicional */}
-              <h3 className="font-semibold text-slate-700 mb-3">Estilo de decoración</h3>
+          {/* PASO 6 */}
+          {store.paso_actual === 6 && (
+            <section className="animate-in fade-in slide-in-from-bottom-4 duration-300">
+              <h2 className="font-display text-2xl text-[#0D2137] mb-6">Estilo de decoración</h2>
+              
+              <button 
+                onClick={() => store.setEstiloDecoracion(null)} 
+                className={`mb-4 w-full rounded-xl border-2 p-3 text-center text-sm font-bold transition-all ${store.estilo_deco_id === null ? 'border-[#0D2137] bg-[#0D2137]/5 text-[#0D2137]' : 'border-slate-200 text-slate-500 hover:border-slate-300'}`}
+              >
+                ✖ Decoración estándar (Incluida en el paquete)
+              </button>
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-7">
                 {(catalogos?.estilos_decoracion ?? []).map((e) => (
-                  <button
-                    key={e.estilo_id}
-                    onClick={() => store.setEstiloDecoracion(e)}
-                    aria-pressed={store.estilo_deco_id === e.estilo_id}
-                    className={`rounded-xl border-2 p-4 text-left transition-all focus:outline-none focus:ring-2 focus:ring-[#1A6BAC] ${
-                      store.estilo_deco_id === e.estilo_id
-                        ? 'border-[#0D2137] bg-[#0D2137]/5'
-                        : 'border-slate-200 hover:border-[#0D2137]/30'
-                    }`}
-                  >
-                    <p className="font-semibold text-[#0D2137] text-sm">{e.nombre}</p>
-                    <p className="text-slate-500 text-xs mt-0.5 line-clamp-2">{e.descripcion}</p>
-                    {parseFloat(e.costo_adicional) > 0 && (
-                      <p className="text-[#B7950B] text-xs font-medium mt-1">
-                        +${parseFloat(e.costo_adicional).toFixed(2)}/persona
-                      </p>
-                    )}
+                  <button key={e.estilo_id} onClick={() => store.setEstiloDecoracion(e)} className={`rounded-xl border-2 p-4 text-left ${store.estilo_deco_id === e.estilo_id ? 'border-[#0D2137] bg-[#0D2137]/5 shadow-sm' : 'border-slate-200 hover:border-slate-300'}`}>
+                    <div className="flex justify-between items-start">
+                      <p className="font-bold text-[#0D2137] text-sm">{e.nombre}</p>
+                    </div>
+                    <p className="text-slate-500 text-xs mt-1">{e.descripcion}</p>
                   </button>
                 ))}
               </div>
 
-              {/* Centros de mesa — centro_id, nombre, costo_por_mesa */}
-              <h3 className="font-semibold text-slate-700 mb-3">Centro de mesa</h3>
+              <h3 className="font-display text-xl text-[#0D2137] mb-4 mt-8">Centro de mesa</h3>
+              
+              <button 
+                onClick={() => store.setCentroMesa(null)} 
+                className={`mb-4 w-full rounded-xl border-2 p-3 text-center text-sm font-bold transition-all ${store.centro_mesa_id === null ? 'border-[#0D2137] bg-[#0D2137]/5 text-[#0D2137]' : 'border-slate-200 text-slate-500 hover:border-slate-300'}`}
+              >
+                ✖ Centro estándar (Sin costo extra)
+              </button>
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {(catalogos?.centros_mesa ?? []).map((cm) => (
-                  <button
-                    key={cm.centro_id}
-                    onClick={() => store.setCentroMesa(cm)}
-                    aria-pressed={store.centro_mesa_id === cm.centro_id}
-                    className={`rounded-xl border-2 p-4 text-left transition-all focus:outline-none focus:ring-2 focus:ring-[#1A6BAC] ${
-                      store.centro_mesa_id === cm.centro_id
-                        ? 'border-[#0D2137] bg-[#0D2137]/5'
-                        : 'border-slate-200 hover:border-[#0D2137]/30'
-                    }`}
-                  >
-                    <p className="font-semibold text-[#0D2137] text-sm">{cm.nombre}</p>
-                    <p className="text-slate-500 text-xs mt-0.5">{cm.descripcion}</p>
-                    <p className="text-[#B7950B] text-xs font-medium mt-1">
-                      ${parseFloat(cm.costo_por_mesa).toFixed(2)}/mesa
-                      · {store.num_mesas} mesas = ${(parseFloat(cm.costo_por_mesa) * store.num_mesas).toFixed(2)}
-                    </p>
+                  <button key={cm.centro_id} onClick={() => store.setCentroMesa(cm)} className={`rounded-xl border-2 p-4 text-left flex justify-between items-center ${store.centro_mesa_id === cm.centro_id ? 'border-[#0D2137] bg-[#0D2137]/5 shadow-sm' : 'border-slate-200 hover:border-slate-300'}`}>
+                    <p className="font-bold text-[#0D2137] text-sm">{cm.nombre}</p>
+                    <span className="text-xs font-bold bg-amber-100 text-amber-800 px-2 py-1 rounded-md">
+                      +${parseFloat(cm.costo_por_mesa).toFixed(2)} /mesa
+                    </span>
                   </button>
                 ))}
               </div>
@@ -409,61 +426,26 @@ export default function Configurador() {
             </section>
           )}
 
-          {/* ── PASO 6: Servicios adicionales ─────────────────────────────────────── */}
-          {store.paso_actual === 6 && (
-            <section aria-labelledby="h-paso6">
-              <h2 id="h-paso6" className="font-display text-2xl text-[#0D2137] mb-1">
-                Servicios adicionales
-              </h2>
-              <p className="text-slate-400 text-sm mb-5">
-                Se guardan en <code className="bg-slate-100 px-1 rounded">eqim_configurador.sesion_servicios</code>
-                · Campos: <code className="bg-slate-100 px-1 rounded">adicional_id, cantidad, precio_snapshot</code>
-              </p>
-
-              {/* Agrupar por categoría */}
+          {/* PASO 7 */}
+          {store.paso_actual === 7 && (
+            <section className="animate-in fade-in slide-in-from-bottom-4 duration-300">
+              <h2 className="font-display text-2xl text-[#0D2137] mb-6">Servicios adicionales</h2>
               {agruparPorCategoria(catalogos?.servicios_adicionales ?? []).map(([cat, items]) => (
                 <div key={cat} className="mb-6">
-                  <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">{cat}</h3>
+                  <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3 pl-1">{cat}</h3>
                   <div className="space-y-2">
                     {items.map((ad) => {
                       const seleccionado = store.servicios.find((s) => s.adicional_id === ad.adicional_id);
                       return (
-                        <div
-                          key={ad.adicional_id}
-                          className={`flex items-center justify-between rounded-xl border-2 p-3.5 transition-colors ${
-                            seleccionado ? 'border-[#0D2137] bg-[#0D2137]/5' : 'border-slate-200'
-                          }`}
-                        >
-                          <div className="flex-1 min-w-0 mr-3">
-                            <p className="font-medium text-slate-800 text-sm truncate">{ad.nombre}</p>
-                            <p className="text-slate-400 text-xs truncate">{ad.descripcion}</p>
-                            <p className="text-[#B7950B] text-xs font-semibold mt-0.5">
-                              ${parseFloat(ad.precio_unitario).toFixed(2)}/{ad.unidad}
-                            </p>
+                        <div key={ad.adicional_id} className={`flex items-center justify-between rounded-xl border-2 p-3.5 transition-colors ${seleccionado ? 'border-[#0D2137] bg-[#0D2137]/5' : 'border-slate-200 hover:border-slate-300'}`}>
+                          <div className="flex-1 mr-3">
+                            <p className="font-medium text-[#0D2137] text-sm">{ad.nombre}</p>
+                            <p className="text-[#B7950B] text-xs font-bold mt-0.5">${parseFloat(ad.precio_unitario).toFixed(2)}</p>
                           </div>
-                          {/* Contador de cantidad */}
-                          <div className="flex items-center gap-2 shrink-0">
-                            {seleccionado && (
-                              <>
-                                <button
-                                  onClick={() => store.toggleServicio(ad, seleccionado.cantidad - 1)}
-                                  className="w-7 h-7 rounded-full bg-slate-100 text-slate-600 font-bold text-lg flex items-center justify-center hover:bg-slate-200 focus:outline-none focus:ring-2 focus:ring-[#1A6BAC]"
-                                  aria-label={`Quitar una unidad de ${ad.nombre}`}
-                                >
-                                  −
-                                </button>
-                                <span className="w-6 text-center font-bold text-[#0D2137] text-sm">
-                                  {seleccionado.cantidad}
-                                </span>
-                              </>
-                            )}
-                            <button
-                              onClick={() => store.toggleServicio(ad, (seleccionado?.cantidad ?? 0) + 1)}
-                              className="w-7 h-7 rounded-full bg-[#0D2137] text-white font-bold text-lg flex items-center justify-center hover:bg-[#1A6BAC] focus:outline-none focus:ring-2 focus:ring-[#1A6BAC]"
-                              aria-label={`Agregar ${ad.nombre}`}
-                            >
-                              +
-                            </button>
+                          <div className="flex items-center gap-2">
+                            {seleccionado && <button onClick={() => store.toggleServicio(ad, seleccionado.cantidad - 1)} className="w-8 h-8 rounded-full bg-white border border-slate-300 font-bold hover:bg-slate-100 shadow-sm text-slate-600">−</button>}
+                            {seleccionado && <span className="w-6 text-center font-bold text-sm text-[#0D2137]">{seleccionado.cantidad}</span>}
+                            <button onClick={() => store.toggleServicio(ad, (seleccionado?.cantidad ?? 0) + 1)} className="w-8 h-8 rounded-full bg-[#0D2137] text-white font-bold hover:bg-[#1A6BAC] shadow-sm">+</button>
                           </div>
                         </div>
                       );
@@ -475,230 +457,98 @@ export default function Configurador() {
             </section>
           )}
 
-          {/* ── PASO 7: Resumen y cotización ────────────────────────────────────────── */}
-          {store.paso_actual === 7 && (
-            <section aria-labelledby="h-paso7">
-              <h2 id="h-paso7" className="font-display text-2xl text-[#0D2137] mb-1">
-                Resumen de tu evento
-              </h2>
-              <p className="text-slate-400 text-sm mb-6">
-                Revisa todos los detalles antes de enviar tu solicitud.
-              </p>
-
-              <div className="space-y-3 text-sm">
-                <FilaResumen label="Tipo de evento"     valor={store.tipoEventoSeleccionado?.tipo_nombre ?? '—'} />
-                <FilaResumen label="Paquete"            valor={store.paqueteSeleccionado?.paquete_nombre ?? '—'} />
-                <FilaResumen label="Invitados"          valor={`${store.num_invitados} personas`} />
-                <FilaResumen label="Mesas / Meseros"    valor={`${store.num_mesas} mesas · ${store.num_meseros} meseros`} />
-                <FilaResumen label="Estilo decoración"  valor={store.estiloSeleccionado?.nombre ?? 'Sin seleccionar'} />
-                <FilaResumen label="Centro de mesa"     valor={store.centroMesaSeleccionado?.nombre ?? 'Sin seleccionar'} />
-                {/* Colores */}
-                <div className="flex justify-between items-center py-2 border-b border-slate-100">
-                  <span className="text-slate-500 font-medium">Colores</span>
-                  <div className="flex gap-2">
-                    <ColorDot hex={store.color_primario} label="Principal" />
-                    <ColorDot hex={store.color_secundario} label="Secundario" />
-                  </div>
+          {/* PASO 8 */}
+          {store.paso_actual === 8 && (
+            <section className="animate-in fade-in slide-in-from-bottom-4 duration-300">
+              <h2 className="font-display text-2xl text-[#0D2137] mb-6 text-center">Resumen de tu evento</h2>
+              <div className="bg-slate-50 rounded-2xl p-6 border border-slate-100 mb-6 space-y-3 text-sm">
+                <FilaResumen label="Tipo de evento" valor={store.tipoEventoSeleccionado?.tipo_nombre ?? '—'} />
+                <FilaResumen label="Fecha" valor={store.fecha_evento || '—'} />
+                <FilaResumen label="Paquete" valor={store.paqueteSeleccionado?.paquete_nombre ?? '—'} />
+                <FilaResumen label="Invitados" valor={`${store.num_invitados} personas`} />
+                <div className="flex justify-between py-2 border-b border-slate-200/60 last:border-0 items-center">
+                   <span className="text-slate-500 font-medium">Colores</span>
+                   <div className="flex gap-2">
+                      <div className="w-5 h-5 rounded-full shadow-sm" style={{ backgroundColor: store.color_primario }} />
+                      <div className="w-5 h-5 rounded-full shadow-sm" style={{ backgroundColor: store.color_secundario }} />
+                   </div>
                 </div>
-                {/* Servicios adicionales */}
-                {store.servicios.length > 0 && (
-                  <div className="py-2 border-b border-slate-100">
-                    <p className="text-slate-500 font-medium mb-2">Servicios adicionales</p>
-                    {store.servicios.map((s) => (
-                      <div key={s.adicional_id} className="flex justify-between text-xs text-slate-600 mb-1">
-                        <span>{s.nombre} ×{s.cantidad}</span>
-                        <span>${(s.precio_snapshot * s.cantidad).toFixed(2)}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
               </div>
 
-              {/* Precio total — usa el del servidor si está disponible */}
-              <div className="mt-6 p-5 rounded-xl bg-[#0D2137]">
-                {store.precioServidor ? (
-                  <>
-                    <div className="flex justify-between text-white/70 text-xs mb-1">
-                      <span>Subtotal paquete</span>
-                      <span>${store.precioServidor.subtotal_paquete.toFixed(2)}</span>
-                    </div>
-                    {store.precioServidor.subtotal_mesas > 0 && (
-                      <div className="flex justify-between text-white/70 text-xs mb-1">
-                        <span>Subtotal mesas</span>
-                        <span>${store.precioServidor.subtotal_mesas.toFixed(2)}</span>
-                      </div>
-                    )}
-                    {store.precioServidor.subtotal_adicionales > 0 && (
-                      <div className="flex justify-between text-white/70 text-xs mb-1">
-                        <span>Servicios adicionales</span>
-                        <span>${store.precioServidor.subtotal_adicionales.toFixed(2)}</span>
-                      </div>
-                    )}
-                    <div className="border-t border-white/20 mt-2 pt-2 flex justify-between">
-                      <span className="text-white font-bold">TOTAL ESTIMADO</span>
-                      <span className="text-[#B7950B] font-bold text-xl">
-                        ${store.precioServidor.total.toFixed(2)}
-                      </span>
-                    </div>
-                  </>
-                ) : (
-                  <div className="flex justify-between items-center">
-                    <span className="text-white font-bold">TOTAL ESTIMADO</span>
-                    <span className="text-[#B7950B] font-bold text-2xl">
-                      ${store.precio_estimado.toFixed(2)}
-                    </span>
-                  </div>
-                )}
+              <div className="p-5 rounded-2xl bg-gradient-to-r from-[#0D2137] to-[#1A6BAC] shadow-lg">
+                <div className="flex justify-between items-center">
+                  <span className="text-white font-bold uppercase tracking-wider text-sm">Total Estimado</span>
+                  <span className="text-[#B7950B] font-bold text-3xl font-display">
+                    ${store.precioServidor ? store.precioServidor.total.toFixed(2) : store.precio_estimado.toFixed(2)}
+                  </span>
+                </div>
               </div>
 
-              <button
-                onClick={() => navigate('/solicitar')}
-                className="mt-5 w-full py-4 rounded-xl bg-[#B7950B] text-white font-bold text-base hover:bg-[#9A7D0A] transition-colors focus:outline-none focus:ring-2 focus:ring-[#B7950B] focus:ring-offset-2"
-                aria-label="Enviar solicitud de cotización"
+              <button 
+                onClick={async () => {
+                  const exito = await persistirSesion(8); // Fuerza guardado final
+                  if (exito) navigate('/solicitar');
+                }} 
+                disabled={guardando}
+                className="mt-6 w-full py-4 rounded-xl bg-[#B7950B] text-white font-bold text-base hover:bg-[#9A7D0A] transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5 disabled:opacity-50"
               >
-                Enviar solicitud de cotización →
+                {guardando ? 'Guardando configuración...' : 'Generar Cotización Formal (PDF) →'}
               </button>
             </section>
           )}
         </div>
 
-        {/* Navegación */}
-        <div className="flex items-center justify-between mt-5">
-          <button
-            onClick={handlePrev}
-            disabled={store.paso_actual === 1}
-            className="px-6 py-2.5 rounded-xl border-2 border-slate-200 text-slate-600 font-medium text-sm disabled:opacity-30 disabled:cursor-not-allowed hover:border-[#0D2137] hover:text-[#0D2137] transition-colors focus:outline-none focus:ring-2 focus:ring-[#1A6BAC]"
-          >
-            ← Anterior
-          </button>
-
-          <span className="text-xs text-slate-400">
-            {guardando ? '💾 Guardando…' : `${store.paso_actual} / 7`}
-          </span>
-
-          {store.paso_actual < 7 && (
-            <button
-              onClick={handleNext}
-              disabled={!pasoValido() || guardando}
-              className="px-6 py-2.5 rounded-xl bg-[#0D2137] text-white font-semibold text-sm disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#1A6BAC] transition-colors focus:outline-none focus:ring-2 focus:ring-[#1A6BAC] focus:ring-offset-2"
-            >
-              {guardando ? 'Guardando…' : 'Siguiente →'}
-            </button>
+        {/* ── BOTONES ANTERIOR / SIGUIENTE ── */}
+        <div className="flex items-center justify-between mt-6">
+          <button onClick={handlePrev} disabled={store.paso_actual === 1} className="px-6 py-3 rounded-xl border-2 border-slate-200 font-bold text-sm text-slate-600 disabled:opacity-30 hover:bg-white transition-colors">← Anterior</button>
+          <span className="text-xs text-slate-400 font-medium hidden sm:block">{guardando ? '⏳ Guardando…' : `Paso ${store.paso_actual} de 8`}</span>
+          {store.paso_actual < 8 && (
+            <button onClick={handleNext} disabled={!pasoValido() || guardando} className="px-6 py-3 rounded-xl bg-[#0D2137] text-white font-bold text-sm disabled:opacity-40 hover:bg-[#1A6BAC] transition-all shadow-md">{guardando ? 'Guardando…' : 'Siguiente →'}</button>
           )}
         </div>
-
-        <div className="text-center mt-3">
-          <button
-            onClick={() => { if (window.confirm('¿Reiniciar el configurador?')) store.reset(); }}
-            className="text-xs text-slate-400 hover:text-red-500 underline transition-colors"
-          >
-            Reiniciar
-          </button>
-        </div>
       </div>
+      <AsistenteIA paqueteActual={store.paqueteSeleccionado} numInvitados={store.num_invitados} />
     </main>
   );
 }
 
-// ─── Sub-componentes ──────────────────────────────────────────────────────────
-
 function PrecioEstimado({ store }) {
   if (!store.paqueteSeleccionado) return null;
   return (
-    <div className="mt-6 flex items-center justify-between p-4 bg-[#0D2137]/5 rounded-xl">
-      <span className="text-sm text-slate-600 font-medium">Precio estimado actual:</span>
-      <span className="text-xl font-bold text-[#0D2137]">
-        ${store.precio_estimado.toFixed(2)}
-      </span>
+    <div className="mt-8 flex items-center justify-between p-4 bg-[#0D2137]/5 rounded-xl border border-[#0D2137]/10 animate-in fade-in">
+      <span className="text-sm text-slate-600 font-bold uppercase tracking-wider">Precio estimado</span>
+      <span className="text-2xl font-bold text-[#0D2137] font-display">${store.precio_estimado.toFixed(2)}</span>
     </div>
   );
 }
 
-function ColorSelector({ label, valor, onChange, idHint, hint }) {
+function ColorSelector({ label, valor, onChange }) {
   return (
     <div>
-      <label className="block text-sm font-medium text-slate-700 mb-2">
-        {label}
-        <span
-          className="ml-2 inline-block w-5 h-5 rounded-full border border-slate-300 align-middle"
-          style={{ backgroundColor: valor }}
-          aria-hidden="true"
-        />
-        <code className="ml-2 text-xs text-slate-400">{valor}</code>
-      </label>
-      <p id={idHint} className="text-xs text-slate-400 mb-2">{hint}</p>
-      <div className="flex flex-wrap gap-2">
+      <label className="block text-sm font-bold text-slate-700 mb-3">{label}</label>
+      <div className="flex flex-wrap gap-3">
         {COLORES_PALETA.map((c) => (
-          <button
-            key={c.hex}
-            onClick={() => onChange(c.hex)}
-            title={c.nombre}
-            aria-label={`${c.nombre} ${c.hex}`}
-            aria-pressed={valor === c.hex}
-            className={`w-9 h-9 rounded-full border-2 transition-transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-[#1A6BAC] focus:ring-offset-1 ${
-              valor === c.hex ? 'border-[#0D2137] scale-110 shadow-md' : 'border-transparent'
-            }`}
-            style={{ backgroundColor: c.hex }}
-          />
+          <button key={c.hex} onClick={() => onChange(c.hex)} title={c.nombre} className={`w-10 h-10 rounded-full border-2 transition-transform ${valor === c.hex ? 'border-[#0D2137] scale-110 shadow-md ring-2 ring-offset-2 ring-[#0D2137]/20' : 'border-slate-200 hover:scale-105 hover:shadow-sm'}`} style={{ backgroundColor: c.hex }} />
         ))}
       </div>
-      {/* Input hex manual */}
-      <input
-        type="color"
-        value={valor}
-        onChange={(e) => onChange(e.target.value)}
-        className="mt-3 h-9 w-16 rounded cursor-pointer border border-slate-200"
-        aria-label={`Selector de color personalizado para ${label}`}
-        aria-describedby={idHint}
-      />
     </div>
   );
 }
 
 function FilaResumen({ label, valor }) {
   return (
-    <div className="flex justify-between items-start py-2 border-b border-slate-100">
+    <div className="flex justify-between py-2 border-b border-slate-200/60 last:border-0">
       <span className="text-slate-500 font-medium">{label}</span>
-      <span className="text-[#0D2137] font-semibold text-right max-w-[55%]">{valor}</span>
+      <span className="text-[#0D2137] font-bold text-right max-w-[60%] capitalize">{valor}</span>
     </div>
   );
 }
 
-function ColorDot({ hex, label }) {
-  return (
-    <div className="flex items-center gap-1.5">
-      <span
-        className="w-5 h-5 rounded-full border border-slate-200"
-        style={{ backgroundColor: hex }}
-        aria-hidden="true"
-      />
-      <span className="text-xs text-slate-500">{label}</span>
-    </div>
-  );
-}
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-// Emoji según tipo_codigo real de eqim_catalogo.tipos_evento
 function iconoEvento(codigo) {
-  const mapa = {
-    MATRIMONIO_CIVIL:          '💍',
-    MATRIMONIO_ECLESIASTICO:   '⛪',
-    QUINCEANERA:               '👑',
-    BAUTIZO:                   '👶',
-    PRIMERA_COMUNION:          '✝️',
-    CUMPLEANOS:                '🎂',
-    GRADUACION:                '🎓',
-    CONGRESO_EMPRESARIAL:      '💼',
-    PEDIDA_MANO:               '💎',
-    CENA_FAMILIAR:             '🍽️',
-    SESION_FOTOGRAFICA:        '📸',
-    MISA_CAMPAL:               '🙏',
-  };
+  const mapa = { MATRIMONIO_CIVIL: '💍', MATRIMONIO_ECLESIASTICO: '⛪', QUINCEANERA: '👑', BAUTIZO: '👶', PRIMERA_COMUNION: '🕊️', CUMPLEANOS: '🎂', GRADUACION: '🎓', CONGRESO_EMPRESARIAL: '💼', PEDIDA_MANO: '💍', CENA_FAMILIAR: '🍽️', SESION_FOTOGRAFICA: '📸', MISA_CAMPAL: '🎪' };
   return mapa[codigo] ?? '🎉';
 }
 
-// Agrupar servicios_adicionales por campo `categoria`
 function agruparPorCategoria(servicios) {
   const mapa = {};
   servicios.forEach((s) => {

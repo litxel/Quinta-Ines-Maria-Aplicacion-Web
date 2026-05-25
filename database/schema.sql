@@ -1,1 +1,0 @@
--- Esquema de base de datos PostgreSQL - Quinta Inés María

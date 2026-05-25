@@ -1,11 +1,16 @@
 import { useState, useEffect } from 'react';
 import { fetchPaquetes } from '../services/catalogo.service';
 import TarjetaPaquete from '../components/catalogo/TarjetaPaquete';
+import { useConfiguradorStore } from '../store/useConfiguradorStore';
+import { X, CheckCircle2 } from 'lucide-react'; 
 
 export default function Paquetes() {
   const [paquetes, setPaquetes] = useState([]);
   const [loading,  setLoading]  = useState(true);
   const [error,    setError]    = useState(null);
+
+  // ESTADO PARA EL MODAL DE DETALLES
+  const [paqueteModal, setPaqueteModal] = useState(null);
 
   useEffect(() => {
     fetchPaquetes()
@@ -14,9 +19,16 @@ export default function Paquetes() {
       .finally(() => setLoading(false));
   }, []);
 
+  // Bloquear el scroll del fondo cuando el modal está abierto
+  useEffect(() => {
+    if (paqueteModal) document.body.style.overflow = 'hidden';
+    else document.body.style.overflow = 'unset';
+  }, [paqueteModal]);
+
   return (
-    <main className="min-h-screen pt-24 pb-16 bg-[#FDF8F0]">
-      {/* ── Hero de sección ──────────────────────────────────────────────── */}
+    <main className="min-h-screen pt-24 pb-16 bg-[#FDF8F0] relative">
+      
+      {/* ── Hero de sección ── */}
       <section className="text-center px-4 mb-14">
         <h1 className="font-display text-4xl sm:text-5xl font-bold text-[#0D2137] section-line">
           Nuestros Paquetes
@@ -27,64 +39,111 @@ export default function Paquetes() {
         </p>
       </section>
 
-      {/* ── Estado de carga ──────────────────────────────────────────────── */}
+      {/* ── Estado de carga y Errores ── */}
       {loading && (
-        <div className="flex justify-center items-center py-20" role="status" aria-live="polite">
+        <div className="flex justify-center items-center py-20">
           <div className="spinner" />
-          <span className="sr-only">Cargando paquetes…</span>
         </div>
       )}
 
-      {/* ── Error ────────────────────────────────────────────────────────── */}
       {error && (
-        <div className="max-w-md mx-auto px-4" role="alert">
-          <div className="bg-red-50 border border-red-200 rounded-xl p-5 text-center">
-            <p className="text-red-700 font-medium">No pudimos cargar los paquetes.</p>
-            <p className="text-red-500 text-sm mt-1">{error}</p>
-            <button
-              onClick={() => window.location.reload()}
-              className="mt-4 px-5 py-2 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 transition-colors"
-            >
-              Reintentar
-            </button>
-          </div>
+        <div className="max-w-md mx-auto px-4 text-center text-red-500 font-bold py-10">
+          Error al cargar los paquetes: {error}
         </div>
       )}
 
-      {/* ── Grid de paquetes ─────────────────────────────────────────────── */}
+      {/* ── Grid de paquetes ── */}
       {!loading && !error && (
-        <>
-          {paquetes.length === 0 ? (
-            <p className="text-center text-slate-500 py-20">
-              No hay paquetes disponibles en este momento.
-            </p>
-          ) : (
-            <section
-              className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8
-                         grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8"
-              aria-label="Vitrina de paquetes"
-            >
-              {/* Los paquetes vienen ordenados por orden_display ASC desde la API */}
-              {paquetes.map((paquete) => (
-                <TarjetaPaquete key={paquete.paquete_id} paquete={paquete} />
-              ))}
-            </section>
-          )}
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {paquetes.map((paquete) => (
+            <TarjetaPaquete 
+              key={paquete.paquete_id} 
+              paquete={paquete} 
+              onVerDetalles={(paq) => setPaqueteModal(paq)} 
+            />
+          ))}
+        </section>
+      )}
 
-          {/* ── Nota de personalización ──────────────────────────────────── */}
-          <div className="max-w-3xl mx-auto mt-14 px-4 text-center">
-            <div className="bg-[#0D2137]/5 rounded-2xl p-8">
-              <h3 className="font-display text-xl font-semibold text-[#0D2137]">
-                ¿Necesitas algo más personalizado?
+      {/* ========================================================================= */}
+      {/* MODAL DE DETALLES DEL PAQUETE (FASE 1) */}
+      {/* ========================================================================= */}
+      {paqueteModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-[#0D2137]/80 backdrop-blur-sm animate-in fade-in duration-200">
+          <div 
+            className="bg-white rounded-3xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300"
+            onClick={(e) => e.stopPropagation()} 
+          >
+            {/* Cabecera del Modal */}
+            <div 
+              className="px-8 py-6 flex justify-between items-center relative"
+              style={{ backgroundColor: paqueteModal.color_principal || '#B7950B' }}
+            >
+              <div className="absolute inset-0 bg-black/10" />
+              <div className="relative z-10">
+                <p className="text-white/80 text-xs uppercase tracking-widest font-bold mb-1">Detalle del Paquete</p>
+                <h2 className="text-3xl font-display font-bold text-white">{paqueteModal.paquete_nombre}</h2>
+              </div>
+              <button 
+                onClick={() => setPaqueteModal(null)}
+                className="relative z-10 bg-black/20 hover:bg-black/40 text-white rounded-full p-2 transition-colors"
+              >
+                <X size={24} />
+              </button>
+            </div>
+
+            {/* Cuerpo del Modal (Scrollable) */}
+            <div className="p-8 overflow-y-auto flex-1 bg-slate-50">
+              
+              <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 mb-6 flex justify-between items-center">
+                <div>
+                  <p className="text-sm text-slate-500 font-medium">Inversión por invitado</p>
+                  <p className="text-3xl font-bold text-[#0D2137]">${parseFloat(paqueteModal.precio_persona).toFixed(2)}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-sm text-slate-500 font-medium">Capacidad requerida</p>
+                  <p className="text-lg font-bold text-[#B7950B]">Desde {paqueteModal.minimo_invitados} pax</p>
+                </div>
+              </div>
+
+              <h3 className="text-xl font-bold text-[#0D2137] mb-4 flex items-center gap-2">
+                <span>✨</span> ¿Qué incluye este paquete?
               </h3>
-              <p className="text-slate-600 mt-2 text-sm leading-relaxed">
-                Todos nuestros paquetes se pueden complementar con servicios adicionales
-                como fotografía, DJ, barra de bebidas, animación infantil y mucho más.
-                Úsalos en el configurador interactivo.
-              </p>
+              
+              {paqueteModal.servicios.length === 0 ? (
+                <div className="text-center py-10 bg-white rounded-2xl border border-dashed border-slate-300">
+                  <p className="text-slate-500">Aún no se han detallado los servicios de este paquete.</p>
+                </div>
+              ) : (
+                <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
+                  {paqueteModal.servicios.map((svc) => (
+                    <li key={svc.servicio_id} className="flex items-start gap-3 bg-white p-4 rounded-xl shadow-sm border border-slate-100">
+                      <CheckCircle2 className="shrink-0 mt-0.5" size={20} color={paqueteModal.color_principal || '#B7950B'} />
+                      <div>
+                      <span className="font-bold text-slate-800 text-sm block">{svc.servicio_nombre}</span>
+                      {svc.servicio_descripcion && <span className="text-xs text-slate-500 mt-1 block">{svc.servicio_descripcion}</span>}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+
+            {/* Pie del Modal */}
+            <div className="p-6 bg-white border-t border-slate-100">
+              <button
+                onClick={() => {
+                  useConfiguradorStore.getState().setPaquete(paqueteModal);
+                  window.location.href = '/configurador';
+                }}
+                className="w-full py-4 rounded-xl font-bold text-white text-lg transition-transform hover:scale-[1.02] shadow-lg flex items-center justify-center gap-2"
+                style={{ backgroundColor: paqueteModal.color_principal || '#B7950B' }}
+              >
+                ¡Me encanta! Empezar a configurar 🚀
+              </button>
             </div>
           </div>
-        </>
+        </div>
       )}
     </main>
   );

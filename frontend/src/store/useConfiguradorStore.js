@@ -19,6 +19,7 @@ export const useConfiguradorStore = create((set, get) => ({
   tipo_evento_id:   null,
   paquete_id:       null,
   num_invitados:    100,
+  fecha_evento:     null,
   color_primario:   '#0D2137',
   color_secundario: '#B7950B',
   estilo_deco_id:   null,
@@ -46,8 +47,9 @@ export const useConfiguradorStore = create((set, get) => ({
   //  ACCIONES
   // ─────────────────────────────────────────────────────────────────────────
 
-  setPaso: (n) => set({ paso_actual: Math.min(Math.max(n, 1), 7) }),
-  nextPaso: () => set((s) => ({ paso_actual: Math.min(s.paso_actual + 1, 7) })),
+  setFechaEvento: (fecha) => set({ fecha_evento: fecha }),
+  setPaso: (n) => set({ paso_actual: Math.min(Math.max(n, 1), 8) }),
+  nextPaso: () => set((s) => ({ paso_actual: Math.min(s.paso_actual + 1, 8) })),
   prevPaso: () => set((s) => ({ paso_actual: Math.max(s.paso_actual - 1, 1) })),
 
   setTipoEvento: (tipo) => set({

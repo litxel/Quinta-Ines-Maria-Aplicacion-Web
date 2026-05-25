@@ -1,5 +1,4 @@
 import api from './api';
-
 /**
  * Servicio de Galería — Sprint 3
  *
@@ -28,6 +27,10 @@ import api from './api';
  * }
  */
 
+// =============================================================================
+// RUTAS PÚBLICAS (PÁGINA WEB)
+// =============================================================================
+
 // GET /api/galeria  → todas las imágenes activas
 // Query param opcional: ?categoria_id=2
 export const fetchImagenes = async (categoriaId = null) => {
@@ -41,5 +44,39 @@ export const fetchImagenes = async (categoriaId = null) => {
 // GET /api/galeria/categorias  → lista de categorías con conteo
 export const fetchCategorias = async () => {
   const { data } = await api.get('/galeria/categorias');
+  return data.data;
+};
+
+
+// =============================================================================
+// RUTAS PRIVADAS (PANEL ADMINISTRADOR)
+// =============================================================================
+
+// Obtener todas las imágenes (activas e inactivas) para la tabla del admin
+export const getImagenesAdmin = async () => {
+  const { data } = await api.get('/galeria/admin');
+  return data.data;
+};
+
+// Subir una nueva imagen (envía Base64)
+export const subirImagen = async (payload) => {
+  const { data } = await api.post('/galeria/admin', payload);
+  return data.data;
+};
+
+// Actualizar detalles (título, descripción, ocultar imagen)
+export const actualizarDetallesImagen = async (id, payload) => {
+  const { data } = await api.put(`/galeria/admin/${id}`, payload);
+  return data.data;
+};
+
+// Eliminar imagen de la base de datos
+export const eliminarImagen = async (id) => {
+  const { data } = await api.delete(`/galeria/admin/${id}`);
+  return data;
+};
+
+export const crearCategoria = async (payload) => {
+  const { data } = await api.post('/galeria/admin/categorias', payload);
   return data.data;
 };

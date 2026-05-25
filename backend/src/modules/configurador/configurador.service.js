@@ -1,72 +1,15 @@
 'use strict';
 const pool = require('../../config/db');
 
-// =============================================================================
-//  SERVICIO DEL CONFIGURADOR — EventPlanner QIM
-//
-//  Tablas reales usadas (verificadas en el .sql):
-//
-//  eqim_configurador.sesiones:
-//    sesion_id, sesion_uuid, usuario_id, ip_origen, user_agent,
-//    tipo_evento_id, paquete_id, num_invitados, color_primario,
-//    color_secundario, estilo_deco_id, centro_mesa_id, num_mesas,
-//    num_meseros, paso_actual, completada, precio_estimado,
-//    creado_en, actualizado_en, expira_en
-//
-//  eqim_configurador.sesion_servicios:
-//    sesion_id, adicional_id, cantidad, precio_snapshot
-//
-//  eqim_catalogo.estilos_decoracion:
-//    estilo_id, estilo_codigo, nombre, descripcion, imagen_url,
-//    costo_adicional, activo
-//
-//  eqim_catalogo.centros_mesa:
-//    centro_id, nombre, descripcion, imagen_url, costo_por_mesa, activo
-//
-//  eqim_catalogo.servicios_adicionales:
-//    adicional_id, nombre, descripcion, precio_unitario, unidad,
-//    categoria, imagen_url, activo
-//
-//  eqim_catalogo.tipos_evento:
-//    tipo_id, tipo_codigo, tipo_nombre, tipo_icono, descripcion,
-//    activo, orden_display
-// =============================================================================
-
-
 // ── GET todos los datos del catálogo para el configurador ────────────────────
 const obtenerDatosConfiguracion = async () => {
-  const [tipos, estilos, centros, adicionales] = await Promise.all([
+  const [tipos, estilos, centros, adicionales, paquetes] = await Promise.all([
 
-    pool.query(
-      `SELECT tipo_id, tipo_codigo, tipo_nombre, tipo_icono, descripcion
-       FROM eqim_catalogo.tipos_evento
-       WHERE activo = true
-       ORDER BY orden_display ASC`
-    ),
-
-    pool.query(
-      `SELECT estilo_id, estilo_codigo, nombre, descripcion,
-              imagen_url, costo_adicional
-       FROM eqim_catalogo.estilos_decoracion
-       WHERE activo = true
-       ORDER BY estilo_id ASC`
-    ),
-
-    pool.query(
-      `SELECT centro_id, nombre, descripcion,
-              imagen_url, costo_por_mesa
-       FROM eqim_catalogo.centros_mesa
-       WHERE activo = true
-       ORDER BY centro_id ASC`
-    ),
-
-    pool.query(
-      `SELECT adicional_id, nombre, descripcion,
-              precio_unitario, unidad, categoria, imagen_url
-       FROM eqim_catalogo.servicios_adicionales
-       WHERE activo = true
-       ORDER BY categoria, adicional_id ASC`
-    ),
+    pool.query(`SELECT tipo_id, tipo_codigo, tipo_nombre, tipo_icono, descripcion FROM eqim_catalogo.tipos_evento WHERE activo = true ORDER BY orden_display ASC`),
+    pool.query(`SELECT estilo_id, estilo_codigo, nombre, descripcion, imagen_url, costo_adicional FROM eqim_catalogo.estilos_decoracion WHERE activo = true ORDER BY estilo_id ASC`),
+    pool.query(`SELECT centro_id, nombre, descripcion, imagen_url, costo_por_mesa FROM eqim_catalogo.centros_mesa WHERE activo = true ORDER BY centro_id ASC`),
+    pool.query(`SELECT adicional_id, nombre, descripcion, precio_unitario, unidad, categoria, imagen_url FROM eqim_catalogo.servicios_adicionales WHERE activo = true ORDER BY categoria, adicional_id ASC`),
+    pool.query(`SELECT paquete_id, paquete_nombre, paquete_codigo, precio_persona, minimo_invitados, color_principal FROM eqim_catalogo.paquetes WHERE activo = true ORDER BY orden_display ASC`)
   ]);
 
   return {
@@ -74,21 +17,11 @@ const obtenerDatosConfiguracion = async () => {
     estilos_decoracion:    estilos.rows,
     centros_mesa:          centros.rows,
     servicios_adicionales: adicionales.rows,
+    paquetes:              paquetes.rows, 
   };
 };
 
-
 // ── CREAR / actualizar sesión del configurador ────────────────────────────────
-/**
- * Upsert de la sesión: si ya existe una sesión activa del usuario la actualiza,
- * si no existe crea una nueva.
- *
- * @param {number|null} usuarioId   - req.user.id (null si anónimo)
- * @param {Object}      datos       - campos de eqim_configurador.sesiones
- * @param {string}      ipOrigen    - req.ip
- * @param {string}      userAgent   - req.headers['user-agent']
- * @param {number|null} sesionId    - ID de sesión existente (para actualizar)
- */
 const guardarSesion = async ({
   usuarioId,
   datos,
@@ -109,10 +42,9 @@ const guardarSesion = async ({
     paso_actual      = 1,
     completada       = false,
     precio_estimado  = 0,
-    servicios        = [],   // [{adicional_id, cantidad, precio_snapshot}]
+    servicios        = [],   
   } = datos;
 
-  // Validación: mínimo 100 personas (regla de negocio de la Quinta)
   if (num_invitados < 100) {
     const err = new Error('El mínimo de invitados es 100 personas.');
     err.statusCode = 400;
@@ -121,7 +53,6 @@ const guardarSesion = async ({
 
   let sesion;
 
-  // ── UPDATE si ya hay sesión activa ────────────────────────────────────────
   if (sesionId) {
     const result = await pool.query(
       `UPDATE eqim_configurador.sesiones SET
@@ -157,7 +88,6 @@ const guardarSesion = async ({
     }
     sesion = result.rows[0];
 
-  // ── INSERT si es sesión nueva ─────────────────────────────────────────────
   } else {
     const result = await pool.query(
       `INSERT INTO eqim_configurador.sesiones
@@ -182,9 +112,7 @@ const guardarSesion = async ({
     sesion = result.rows[0];
   }
 
-  // ── Sincronizar servicios adicionales ─────────────────────────────────────
   if (servicios.length > 0) {
-    // Borrar los servicios actuales de esta sesión y reinsertar
     await pool.query(
       'DELETE FROM eqim_configurador.sesion_servicios WHERE sesion_id = $1',
       [sesion.sesion_id]
@@ -200,7 +128,6 @@ const guardarSesion = async ({
       );
     }
   } else if (sesionId) {
-    // Si se envía array vacío en un update, eliminar los servicios
     await pool.query(
       'DELETE FROM eqim_configurador.sesion_servicios WHERE sesion_id = $1',
       [sesion.sesion_id]
@@ -209,7 +136,6 @@ const guardarSesion = async ({
 
   return sesion;
 };
-
 
 // ── GET sesión por ID (con sus servicios) ─────────────────────────────────────
 const obtenerSesion = async (sesionId) => {
@@ -245,12 +171,7 @@ const obtenerSesion = async (sesionId) => {
   return rows[0];
 };
 
-
 // ── Calcular precio total en el servidor (fuente de verdad) ──────────────────
-/**
- * Calcula el precio desde la BD para que el frontend nunca pueda
- * manipular los precios.
- */
 const calcularPrecioTotal = async ({
   paqueteId,
   numInvitados,
@@ -263,7 +184,6 @@ const calcularPrecioTotal = async ({
     throw err;
   }
 
-  // Precio del paquete
   const paq = await pool.query(
     `SELECT precio_persona, minimo_invitados
      FROM eqim_catalogo.paquetes
@@ -280,7 +200,6 @@ const calcularPrecioTotal = async ({
   const personas       = Math.max(numInvitados, minimo_invitados);
   const subtotalPaq    = parseFloat(precio_persona) * personas;
 
-  // Precio centro de mesa (num_mesas lo calculamos: personas / 8 redondeado)
   let subtotalMesas = 0;
   if (centrMesaId) {
     const cm = await pool.query(
@@ -293,7 +212,6 @@ const calcularPrecioTotal = async ({
     }
   }
 
-  // Precio servicios adicionales
   let subtotalAdicionales = 0;
   for (const svc of servicios) {
     if (!svc.adicional_id || svc.cantidad < 1) continue;
@@ -319,9 +237,78 @@ const calcularPrecioTotal = async ({
   };
 };
 
+const obtenerFechasOcupadas = async () => {
+  const { rows } = await pool.query(
+    `SELECT fecha_evento AS fecha 
+     FROM eqim_solicitudes.eqim_solicitudes 
+     WHERE estado_id IN (SELECT estado_id FROM eqim_solicitudes.estados WHERE codigo IN ('CONFIRMADA', 'COMPLETADA')) 
+       AND fecha_evento IS NOT NULL
+     UNION
+     SELECT fecha FROM eqim_solicitudes.disponibilidad WHERE estado = 'BLOQUEADA'`
+  );
+  return rows.map(r => {
+    const d = new Date(r.fecha);
+    return d.toISOString().split('T')[0];
+  });
+};
+
+const obtenerCalendarioAdmin = async () => {
+  const solicitudes = await pool.query(`
+    SELECT s.solicitud_id, s.fecha_evento AS fecha, s.numero_solicitud, s.num_invitados, 
+           c.paquete_nombre, COALESCE(u.nombre_completo, 'Cliente Registrado') AS cliente, e.codigo AS estado_codigo
+    FROM eqim_solicitudes.eqim_solicitudes s
+    LEFT JOIN eqim_catalogo.paquetes c ON s.paquete_id = c.paquete_id
+    LEFT JOIN eqim_solicitudes.estados e ON s.estado_id = e.estado_id
+    LEFT JOIN eqim_seguridad.usuarios u ON s.usuario_id = u.usuario_id 
+    WHERE e.codigo IN ('CONFIRMADA', 'COMPLETADA') AND s.fecha_evento IS NOT NULL
+  `);
+
+  const bloqueos = await pool.query(`
+    SELECT disponibilidad_id, fecha, estado, nota_interna 
+    FROM eqim_solicitudes.disponibilidad 
+    WHERE estado = 'BLOQUEADA'
+  `);
+
+  return { eventos: solicitudes.rows, bloqueos: bloqueos.rows };
+};
+
+// 🚀 FASE 2: EL ESCUDO DEL CALENDARIO (REGLA DE NEGOCIO)
+const bloquearFechaManual = async (fecha, nota_interna, adminId) => {
+  // Verificamos si hay algún evento vivo en esa fecha (Pendiente, Revisión, Confirmada, Completada)
+  const checkEventos = await pool.query(
+    `SELECT s.numero_solicitud, e.codigo 
+     FROM eqim_solicitudes.eqim_solicitudes s
+     JOIN eqim_solicitudes.estados e ON s.estado_id = e.estado_id
+     WHERE s.fecha_evento = $1 AND e.codigo NOT IN ('CANCELADA', 'RECHAZADA')`,
+    [fecha]
+  );
+
+  if (checkEventos.rows.length > 0) {
+    const err = new Error('Operación denegada. Hay clientes con solicitudes activas para esta fecha.');
+    err.statusCode = 400; 
+    throw err;
+  }
+
+  const { rows } = await pool.query(
+    `INSERT INTO eqim_solicitudes.disponibilidad (fecha, estado, nota_interna, configurado_por)
+     VALUES ($1, 'BLOQUEADA', $2, $3) RETURNING *`,
+    [fecha, nota_interna, adminId]
+  );
+  return rows[0];
+};
+
+const desbloquearFechaManual = async (id) => {
+  await pool.query(`DELETE FROM eqim_solicitudes.disponibilidad WHERE disponibilidad_id = $1`, [id]);
+  return true;
+};
+
 module.exports = {
   obtenerDatosConfiguracion,
   guardarSesion,
   obtenerSesion,
   calcularPrecioTotal,
+  obtenerFechasOcupadas,
+  obtenerCalendarioAdmin,
+  bloquearFechaManual,
+  desbloquearFechaManual
 };
