@@ -24,18 +24,15 @@ const SUGERENCIAS_RAPIDAS = [
   '¿Qué extras me recomiendan para una boda íntima?',
 ];
 
-// ── Parsear Markdown básico a JSX ─────────────────────────────────────────────
-// Convierte **negrita**, • listas y saltos de línea en elementos React.
-// ── Parsear Markdown básico a JSX ─────────────────────────────────────────────
 const renderMarkdown = (texto) => {
   if (!texto) return null;
 
   return texto.split('\n').map((linea, i) => {
     if (linea.trim() === '') return <div key={i} className="h-2" />;
 
-    // 🚀 MAGIA: Dividir buscando negritas O enlaces en formato Markdown [Texto](url)
+    // Dividir buscando negritas O enlaces en formato Markdown [Texto](url)
     const partes = linea.split(/(\[[^\]]+\]\([^)]+\)|\*\*[^*]+\*\*)/g).map((parte, j) => {
-      // Si es negrita
+      // Si es negrita **texto**
       if (parte.startsWith('**') && parte.endsWith('**')) {
         return (
           <strong key={j} className="font-semibold text-[#0D2137]">
@@ -43,18 +40,23 @@ const renderMarkdown = (texto) => {
           </strong>
         );
       }
-      // 🚀 Si es un ENLACE INTELIGENTE
-      if (parte.startsWith('[') && parte.endsWith(')')) {
+      // Si es un ENLACE INTELIGENTE [Texto](url)
+      if (parte.startsWith('[') && parte.endsWith(')') && parte.includes('](')) {
         const textMatch = parte.match(/\[([^\]]+)\]/);
-        const urlMatch = parte.match(/\(([^)]+)\)/);
+        const urlMatch  = parte.match(/\(([^)]+)\)/);
         if (textMatch && urlMatch) {
+          // Limpiar el texto del botón: quitar emojis problemáticos al inicio
+          const textoBoton = textMatch[1]
+            .replace(/^[✨🚀⭐🎉🎊]+\s*/u, '')  // quitar emojis al inicio
+            .trim();
           return (
             <a
               key={j}
               href={urlMatch[1]}
-              className="inline-block mt-2 px-4 py-2 bg-[#B7950B] text-white rounded-lg font-bold hover:bg-[#9A7D0A] transition-all shadow-md"
+              className="inline-flex items-center gap-2 mt-3 px-5 py-2.5 bg-[#B7950B] text-white rounded-xl font-bold hover:bg-[#9A7D0A] transition-all shadow-md text-sm"
             >
-              🚀 {textMatch[1]}
+              <span>✨</span>
+              <span>{textoBoton || '¡Continuar con el configurador!'}</span>
             </a>
           );
         }

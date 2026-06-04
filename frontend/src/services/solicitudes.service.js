@@ -41,3 +41,27 @@ export const actualizarEstadoSolicitud = async (id, estado, observaciones = null
   const { data } = await api.put(`/solicitudes/${id}/estado`, { estado, observaciones });
   return data.data;
 };
+
+// ── Archivar solicitud (admin) ────────────────────────────────────────────────
+export const archivarSolicitud = async (id) => {
+  const { data } = await api.patch(`/solicitudes/${id}/archivar`);
+  return data;
+};
+
+// ── Desarchivar solicitud (admin) ─────────────────────────────────────────────
+export const desarchivarSolicitud = async (id) => {
+  const { data } = await api.patch(`/solicitudes/${id}/desarchivar`);
+  return data;
+};
+
+// ── Eliminar permanentemente (admin) — requiere motivo ────────────────────────
+export const eliminarSolicitudPermanente = async (id, motivo) => {
+  const { data } = await api.delete(`/solicitudes/${id}/permanente`, { data: { motivo } });
+  return data;
+};
+
+// ── Solicitudes archivadas (admin) ────────────────────────────────────────────
+export const getSolicitudesArchivadas = async (params = {}) => {
+  const { data } = await api.get('/solicitudes', { params: { ...params, archivadas: true } });
+  return data;
+};

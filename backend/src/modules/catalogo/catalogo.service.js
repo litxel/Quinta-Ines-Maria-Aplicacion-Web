@@ -1,8 +1,45 @@
 'use strict';
 const pool = require('../../config/db');
+const path = require('path');
+const fs   = require('fs');
 
 // ============================================================================
-//  1. GESTIÓN DE PAQUETES (Intacto de tu versión original)
+//  UTILIDAD: Guardar imagen base64 en disco
+// ============================================================================
+const guardarImagenBase64 = (base64, subcarpeta = 'catalogo') => {
+  if (!base64 || !base64.startsWith('data:image/')) {
+    const e = new Error('Formato de imagen inválido.'); e.statusCode = 400; throw e;
+  }
+
+  const match = base64.match(/^data:image\/(jpeg|jpg|png|gif|webp);base64,/i);
+  if (!match) {
+    const e = new Error('Tipo de imagen no permitido. Usa JPEG, PNG o WebP.'); e.statusCode = 400; throw e;
+  }
+
+  const ext    = match[1].toLowerCase() === 'jpeg' ? 'jpg' : match[1].toLowerCase();
+  const buffer = Buffer.from(base64.replace(/^data:image\/\w+;base64,/, ''), 'base64');
+
+  if (buffer.length > 5 * 1024 * 1024) {
+    const e = new Error('La imagen no puede superar 5MB.'); e.statusCode = 400; throw e;
+  }
+
+  const uploadDir = path.join(__dirname, '../../../public/uploads', subcarpeta);
+  if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+
+  const filename = `${subcarpeta}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}.${ext}`;
+  fs.writeFileSync(path.join(uploadDir, filename), buffer);
+  return `/uploads/${subcarpeta}/${filename}`;
+};
+
+const eliminarImagenAnterior = (urlRelativa) => {
+  if (!urlRelativa || urlRelativa.startsWith('http')) return;
+  const relPath = urlRelativa.replace(/^\//, '');
+  const abs = path.join(__dirname, '../../../public', relPath);
+  if (fs.existsSync(abs)) { try { fs.unlinkSync(abs); } catch (_) {} }
+};
+
+// ============================================================================
+//  1. GESTIÓN DE PAQUETES
 // ============================================================================
 const obtenerPaquetesPublicos = async () => {
   const { rows } = await pool.query(
@@ -88,28 +125,48 @@ const calcularPrecio = async ({ paqueteCodigo, numPersonas }) => {
   const p = rows[0];
   const personasEfectivas = Math.max(numPersonas, p.minimo_invitados);
   const subtotal = personasEfectivas * parseFloat(p.precio_persona);
-  return { paquete_codigo: p.paquete_codigo, paquete_nombre: p.paquete_nombre, precio_persona: parseFloat(p.precio_persona), num_personas: numPersonas, personas_cobradas: personasEfectivas, subtotal, nota: numPersonas < p.minimo_invitados ? `Se cobra el mínimo de ${p.minimo_invitados} personas.` : null, };
+  return { paquete_codigo: p.paquete_codigo, paquete_nombre: p.paquete_nombre, precio_persona: parseFloat(p.precio_persona), num_personas: numPersonas, personas_cobradas: personasEfectivas, subtotal, nota: numPersonas < p.minimo_invitados ? `Se cobra el mínimo de ${p.minimo_invitados} personas.` : null };
 };
 
 // ============================================================================
-//  2. NUEVO CRUD: TIPOS DE EVENTO (Paso 1)
+//  2. TIPOS DE EVENTO — con soporte imagen_base64
 // ============================================================================
 const obtenerTiposEventoAdmin = async () => {
-  const { rows } = await pool.query('SELECT * FROM eqim_catalogo.tipos_evento ORDER BY orden_display ASC');
+  const { rows } = await pool.query('SELECT tipo_id, tipo_codigo, tipo_nombre, tipo_icono, descripcion, imagen_url, activo, orden_display FROM eqim_catalogo.tipos_evento ORDER BY orden_display ASC');
   return rows;
 };
-const crearTipoEvento = async ({ tipo_nombre, tipo_codigo, tipo_icono, descripcion, orden_display = 99 }) => {
+const crearTipoEvento = async ({ tipo_nombre, tipo_codigo, tipo_icono, descripcion, orden_display = 99, imagen_base64 }) => {
+  const imagen_url = imagen_base64 ? guardarImagenBase64(imagen_base64, 'tipos') : null;
   const { rows } = await pool.query(
-    `INSERT INTO eqim_catalogo.tipos_evento (tipo_nombre, tipo_codigo, tipo_icono, descripcion, orden_display) VALUES ($1, $2, $3, $4, $5) RETURNING *`,
-    [tipo_nombre, tipo_codigo.toUpperCase(), tipo_icono, descripcion, orden_display]
+    `INSERT INTO eqim_catalogo.tipos_evento (tipo_nombre, tipo_codigo, tipo_icono, descripcion, orden_display, imagen_url)
+     VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
+    [tipo_nombre, tipo_codigo.toUpperCase(), tipo_icono, descripcion, orden_display, imagen_url]
   );
   return rows[0];
 };
 const actualizarTipoEvento = async (id, datos) => {
-  const { tipo_nombre, tipo_codigo, tipo_icono, descripcion, orden_display, activo } = datos;
+  const { tipo_nombre, tipo_codigo, tipo_icono, descripcion, orden_display, activo, imagen_base64 } = datos;
+
+  // Si se envía nueva imagen, guardar y eliminar la anterior
+  let imagen_url_nueva = undefined;
+  if (imagen_base64) {
+    const actual = await pool.query('SELECT imagen_url FROM eqim_catalogo.tipos_evento WHERE tipo_id = $1', [id]);
+    if (actual.rows[0]?.imagen_url) eliminarImagenAnterior(actual.rows[0].imagen_url);
+    imagen_url_nueva = guardarImagenBase64(imagen_base64, 'tipos');
+  }
+
   const { rows } = await pool.query(
-    `UPDATE eqim_catalogo.tipos_evento SET tipo_nombre = COALESCE($1, tipo_nombre), tipo_codigo = COALESCE($2, tipo_codigo), tipo_icono = COALESCE($3, tipo_icono), descripcion = COALESCE($4, descripcion), orden_display = COALESCE($5, orden_display), activo = COALESCE($6, activo) WHERE tipo_id = $7 RETURNING *`,
-    [tipo_nombre, tipo_codigo, tipo_icono, descripcion, orden_display, activo, id]
+    `UPDATE eqim_catalogo.tipos_evento
+     SET tipo_nombre   = COALESCE($1, tipo_nombre),
+         tipo_codigo   = COALESCE($2, tipo_codigo),
+         tipo_icono    = COALESCE($3, tipo_icono),
+         descripcion   = COALESCE($4, descripcion),
+         orden_display = COALESCE($5, orden_display),
+         activo        = COALESCE($6, activo),
+         imagen_url    = COALESCE($7, imagen_url)
+     WHERE tipo_id = $8
+     RETURNING *`,
+    [tipo_nombre ?? null, tipo_codigo ?? null, tipo_icono ?? null, descripcion ?? null, orden_display ?? null, activo ?? null, imagen_url_nueva ?? null, id]
   );
   return rows[0];
 };
@@ -118,24 +175,49 @@ const desactivarTipoEvento = async (id) => {
 };
 
 // ============================================================================
-//  3. NUEVO CRUD: ESTILOS DE DECORACIÓN (Paso 6)
+//  3. ESTILOS DE DECORACIÓN — con soporte imagen_base64
 // ============================================================================
 const obtenerEstilosAdmin = async () => {
-  const { rows } = await pool.query('SELECT * FROM eqim_catalogo.estilos_decoracion ORDER BY estilo_id ASC');
+  const { rows } = await pool.query(`
+    SELECT estilo_id, estilo_codigo, nombre, descripcion, icono, imagen_url, costo_adicional, activo
+    FROM eqim_catalogo.estilos_decoracion
+    ORDER BY estilo_id ASC
+  `);
   return rows;
 };
-const crearEstilo = async ({ estilo_codigo, nombre, descripcion, imagen_url, costo_adicional = 0 }) => {
+const crearEstilo = async ({ estilo_codigo, nombre, descripcion, icono, imagen_base64, costo_adicional = 0 }) => {
+  const imagen_url = imagen_base64 ? guardarImagenBase64(imagen_base64, 'estilos') : null;
   const { rows } = await pool.query(
-    `INSERT INTO eqim_catalogo.estilos_decoracion (estilo_codigo, nombre, descripcion, imagen_url, costo_adicional) VALUES ($1, $2, $3, $4, $5) RETURNING *`,
-    [estilo_codigo.toUpperCase(), nombre, descripcion, imagen_url, costo_adicional]
+    `INSERT INTO eqim_catalogo.estilos_decoracion (estilo_codigo, nombre, descripcion, icono, imagen_url, costo_adicional)
+     VALUES ($1, $2, $3, $4, $5, $6)
+     RETURNING estilo_id, estilo_codigo, nombre, descripcion, icono, imagen_url, costo_adicional, activo`,
+    [estilo_codigo.toUpperCase(), nombre, descripcion, icono, imagen_url, costo_adicional]
   );
   return rows[0];
 };
 const actualizarEstilo = async (id, datos) => {
-  const { estilo_codigo, nombre, descripcion, imagen_url, costo_adicional, activo } = datos;
+  const { estilo_codigo, nombre, descripcion, icono, imagen_base64, costo_adicional, activo } = datos;
+
+  // Si se manda nueva imagen, guardar y eliminar la anterior
+  let imagen_url_nueva = undefined;
+  if (imagen_base64) {
+    const actual = await pool.query('SELECT imagen_url FROM eqim_catalogo.estilos_decoracion WHERE estilo_id = $1', [id]);
+    if (actual.rows[0]?.imagen_url) eliminarImagenAnterior(actual.rows[0].imagen_url);
+    imagen_url_nueva = guardarImagenBase64(imagen_base64, 'estilos');
+  }
+
   const { rows } = await pool.query(
-    `UPDATE eqim_catalogo.estilos_decoracion SET estilo_codigo = COALESCE($1, estilo_codigo), nombre = COALESCE($2, nombre), descripcion = COALESCE($3, descripcion), imagen_url = COALESCE($4, imagen_url), costo_adicional = COALESCE($5, costo_adicional), activo = COALESCE($6, activo) WHERE estilo_id = $7 RETURNING *`,
-    [estilo_codigo, nombre, descripcion, imagen_url, costo_adicional, activo, id]
+    `UPDATE eqim_catalogo.estilos_decoracion
+     SET estilo_codigo   = COALESCE($1, estilo_codigo),
+         nombre          = COALESCE($2, nombre),
+         descripcion     = COALESCE($3, descripcion),
+         icono           = COALESCE($4, icono),
+         imagen_url      = COALESCE($5, imagen_url),
+         costo_adicional = COALESCE($6, costo_adicional),
+         activo          = COALESCE($7, activo)
+     WHERE estilo_id = $8
+     RETURNING estilo_id, estilo_codigo, nombre, descripcion, icono, imagen_url, costo_adicional, activo`,
+    [estilo_codigo ?? null, nombre ?? null, descripcion ?? null, icono ?? null, imagen_url_nueva ?? null, costo_adicional ?? null, activo ?? null, id]
   );
   return rows[0];
 };
@@ -144,24 +226,47 @@ const desactivarEstilo = async (id) => {
 };
 
 // ============================================================================
-//  4. NUEVO CRUD: CENTROS DE MESA (Paso 6)
+//  4. CENTROS DE MESA — con soporte imagen_base64
 // ============================================================================
 const obtenerCentrosAdmin = async () => {
-  const { rows } = await pool.query('SELECT * FROM eqim_catalogo.centros_mesa ORDER BY centro_id ASC');
+  const { rows } = await pool.query(`
+    SELECT centro_id, nombre, descripcion, icono, imagen_url, costo_por_mesa, activo
+    FROM eqim_catalogo.centros_mesa
+    ORDER BY centro_id ASC
+  `);
   return rows;
 };
-const crearCentro = async ({ nombre, descripcion, imagen_url, costo_por_mesa = 0 }) => {
+const crearCentro = async ({ nombre, descripcion, icono, imagen_base64, costo_por_mesa = 0 }) => {
+  const imagen_url = imagen_base64 ? guardarImagenBase64(imagen_base64, 'centros') : null;
   const { rows } = await pool.query(
-    `INSERT INTO eqim_catalogo.centros_mesa (nombre, descripcion, imagen_url, costo_por_mesa) VALUES ($1, $2, $3, $4) RETURNING *`,
-    [nombre, descripcion, imagen_url, costo_por_mesa]
+    `INSERT INTO eqim_catalogo.centros_mesa (nombre, descripcion, icono, imagen_url, costo_por_mesa)
+     VALUES ($1, $2, $3, $4, $5)
+     RETURNING centro_id, nombre, descripcion, icono, imagen_url, costo_por_mesa, activo`,
+    [nombre, descripcion, icono, imagen_url, costo_por_mesa]
   );
   return rows[0];
 };
 const actualizarCentro = async (id, datos) => {
-  const { nombre, descripcion, imagen_url, costo_por_mesa, activo } = datos;
+  const { nombre, descripcion, icono, imagen_base64, costo_por_mesa, activo } = datos;
+
+  let imagen_url_nueva = undefined;
+  if (imagen_base64) {
+    const actual = await pool.query('SELECT imagen_url FROM eqim_catalogo.centros_mesa WHERE centro_id = $1', [id]);
+    if (actual.rows[0]?.imagen_url) eliminarImagenAnterior(actual.rows[0].imagen_url);
+    imagen_url_nueva = guardarImagenBase64(imagen_base64, 'centros');
+  }
+
   const { rows } = await pool.query(
-    `UPDATE eqim_catalogo.centros_mesa SET nombre = COALESCE($1, nombre), descripcion = COALESCE($2, descripcion), imagen_url = COALESCE($3, imagen_url), costo_por_mesa = COALESCE($4, costo_por_mesa), activo = COALESCE($5, activo) WHERE centro_id = $6 RETURNING *`,
-    [nombre, descripcion, imagen_url, costo_por_mesa, activo, id]
+    `UPDATE eqim_catalogo.centros_mesa
+     SET nombre         = COALESCE($1, nombre),
+         descripcion    = COALESCE($2, descripcion),
+         icono          = COALESCE($3, icono),
+         imagen_url     = COALESCE($4, imagen_url),
+         costo_por_mesa = COALESCE($5, costo_por_mesa),
+         activo         = COALESCE($6, activo)
+     WHERE centro_id = $7
+     RETURNING centro_id, nombre, descripcion, icono, imagen_url, costo_por_mesa, activo`,
+    [nombre ?? null, descripcion ?? null, icono ?? null, imagen_url_nueva ?? null, costo_por_mesa ?? null, activo ?? null, id]
   );
   return rows[0];
 };
@@ -170,24 +275,49 @@ const desactivarCentro = async (id) => {
 };
 
 // ============================================================================
-//  5. NUEVO CRUD: SERVICIOS ADICIONALES / EXTRAS (Paso 7)
+//  5. SERVICIOS ADICIONALES / EXTRAS — con soporte imagen_base64
 // ============================================================================
 const obtenerExtrasAdmin = async () => {
-  const { rows } = await pool.query('SELECT * FROM eqim_catalogo.servicios_adicionales ORDER BY categoria ASC, adicional_id ASC');
+  const { rows } = await pool.query(`
+    SELECT adicional_id, nombre, descripcion, precio_unitario, unidad, categoria, icono, imagen_url, activo
+    FROM eqim_catalogo.servicios_adicionales
+    ORDER BY categoria ASC, adicional_id ASC
+  `);
   return rows;
 };
-const crearExtra = async ({ nombre, descripcion, precio_unitario, unidad = 'unidad', categoria = 'GENERAL', imagen_url }) => {
+const crearExtra = async ({ nombre, descripcion, precio_unitario, unidad = 'unidad', categoria = 'GENERAL', icono, imagen_base64 }) => {
+  const imagen_url = imagen_base64 ? guardarImagenBase64(imagen_base64, 'extras') : null;
   const { rows } = await pool.query(
-    `INSERT INTO eqim_catalogo.servicios_adicionales (nombre, descripcion, precio_unitario, unidad, categoria, imagen_url) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
-    [nombre, descripcion, precio_unitario, unidad, categoria, imagen_url]
+    `INSERT INTO eqim_catalogo.servicios_adicionales (nombre, descripcion, precio_unitario, unidad, categoria, icono, imagen_url)
+     VALUES ($1, $2, $3, $4, $5, $6, $7)
+     RETURNING adicional_id, nombre, descripcion, precio_unitario, unidad, categoria, icono, imagen_url, activo`,
+    [nombre, descripcion, precio_unitario, unidad, categoria, icono, imagen_url]
   );
   return rows[0];
 };
 const actualizarExtra = async (id, datos) => {
-  const { nombre, descripcion, precio_unitario, unidad, categoria, imagen_url, activo } = datos;
+  const { nombre, descripcion, precio_unitario, unidad, categoria, icono, imagen_base64, activo } = datos;
+
+  let imagen_url_nueva = undefined;
+  if (imagen_base64) {
+    const actual = await pool.query('SELECT imagen_url FROM eqim_catalogo.servicios_adicionales WHERE adicional_id = $1', [id]);
+    if (actual.rows[0]?.imagen_url) eliminarImagenAnterior(actual.rows[0].imagen_url);
+    imagen_url_nueva = guardarImagenBase64(imagen_base64, 'extras');
+  }
+
   const { rows } = await pool.query(
-    `UPDATE eqim_catalogo.servicios_adicionales SET nombre = COALESCE($1, nombre), descripcion = COALESCE($2, descripcion), precio_unitario = COALESCE($3, precio_unitario), unidad = COALESCE($4, unidad), categoria = COALESCE($5, categoria), imagen_url = COALESCE($6, imagen_url), activo = COALESCE($7, activo) WHERE adicional_id = $8 RETURNING *`,
-    [nombre, descripcion, precio_unitario, unidad, categoria, imagen_url, activo, id]
+    `UPDATE eqim_catalogo.servicios_adicionales
+     SET nombre          = COALESCE($1, nombre),
+         descripcion     = COALESCE($2, descripcion),
+         precio_unitario = COALESCE($3, precio_unitario),
+         unidad          = COALESCE($4, unidad),
+         categoria       = COALESCE($5, categoria),
+         icono           = COALESCE($6, icono),
+         imagen_url      = COALESCE($7, imagen_url),
+         activo          = COALESCE($8, activo)
+     WHERE adicional_id = $9
+     RETURNING adicional_id, nombre, descripcion, precio_unitario, unidad, categoria, icono, imagen_url, activo`,
+    [nombre ?? null, descripcion ?? null, precio_unitario ?? null, unidad ?? null, categoria ?? null, icono ?? null, imagen_url_nueva ?? null, activo ?? null, id]
   );
   return rows[0];
 };
@@ -196,7 +326,8 @@ const desactivarExtra = async (id) => {
 };
 
 module.exports = { 
-  obtenerPaquetesPublicos, obtenerPaquetePorCodigo, obtenerTodosPaquetesAdmin, crearPaquete, actualizarPaquete, desactivarPaquete, obtenerServiciosDePaquete, agregarServicio, actualizarServicio, eliminarServicio, calcularPrecio,
+  obtenerPaquetesPublicos, obtenerPaquetePorCodigo, obtenerTodosPaquetesAdmin, crearPaquete, actualizarPaquete, desactivarPaquete,
+  obtenerServiciosDePaquete, agregarServicio, actualizarServicio, eliminarServicio, calcularPrecio,
   obtenerTiposEventoAdmin, crearTipoEvento, actualizarTipoEvento, desactivarTipoEvento,
   obtenerEstilosAdmin, crearEstilo, actualizarEstilo, desactivarEstilo,
   obtenerCentrosAdmin, crearCentro, actualizarCentro, desactivarCentro,

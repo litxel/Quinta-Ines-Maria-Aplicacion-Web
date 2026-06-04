@@ -245,6 +245,9 @@ export default function Solicitar() {
   const [numSolicitud, setNumSolicitud] = useState('');
   const [generandoPDF, setGenerandoPDF] = useState(false);
   const [error,        setError]        = useState('');
+  
+  // 🚀 NUEVO ESTADO: Comentario del cliente
+  const [comentarioCliente, setComentarioCliente] = useState('');
 
   const handleIrLogin = () => {
     setRedirectAfterLogin('/solicitar');
@@ -295,11 +298,14 @@ export default function Solicitar() {
       const pdfBaseURI = await generarPDF(datosCotizacion, true);
       const pdfBase64Limpio = pdfBaseURI.includes('base64,') ? pdfBaseURI.split('base64,')[1] : pdfBaseURI;
 
-      // 🚀 SOLUCIÓN DEFINITIVA: 
-      // Quitamos eqim_cotizacion_id y sesion_id para que la BD NO rompa por llave foránea.
-      // A cambio, guardamos los colores y extras en observaciones para que el Admin los lea.
-      const coloresTexto = store.color_primario ? `Colores: ${store.color_primario}, ${store.color_secundario}` : 'Sin colores';
-      
+      // 🚀 EMPAQUETAMOS LOS COLORES Y EXTRAS PARA EL ADMIN
+      const coloresTexto = store.color_primario ? `${store.color_primario} / ${store.color_secundario}` : 'Sin colores especiales';
+      const estiloTexto  = store.estiloSeleccionado?.nombre || 'Estándar';
+      const centroTexto  = store.centroMesaSeleccionado?.nombre || 'Estándar';
+      const extrasTexto  = store.servicios.length > 0 ? store.servicios.map(s => `${s.nombre} (x${s.cantidad})`).join(', ') : 'Ninguno';
+
+      const notasFormateadas = `🎨 Colores: ${coloresTexto}\n✨ Estilo: ${estiloTexto}\n🌺 Centro de Mesa: ${centroTexto}\n📦 Extras: ${extrasTexto}`;
+
       const payloadBD = {
         numero_cotizacion: numero,
         tipo_evento_id:    store.tipoEventoSeleccionado?.tipo_id,
@@ -307,7 +313,18 @@ export default function Solicitar() {
         num_invitados:     store.num_invitados,
         precio_estimado:   datosCotizacion.total,
         telefono_contacto: user?.telefono,
-        observaciones:     `Cotización finalizada. | ${coloresTexto} | Extras seleccionados: ${store.servicios.length}`,
+        mensaje_cliente:   comentarioCliente,
+        // Datos del configurador estético (guardados directamente en BD)
+        color_primario:    store.color_primario    || null,
+        color_secundario:  store.color_secundario  || null,
+        estilo_deco_id:    store.estilo_deco_id    || null,
+        centro_mesa_id:    store.centro_mesa_id    || null,
+        extras:            store.servicios.map(s => ({
+          adicional_id:    s.adicional_id,
+          nombre:          s.nombre,
+          cantidad:        s.cantidad,
+          precio_snapshot: s.precio_snapshot,
+        })),
       };
 
       await crearSolicitudRequest(payloadBD); 
@@ -541,6 +558,25 @@ export default function Solicitar() {
                 </span>
               </div>
             </div>
+          </div>
+        </div>
+        
+        {/* 🚀 CAJA DE COMENTARIOS PARA EL CLIENTE */}
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden mb-5">
+          <div className="p-6">
+            <label className="block font-display text-lg font-semibold text-[#0D2137] mb-2">
+              ¿Algún comentario adicional para nuestro equipo?
+            </label>
+            <p className="text-xs text-slate-500 mb-3">
+              Ej: "Por favor llámenme por la tarde", "Tengo alergia a los mariscos", etc.
+            </p>
+            <textarea
+              value={comentarioCliente}
+              onChange={(e) => setComentarioCliente(e.target.value)}
+              rows="3"
+              className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl text-sm focus:outline-none focus:border-[#B7950B] resize-none transition-colors"
+              placeholder="Escribe tu mensaje aquí (opcional)..."
+            />
           </div>
         </div>
 

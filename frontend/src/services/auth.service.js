@@ -5,10 +5,11 @@ const sanitize = (str) =>
   typeof str === 'string' ? str.trim().replace(/[<>"'`]/g, '').slice(0, 255) : '';
 
 // ── POST /api/auth/register ───────────────────────────────────────────────────
-export const registerRequest = async ({ nombre_completo, correo, password }) => {
+export const registerRequest = async ({ nombre_completo, correo, telefono, password }) => {
   const { data } = await api.post('/auth/register', {
     nombre_completo: sanitize(nombre_completo),
     correo:          sanitize(correo).toLowerCase(),
+    telefono:        sanitize(telefono),
     password,        // la contraseña no se sanitiza para no mutilar caracteres especiales
   });
   return data;

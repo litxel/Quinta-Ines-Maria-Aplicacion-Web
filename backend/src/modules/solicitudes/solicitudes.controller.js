@@ -7,8 +7,10 @@ const email     = require('../../utils/email.service');
 const crearSolicitud = async (req, res, next) => {
   try {
     const {
-      sesion_id, numero_cotizacion, tipo_evento_id, paquete_id,
-      num_invitados, precio_estimado, observaciones, telefono_contacto
+      numero_cotizacion, tipo_evento_id, paquete_id,
+      num_invitados, precio_estimado, observaciones, telefono_contacto,
+      mensaje_cliente,
+      color_primario, color_secundario, estilo_deco_id, centro_mesa_id, extras
     } = req.body;
 
     if (!paquete_id)
@@ -20,15 +22,25 @@ const crearSolicitud = async (req, res, next) => {
 
     const solicitud = await svc.crearSolicitud({
       usuarioId:        req.user.id,
-      eqimCotizacionId: sesion_id        ?? null,
+      eqimCotizacionId: null,
       numeroSolicitud:  numero_cotizacion,
       tipoEventoId:     tipo_evento_id   ?? null,
       paqueteId:        paquete_id,
       numInvitados:     parseInt(num_invitados, 10),
       precioEstimado:   parseFloat(precio_estimado ?? 0),
-      mensajeCliente:   observaciones    ?? null,
-      telefonoContacto: telefono_contacto ?? null
+      mensajeCliente:   mensaje_cliente  ?? null,
+      telefonoContacto: telefono_contacto ?? null,
+      colorPrimario:    color_primario    ?? null,
+      colorSecundario:  color_secundario  ?? null,
+      estilodecoId:     estilo_deco_id    ?? null,
+      centroMesaId:     centro_mesa_id    ?? null,
+      extras:           Array.isArray(extras) ? extras : [],
     });
+
+    // Actualizar observaciones/comentario_admin si vienen del frontend
+    if (observaciones) {
+      await svc.actualizarEstado(solicitud.solicitud_id, 'PENDIENTE', observaciones, req.user.id);
+    }
 
     email.enviarConfirmacionSolicitud({
       nombre:  req.user.nombre,
@@ -54,6 +66,7 @@ const crearSolicitud = async (req, res, next) => {
     });
   } catch (err) { next(err); }
 };
+
 
 // ── GET /api/solicitudes/mis-solicitudes ──────────────────────────────────────
 const getMisSolicitudes = async (req, res, next) => {
@@ -131,6 +144,7 @@ const actualizarEstado = async (req, res, next) => {
     });
   } catch (err) { next(err); }
 };
+
 // ── PUT /api/solicitudes/:id/cancelar ──────────────────────────────────────────
 const cancelarSolicitud = async (req, res, next) => {
   try {
@@ -150,7 +164,47 @@ const cancelarSolicitud = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
+// ── PATCH /api/solicitudes/:id/archivar ──────────────────────────────────────
+const archivarSolicitud = async (req, res, next) => {
+  try {
+    const id = parseInt(req.params.id, 10);
+    const data = await svc.archivarSolicitud(id);
+    return res.json({ success: true, message: 'Solicitud archivada.', data });
+  } catch (err) { next(err); }
+};
+
+// ── PATCH /api/solicitudes/:id/desarchivar ───────────────────────────────────
+const desarchivarSolicitud = async (req, res, next) => {
+  try {
+    const id = parseInt(req.params.id, 10);
+    const data = await svc.desarchivarSolicitud(id);
+    return res.json({ success: true, message: 'Solicitud desarchivada.', data });
+  } catch (err) { next(err); }
+};
+
+// ── DELETE /api/solicitudes/:id/permanente ───────────────────────────────────
+const eliminarPermanente = async (req, res, next) => {
+  try {
+    const id = parseInt(req.params.id, 10);
+    const { motivo } = req.body;
+    if (!motivo || !motivo.trim()) {
+      return res.status(400).json({ success: false, message: 'El motivo de eliminación es obligatorio.' });
+    }
+    const data = await svc.eliminarSolicitudPermanente(id, motivo.trim());
+
+    await auditoria.registrarLogOperacion({
+      schemaTabla: 'eqim_solicitudes.eqim_solicitudes', operacion: 'DELETE',
+      usuarioId: req.user.id, datosNuevos: { solicitud_id: id, motivo },
+      ipOrigen: req.ip, userAgent: req.headers['user-agent'],
+      descripcion: `Admin eliminó permanentemente solicitud ${id}: ${motivo}`,
+    });
+
+    return res.json({ success: true, message: `Solicitud ${data.numero_solicitud} eliminada. Notificación enviada a ${data.correo}.`, data });
+  } catch (err) { next(err); }
+};
+
 module.exports = {
   crearSolicitud, getMisSolicitudes, getTodasSolicitudes,
-  getDashboard, getSolicitud, actualizarEstado, cancelarSolicitud // cada funcion exportada
-};
+  getDashboard, getSolicitud, actualizarEstado, cancelarSolicitud,
+  archivarSolicitud, desarchivarSolicitud, eliminarPermanente,
+};

@@ -221,4 +221,38 @@ module.exports = {
   enviarVerificacionCorreo,
   enviarResetPassword,
   enviarConfirmacionSolicitud,
+  enviarCancelacionSolicitud,
 };
+
+/**
+ * Notificación de cancelación/eliminación permanente por parte del admin
+ * @param {{ nombre:string, correo:string, numero:string, motivo:string }} param
+ */
+async function enviarCancelacionSolicitud({ nombre, correo, numero, motivo }) {
+  const html = htmlBase(`
+    ${saludo(nombre)}
+    <p style="font-size:15px;color:#444;line-height:1.7;margin:0 0 20px;">
+      Lamentamos informarte que tu solicitud con el número <strong>${numero}</strong> ha sido 
+      <strong style="color:#DC143C;">cancelada y eliminada del sistema</strong> por parte de nuestro equipo administrativo.
+    </p>
+    <div style="background:#FFF5F5;border-left:4px solid #DC143C;padding:16px 20px;border-radius:0 8px 8px 0;margin:20px 0;">
+      <p style="margin:0 0 6px;font-size:12px;font-weight:700;color:#DC143C;text-transform:uppercase;letter-spacing:0.5px;">Motivo de cancelación</p>
+      <p style="margin:0;font-size:14px;color:#444;line-height:1.6;">${motivo}</p>
+    </div>
+    <p style="font-size:14px;color:#555;line-height:1.7;">
+      Si tienes alguna consulta o consideras que esto es un error, no dudes en contactarnos 
+      directamente a través de nuestros canales oficiales. Lamentamos los inconvenientes causados.
+    </p>
+    <p style="font-size:14px;color:#555;line-height:1.7;">
+      Si deseas reagendar tu evento, puedes realizar una nueva solicitud en nuestro sistema.
+    </p>
+    ${firma()}
+  `);
+
+  await getTransporter().sendMail({
+    from:    `"Quinta Inés María" <${process.env.SMTP_USER}>`,
+    to:      correo,
+    subject: `Cancelación de solicitud ${numero} — Quinta Inés María`,
+    html,
+  });
+}

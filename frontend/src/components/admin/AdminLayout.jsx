@@ -11,7 +11,11 @@ import {
   ChevronDown,
   Menu,
   Settings,
-  ChevronLeft
+  ChevronLeft,
+  Users,
+  BarChart2,
+  UserCircle,
+  Archive
 } from 'lucide-react';
 
 // ── ESTRUCTURA DEL MENÚ TIPO ACORDEÓN ──
@@ -26,8 +30,9 @@ const MENU_GROUPS = [
     title: 'OPERACIONES',
     icon: <ClipboardList size={20} />,
     items: [
-      { to: '/admin/solicitudes', label: 'Facturación y Solicitudes', icon: <ClipboardList size={18} /> },
-      { to: '/admin/calendario', label: 'Calendario de Eventos', icon: <Calendar size={18} /> }
+      { to: '/admin/solicitudes',  label: 'Facturación y Solicitudes',   icon: <ClipboardList size={18} /> },
+      { to: '/admin/archivadas',   label: 'Solicitudes Archivadas',      icon: <Archive size={18} /> },
+      { to: '/admin/calendario',   label: 'Calendario de Eventos',       icon: <Calendar size={18} /> }
     ]
   },
   {
@@ -36,6 +41,15 @@ const MENU_GROUPS = [
     items: [
       { to: '/admin/catalogo', label: 'Servicios y Precios', icon: <Package size={18} /> },
       { to: '/admin/galeria', label: 'Galería Visual', icon: <ImageIcon size={18} /> }
+    ]
+  },
+  {
+    title: 'CLIENTES Y REPORTES',
+    icon: <Users size={20} />,
+    items: [
+      { to: '/admin/usuarios',  label: 'Gestión de Usuarios',  icon: <Users size={18} /> },
+      { to: '/admin/reportes',  label: 'Reportes y Analítica', icon: <BarChart2 size={18} /> },
+      { to: '/admin/perfil',    label: 'Mi Perfil',            icon: <UserCircle size={18} /> }
     ]
   }
 ];
@@ -193,15 +207,25 @@ export default function AdminLayout() {
         {/* Footer Sidebar (Usuario) */}
         <div className={`p-4 border-t border-white/10 bg-black/20 transition-all ${isCollapsed ? 'items-center' : ''}`}>
           {!isCollapsed && (
-            <div className="flex items-center gap-3 mb-4 px-2">
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-slate-700 to-slate-800 border border-slate-600 flex items-center justify-center font-bold text-white shadow-inner">
-                {(user?.nombre_completo ?? 'A')[0]}
+            <Link to="/admin/perfil" className="flex items-center gap-3 mb-4 px-2 hover:bg-white/5 rounded-xl p-2 transition-colors group">
+              <div className="w-10 h-10 rounded-full overflow-hidden border border-slate-600 shadow-inner shrink-0">
+                {user?.foto_perfil ? (
+                  <img
+                    src={`${import.meta.env.VITE_API_URL?.replace('/api','') || 'http://localhost:5000'}${user.foto_perfil}`}
+                    alt="Foto de perfil"
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-gradient-to-br from-slate-700 to-slate-800 flex items-center justify-center font-bold text-white">
+                    {(user?.nombre_completo ?? 'A')[0]}
+                  </div>
+                )}
               </div>
               <div className="flex flex-col overflow-hidden">
-                <span className="text-sm font-bold text-white truncate">{user?.nombre_completo?.split(' ')[0]}</span>
+                <span className="text-sm font-bold text-white truncate group-hover:text-[#B7950B] transition-colors">{user?.nombre_completo?.split(' ')[0]}</span>
                 <span className="text-[10px] text-[#B7950B] uppercase tracking-wider truncate">Administrador</span>
               </div>
-            </div>
+            </Link>
           )}
           
           <button

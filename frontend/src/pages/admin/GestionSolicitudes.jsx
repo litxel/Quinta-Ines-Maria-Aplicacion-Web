@@ -2,22 +2,15 @@ import { useState, useEffect, useCallback } from 'react';
 import { 
   getTodasSolicitudes, 
   actualizarEstadoSolicitud, 
-  getSolicitudDetalle 
+  getSolicitudDetalle,
+  archivarSolicitud,
+  eliminarSolicitudPermanente
 } from '../../services/solicitudes.service';
 import BadgeEstado from '../../components/shared/BadgeEstado';
 import { 
-  X, 
-  User, 
-  Phone, 
-  Mail, 
-  Calendar, 
-  Users, 
-  Package, 
-  FileText, 
-  Download, 
-  Palette, 
-  GripHorizontal, 
-  MessageSquare 
+  X, User, Phone, Mail, Calendar, Users, Package, FileText, Download,
+  Palette, GripHorizontal, MessageSquare, Flower2, ShoppingBag,
+  Archive, Trash2, AlertTriangle
 } from 'lucide-react';
 
 const ESTADOS = [
@@ -33,45 +26,11 @@ const FLUJO_NORMAL = ['PENDIENTE', 'EN_REVISION', 'CONFIRMADA', 'COMPLETADA'];
 const LIMITE = 15;
 
 const INCLUSIONES_PAQUETES = {
-  'Bronce': [
-    'Uso exclusivo de instalaciones (jardines, glorieta, puente, pileta)', 
-    'Decoración básica de mesas y sillas', 
-    'Vajilla y cristalería estándar', 
-    'Servicio de cocina profesional', 
-    'Audio y sonido básico', 
-    'Parqueadero vigilado'
-  ],
-  'Silver': [
-    'Todo lo incluido en el Paquete Bronce', 
-    'Decoración personalizada con flores naturales', 
-    'Centros de mesa premium a elección', 
-    'Spots fotográficos temáticos', 
-    'Estación de bebidas calientes', 
-    'Zona de juegos infantiles'
-  ],
-  'Gold': [
-    'Todo lo incluido en el Paquete Silver', 
-    'Decoración de lujo con flores importadas', 
-    'Iluminación ambiental profesional', 
-    'Menú gourmet a 3 tiempos', 
-    'Barra de bebidas sin alcohol ilimitada', 
-    'Wedding/Event Planner'
-  ],
-  'Corporativo': [
-    'Proyector HD y pantalla gigante', 
-    'Sistema de audio profesional y micrófonos', 
-    'Dos (2) Coffee breaks completos', 
-    'Decoración corporativa', 
-    'Zona de networking'
-  ],
-  'Alfombra Roja': [
-    'Todo lo incluido en el Paquete Gold', 
-    'Alfombra roja de bienvenida', 
-    'Iluminación espectacular', 
-    'Menú de alta cocina de autor', 
-    'Fotógrafo y videógrafo profesional', 
-    'Coordinador VIP'
-  ]
+  'Bronce': ['Uso exclusivo de instalaciones (jardines, glorieta, puente, pileta)', 'Decoración básica de mesas y sillas', 'Vajilla y cristalería estándar', 'Servicio de cocina profesional', 'Audio y sonido básico', 'Parqueadero vigilado'],
+  'Silver': ['Todo lo incluido en el Paquete Bronce', 'Decoración personalizada con flores naturales', 'Centros de mesa premium a elección', 'Spots fotográficos temáticos', 'Estación de bebidas calientes', 'Zona de juegos infantiles'],
+  'Gold': ['Todo lo incluido en el Paquete Silver', 'Decoración de lujo con flores importadas', 'Iluminación ambiental profesional', 'Menú gourmet a 3 tiempos', 'Barra de bebidas sin alcohol ilimitada', 'Wedding/Event Planner'],
+  'Corporativo': ['Proyector HD y pantalla gigante', 'Sistema de audio profesional y micrófonos', 'Dos (2) Coffee breaks completos', 'Decoración corporativa', 'Zona de networking'],
+  'Alfombra Roja': ['Todo lo incluido en el Paquete Gold', 'Alfombra roja de bienvenida', 'Iluminación espectacular', 'Menú de alta cocina de autor', 'Fotógrafo y videógrafo profesional', 'Coordinador VIP']
 };
 
 export default function GestionSolicitudes() {
@@ -93,6 +52,11 @@ export default function GestionSolicitudes() {
   const [estadoPendienteConf, setEstadoPendienteConf] = useState(null);
   const [mensajeAdmin, setMensajeAdmin] = useState('');
 
+  // Estado para modal de eliminación permanente
+  const [modalEliminar, setModalEliminar] = useState(null); // { solicitud_id, numero_cotizacion, cliente_nombre }
+  const [motivoEliminar, setMotivoEliminar] = useState('');
+  const [eliminando, setEliminando] = useState(false);
+
   const cargar = useCallback(async () => {
     setLoading(true); 
     setError('');
@@ -112,13 +76,8 @@ export default function GestionSolicitudes() {
     }
   }, [filtroEstado, pagina]);
 
-  useEffect(() => { 
-    cargar(); 
-  }, [cargar]);
-
-  useEffect(() => { 
-    setPagina(1); 
-  }, [filtroEstado]);
+  useEffect(() => { cargar(); }, [cargar]);
+  useEffect(() => { setPagina(1); }, [filtroEstado]);
 
   const abrirDetalle = async (id) => {
     setDrawerAbierto(true); 
@@ -145,13 +104,8 @@ export default function GestionSolicitudes() {
   const iniciarCambioEstado = (nuevoEstado) => {
     const currentIndex = FLUJO_NORMAL.indexOf(solicitudDetalle.estado_codigo);
     const targetIndex  = FLUJO_NORMAL.indexOf(nuevoEstado);
-
-    if (['RECHAZADA', 'CANCELADA'].includes(solicitudDetalle.estado_codigo)) {
-      return;
-    }
-    if (targetIndex <= currentIndex) {
-      return;
-    }
+    if (['RECHAZADA', 'CANCELADA'].includes(solicitudDetalle.estado_codigo)) return;
+    if (targetIndex <= currentIndex) return;
 
     setEstadoPendienteConf(nuevoEstado);
     setMensajeAdmin('');
@@ -160,33 +114,18 @@ export default function GestionSolicitudes() {
   const confirmarCambioEstado = async () => {
     if (!estadoPendienteConf) return;
     setActualizando(solicitudDetalle.solicitud_id);
-    
     try {
-      await actualizarEstadoSolicitud(
-        solicitudDetalle.solicitud_id, 
-        estadoPendienteConf, 
-        mensajeAdmin
-      );
-      
+      await actualizarEstadoSolicitud(solicitudDetalle.solicitud_id, estadoPendienteConf, mensajeAdmin);
       setSolicitudes((prev) => 
         prev.map((s) => {
           if (s.solicitud_id !== solicitudDetalle.solicitud_id) return s;
           const est = ESTADOS.find((e) => e.codigo === estadoPendienteConf);
-          return { 
-            ...s, 
-            estado_codigo: estadoPendienteConf, 
-            estado_nombre: est?.label, 
-            estado_color: est?.color 
-          };
+          return { ...s, estado_codigo: estadoPendienteConf, estado_nombre: est?.label, estado_color: est?.color };
         })
       );
-      
       setSolicitudDetalle(prev => ({ 
-        ...prev, 
-        estado_codigo: estadoPendienteConf,
-        observaciones: mensajeAdmin || prev.observaciones 
+        ...prev, estado_codigo: estadoPendienteConf, observaciones: mensajeAdmin || prev.observaciones 
       }));
-      
       mostrarToast('success', `Estado actualizado a "${estadoPendienteConf}".`);
       setEstadoPendienteConf(null);
       setMensajeAdmin('');
@@ -204,12 +143,7 @@ export default function GestionSolicitudes() {
       setSolicitudes((prev) => prev.map((s) => {
         if (s.solicitud_id !== solicitudId) return s;
         const est = ESTADOS.find((e) => e.codigo === nuevoEstado);
-        return { 
-          ...s, 
-          estado_codigo: nuevoEstado, 
-          estado_nombre: est?.label, 
-          estado_color: est?.color 
-        };
+        return { ...s, estado_codigo: nuevoEstado, estado_nombre: est?.label, estado_color: est?.color };
       }));
       if (solicitudDetalle && solicitudDetalle.solicitud_id === solicitudId) {
         setSolicitudDetalle(prev => ({ ...prev, estado_codigo: nuevoEstado }));
@@ -222,211 +156,136 @@ export default function GestionSolicitudes() {
     }
   };
 
+  const handleArchivar = async (sol, e) => {
+    e.stopPropagation();
+    setActualizando(sol.solicitud_id);
+    try {
+      await archivarSolicitud(sol.solicitud_id);
+      setSolicitudes(prev => prev.filter(s => s.solicitud_id !== sol.solicitud_id));
+      setTotal(prev => prev - 1);
+      mostrarToast('success', `"${sol.numero_cotizacion}" archivada correctamente.`);
+      if (drawerAbierto && solicitudDetalle?.solicitud_id === sol.solicitud_id) setDrawerAbierto(false);
+    } catch (e) {
+      mostrarToast('error', e.response?.data?.message || 'Error al archivar.');
+    } finally {
+      setActualizando(null);
+    }
+  };
+
+  const abrirModalEliminar = (sol, e) => {
+    e.stopPropagation();
+    setModalEliminar(sol);
+    setMotivoEliminar('');
+  };
+
+  const handleEliminarPermanente = async () => {
+    if (!motivoEliminar.trim()) return;
+    setEliminando(true);
+    try {
+      await eliminarSolicitudPermanente(modalEliminar.solicitud_id, motivoEliminar.trim());
+      setSolicitudes(prev => prev.filter(s => s.solicitud_id !== modalEliminar.solicitud_id));
+      setTotal(prev => prev - 1);
+      mostrarToast('success', `Solicitud eliminada. Se notificó al cliente por email.`);
+      setModalEliminar(null);
+      if (drawerAbierto && solicitudDetalle?.solicitud_id === modalEliminar.solicitud_id) setDrawerAbierto(false);
+    } catch (e) {
+      mostrarToast('error', e.response?.data?.message || 'Error al eliminar.');
+    } finally {
+      setEliminando(false);
+    }
+  };
+
   const handleDescargarPDFAdmin = async () => {
     if (!solicitudDetalle) return;
     setDescargandoPDF(true);
     try {
       const { jsPDF } = await import('jspdf');
       const { default: autoTable } = await import('jspdf-autotable');
-
       const doc = new jsPDF({ unit: 'mm', format: 'a4' });
       const pW  = doc.internal.pageSize.getWidth();
-      
-      const NAVY  = [13, 33, 55]; 
-      const GOLD  = [183, 149, 11]; 
-      const CREAM = [245, 240, 232]; 
-      const SLATE = [100, 116, 139];
+      const NAVY  = [13, 33, 55]; const GOLD  = [183, 149, 11]; const CREAM = [245, 240, 232]; const SLATE = [100, 116, 139];
 
-      doc.setFillColor(...NAVY); 
-      doc.rect(0, 0, pW, 52, 'F');
+      doc.setFillColor(...NAVY); doc.rect(0, 0, pW, 52, 'F');
+      doc.setFillColor(...GOLD); doc.rect(0, 50, pW, 3, 'F');
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(22); doc.setTextColor(...GOLD); doc.text('QUINTA INÉS MARÍA', pW / 2, 20, { align: 'center' });
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(255, 255, 255); doc.setCharSpace(1.5); doc.text('BED  ·  CATERING  ·  EVENTOS  ·  CANTÓN CHAMBO', pW / 2, 28, { align: 'center' }); doc.setCharSpace(0);
+      doc.setDrawColor(255, 255, 255, 0.2); doc.setLineWidth(0.3); doc.line(20, 32, pW - 20, 32);
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(...GOLD); doc.text(`COTIZACIÓN N.° ${solicitudDetalle.numero_cotizacion}`, 20, 42);
       
-      doc.setFillColor(...GOLD); 
-      doc.rect(0, 50, pW, 3, 'F');
-      
-      doc.setFont('helvetica', 'bold'); 
-      doc.setFontSize(22); 
-      doc.setTextColor(...GOLD); 
-      doc.text('QUINTA INÉS MARÍA', pW / 2, 20, { align: 'center' });
-      
-      doc.setFont('helvetica', 'normal'); 
-      doc.setFontSize(9); 
-      doc.setTextColor(255, 255, 255); 
-      doc.setCharSpace(1.5); 
-      doc.text('BED  ·  CATERING  ·  EVENTOS  ·  CANTÓN CHAMBO, CHIMBORAZO', pW / 2, 28, { align: 'center' }); 
-      doc.setCharSpace(0);
-      
-      doc.setDrawColor(255, 255, 255, 0.2); 
-      doc.setLineWidth(0.3); 
-      doc.line(20, 32, pW - 20, 32);
-
-      doc.setFont('helvetica', 'bold'); 
-      doc.setFontSize(10); 
-      doc.setTextColor(...GOLD); 
-      doc.text(`COTIZACIÓN N.° ${solicitudDetalle.numero_cotizacion}`, 20, 42);
-      
-      const fechaEmision = solicitudDetalle.creado_en 
-        ? new Date(solicitudDetalle.creado_en).toLocaleDateString('es-EC') 
-        : new Date().toLocaleDateString('es-EC');
-        
-      doc.setFont('helvetica', 'normal'); 
-      doc.setFontSize(9); 
-      doc.setTextColor(200, 200, 200); 
-      doc.text(`Fecha de emisión: ${fechaEmision}`, pW - 20, 42, { align: 'right' });
+      const fechaEmision = solicitudDetalle.creado_en ? new Date(solicitudDetalle.creado_en).toLocaleDateString('es-EC') : new Date().toLocaleDateString('es-EC');
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(200, 200, 200); doc.text(`Fecha de emisión: ${fechaEmision}`, pW - 20, 42, { align: 'right' });
 
       let y = 63;
-      doc.setFillColor(...CREAM); 
-      doc.roundedRect(14, y - 5, pW - 28, 28, 3, 3, 'F');
-      
-      doc.setFont('helvetica', 'bold'); 
-      doc.setFontSize(8); 
-      doc.setTextColor(...NAVY); 
-      doc.text('DATOS DEL CLIENTE', 20, y + 1);
-      
-      doc.setFont('helvetica', 'normal'); 
-      doc.setFontSize(10); 
-      doc.setTextColor(30, 30, 30); 
-      doc.text(solicitudDetalle.cliente_nombre.toUpperCase(), 20, y + 8);
-      
-      doc.setFontSize(9); 
-      doc.setTextColor(...SLATE); 
-      doc.text(`Correo: ${solicitudDetalle.cliente_correo}`, 20, y + 14); 
-      doc.text(`Teléfono: ${solicitudDetalle.cliente_telefono || 'No especificado'}`, 20, y + 19);
-      
-      doc.setFillColor(...NAVY); 
-      doc.roundedRect(pW - 75, y, 60, 12, 3, 3, 'F'); 
-      doc.setFont('helvetica', 'bold'); 
-      doc.setFontSize(9); 
-      doc.setTextColor(255, 255, 255); 
-      doc.text(solicitudDetalle.tipo_nombre || 'EVENTO', pW - 45, y + 8, { align: 'center' });
+      doc.setFillColor(...CREAM); doc.roundedRect(14, y - 5, pW - 28, 28, 3, 3, 'F');
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(8); doc.setTextColor(...NAVY); doc.text('DATOS DEL CLIENTE', 20, y + 1);
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(10); doc.setTextColor(30, 30, 30); doc.text(solicitudDetalle.cliente_nombre.toUpperCase(), 20, y + 8);
+      doc.setFontSize(9); doc.setTextColor(...SLATE); doc.text(`Correo: ${solicitudDetalle.cliente_correo}`, 20, y + 14); doc.text(`Teléfono: ${solicitudDetalle.cliente_telefono || 'No especificado'}`, 20, y + 19);
+      doc.setFillColor(...NAVY); doc.roundedRect(pW - 75, y, 60, 12, 3, 3, 'F'); doc.setFont('helvetica', 'bold'); doc.setFontSize(9); doc.setTextColor(255, 255, 255); doc.text(solicitudDetalle.tipo_nombre || 'EVENTO', pW - 45, y + 8, { align: 'center' });
 
       y += 34;
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(...NAVY); doc.text(`LO QUE INCLUYE TU PAQUETE ${solicitudDetalle.paquete_nombre?.toUpperCase() || ''}:`, 14, y);
+      doc.setFillColor(...GOLD); doc.rect(14, y + 2, 70, 1, 'F'); y += 8;
       
-      doc.setFont('helvetica', 'bold'); 
-      doc.setFontSize(10); 
-      doc.setTextColor(...NAVY); 
-      doc.text(`LO QUE INCLUYE TU PAQUETE ${solicitudDetalle.paquete_nombre?.toUpperCase() || ''}:`, 14, y);
-      
-      doc.setFillColor(...GOLD); 
-      doc.rect(14, y + 2, 70, 1, 'F'); 
-      y += 8;
-      
-      const paqueteKey = Object.keys(INCLUSIONES_PAQUETES).find(k => 
-        solicitudDetalle.paquete_nombre?.includes(k)
-      ) || 'Bronce';
-      
-      doc.setFont('helvetica', 'normal'); 
-      doc.setFontSize(9); 
-      doc.setTextColor(...SLATE);
-      
-      // 🚀 BUG FIX: Usamos el guion "-" en lugar del check "✓"
-      INCLUSIONES_PAQUETES[paqueteKey].forEach(inc => { 
-        doc.text(`- ${inc}`, 16, y); 
-        y += 5; 
-      }); 
-      y += 5;
+      const paqueteKey = Object.keys(INCLUSIONES_PAQUETES).find(k => solicitudDetalle.paquete_nombre?.includes(k)) || 'Bronce';
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(...SLATE);
+      INCLUSIONES_PAQUETES[paqueteKey].forEach(inc => { doc.text(`- ${inc}`, 16, y); y += 5; }); y += 5;
 
-      doc.setFont('helvetica', 'bold'); 
-      doc.setFontSize(10); 
-      doc.setTextColor(...NAVY); 
-      doc.text('RESUMEN DE SERVICIOS Y COSTOS', 14, y);
-      
-      doc.setFillColor(...GOLD); 
-      doc.rect(14, y + 2, 60, 1, 'F'); 
-      y += 7;
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(...NAVY); doc.text('RESUMEN DE SERVICIOS Y COSTOS', 14, y);
+      doc.setFillColor(...GOLD); doc.rect(14, y + 2, 60, 1, 'F'); y += 7;
 
-      const filas = [ 
-        [
-          `Paquete: ${solicitudDetalle.paquete_nombre}`, 
-          `${solicitudDetalle.num_invitados} invitados`, 
-          `$${(solicitudDetalle.num_invitados * parseFloat(solicitudDetalle.precio_persona || 15)).toFixed(2)}`
-        ] 
-      ];
-      
-      if (solicitudDetalle.centro_mesa) {
-        filas.push([`Centro de mesa: ${solicitudDetalle.centro_mesa}`, 'Mesa asignada', '—']);
-      }
-      if (solicitudDetalle.estilo_decoracion) {
-        filas.push([`Estilo: ${solicitudDetalle.estilo_decoracion}`, 'Decoración', '—']);
-      }
+      const filas = [ [`Paquete: ${solicitudDetalle.paquete_nombre}`, `${solicitudDetalle.num_invitados} invitados`, `$${(solicitudDetalle.num_invitados * parseFloat(solicitudDetalle.precio_persona || 15)).toFixed(2)}`] ];
+      if (solicitudDetalle.centro_mesa) filas.push([`Centro de mesa: ${solicitudDetalle.centro_mesa}`, 'Mesa asignada', '—']);
+      if (solicitudDetalle.estilo_decoracion) filas.push([`Estilo: ${solicitudDetalle.estilo_decoracion}`, 'Decoración', '—']);
       if (solicitudDetalle.extras && solicitudDetalle.extras.length > 0) {
-        solicitudDetalle.extras.forEach(ext => { 
-          filas.push([
-            `Extra: ${ext.nombre}`, 
-            `${ext.cantidad} unidad(es)`, 
-            `$${(ext.cantidad * parseFloat(ext.precio)).toFixed(2)}`
-          ]); 
-        });
+        solicitudDetalle.extras.forEach(ext => { filas.push([`Extra: ${ext.nombre}`, `${ext.cantidad} unidad(es)`, `$${(ext.cantidad * parseFloat(ext.precio)).toFixed(2)}`]); });
       }
 
       autoTable(doc, { 
-        startY: y, 
-        head: [['Descripción', 'Detalle', 'Subtotal']], 
-        body: filas, 
-        theme: 'grid', 
+        startY: y, head: [['Descripción', 'Detalle', 'Subtotal']], body: filas, theme: 'grid', 
         headStyles: { fillColor: NAVY, textColor: GOLD, fontStyle: 'bold', fontSize: 9 }, 
         bodyStyles: { fontSize: 9, textColor: [40, 40, 40] }, 
-        columnStyles: { 
-          0: { cellWidth: 90 }, 
-          1: { cellWidth: 65, halign: 'center' }, 
-          2: { cellWidth: 35, halign: 'right', fontStyle: 'bold' } 
-        }, 
-        margin: { left: 14, right: 14 }
+        columnStyles: { 0: { cellWidth: 90 }, 1: { cellWidth: 65, halign: 'center' }, 2: { cellWidth: 35, halign: 'right', fontStyle: 'bold' } }, margin: { left: 14, right: 14 }
       });
-      
       y = doc.lastAutoTable.finalY + 8;
 
-      doc.setFont('helvetica', 'bold'); 
-      doc.setFontSize(9); 
-      doc.setTextColor(...NAVY); 
-      doc.text('COLORES ELEGIDOS:', 14, y);
-      
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(9); doc.setTextColor(...NAVY); doc.text('COLORES ELEGIDOS:', 14, y);
       if (solicitudDetalle.color_primario) {
-        doc.setFillColor(solicitudDetalle.color_primario); 
-        doc.roundedRect(48, y - 3, 8, 5, 1, 1, 'F');
-        
-        doc.setFillColor(solicitudDetalle.color_secundario || '#B7950B'); 
-        doc.roundedRect(58, y - 3, 8, 5, 1, 1, 'F');
+        // Render color swatches using hex colors
+        const hexToRgb = (hex) => {
+          const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+          return result ? [parseInt(result[1], 16), parseInt(result[2], 16), parseInt(result[3], 16)] : [183, 149, 11];
+        };
+        const rgb1 = hexToRgb(solicitudDetalle.color_primario);
+        const rgb2 = hexToRgb(solicitudDetalle.color_secundario || solicitudDetalle.color_primario);
+        doc.setFillColor(...rgb1); doc.roundedRect(52, y - 4, 8, 7, 1.5, 1.5, 'F');
+        doc.setDrawColor(200,200,200); doc.setLineWidth(0.3); doc.roundedRect(52, y - 4, 8, 7, 1.5, 1.5, 'S');
+        doc.setFontSize(7); doc.setTextColor(...SLATE); doc.text(solicitudDetalle.color_primario, 52, y + 5);
+        doc.setFillColor(...rgb2); doc.roundedRect(66, y - 4, 8, 7, 1.5, 1.5, 'F');
+        doc.roundedRect(66, y - 4, 8, 7, 1.5, 1.5, 'S');
+        doc.text(solicitudDetalle.color_secundario || solicitudDetalle.color_primario, 66, y + 5);
+        doc.setFontSize(9);
       } else {
-        doc.setFont('helvetica', 'normal'); 
-        doc.setFontSize(8); 
-        doc.setTextColor(...SLATE); 
-        doc.text('No definidos por el cliente.', 48, y);
+        doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(...SLATE); doc.text('No definidos por el cliente.', 52, y);
+      }
+      // Centro de mesa
+      if (solicitudDetalle.centro_mesa) {
+        y += 12;
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(9); doc.setTextColor(...NAVY); doc.text('CENTRO DE MESA:', 14, y);
+        doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(...SLATE); doc.text(solicitudDetalle.centro_mesa, 52, y);
       }
 
       const cajaH = 24;
-      doc.setFillColor(...NAVY); 
-      doc.roundedRect(pW - 90, y - 6, 76, cajaH, 4, 4, 'F');
-      
-      doc.setFillColor(...GOLD); 
-      doc.roundedRect(pW - 90, y - 6, 76, 8, 4, 4, 'F'); 
-      doc.rect(pW - 90, y - 2, 76, 4, 'F');
-      
-      doc.setFont('helvetica', 'bold'); 
-      doc.setFontSize(8); 
-      doc.setTextColor(...NAVY); 
-      doc.text('TOTAL ESTIMADO', pW - 52, y - 0.5, { align: 'center' });
-      
-      doc.setFont('helvetica', 'bold'); 
-      doc.setFontSize(18); 
-      doc.setTextColor(...GOLD); 
-      doc.text(`$${parseFloat(solicitudDetalle.precio_estimado).toFixed(2)}`, pW - 52, y + 12, { align: 'center' });
+      doc.setFillColor(...NAVY); doc.roundedRect(pW - 90, y - 6, 76, cajaH, 4, 4, 'F');
+      doc.setFillColor(...GOLD); doc.roundedRect(pW - 90, y - 6, 76, 8, 4, 4, 'F'); doc.rect(pW - 90, y - 2, 76, 4, 'F');
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(8); doc.setTextColor(...NAVY); doc.text('TOTAL ESTIMADO', pW - 52, y - 0.5, { align: 'center' });
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(18); doc.setTextColor(...GOLD); doc.text(`$${parseFloat(solicitudDetalle.precio_estimado).toFixed(2)}`, pW - 52, y + 12, { align: 'center' });
 
       const pageH = doc.internal.pageSize.getHeight();
-      
-      doc.setFillColor(...NAVY); 
-      doc.rect(0, pageH - 20, pW, 20, 'F'); 
-      
-      doc.setFillColor(...GOLD); 
-      doc.rect(0, pageH - 20, pW, 2, 'F');
-      
-      doc.setFont('helvetica', 'normal'); 
-      doc.setFontSize(8); 
-      doc.setTextColor(200, 200, 200); 
-      doc.text('eventplanner.quintainesmaria.ec', pW / 2, pageH - 12, { align: 'center' });
+      doc.setFillColor(...NAVY); doc.rect(0, pageH - 20, pW, 20, 'F'); doc.setFillColor(...GOLD); doc.rect(0, pageH - 20, pW, 2, 'F');
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(200, 200, 200); doc.text('eventplanner.quintainesmaria.ec', pW / 2, pageH - 12, { align: 'center' });
       
       doc.save(`Cotizacion-${solicitudDetalle.numero_cotizacion}.pdf`);
       mostrarToast('success', 'PDF descargado exitosamente.');
-      
     } catch (error) { 
       mostrarToast('error', 'Error al generar el PDF.'); 
     } finally { 
@@ -436,46 +295,24 @@ export default function GestionSolicitudes() {
 
   return (
     <div className="space-y-5 relative">
-      
       {toast && ( 
-        <div 
-          role="alert" 
-          className={`fixed top-5 right-5 z-[60] px-5 py-3 rounded-xl shadow-lg text-sm font-medium transition-all animate-in fade-in slide-in-from-top-5 ${toast.tipo === 'success' ? 'bg-green-600 text-white' : 'bg-red-600 text-white'}`}
-        >
+        <div role="alert" className={`fixed top-5 right-5 z-[60] px-5 py-3 rounded-xl shadow-lg text-sm font-medium transition-all animate-in fade-in slide-in-from-top-5 ${toast.tipo === 'success' ? 'bg-green-600 text-white' : 'bg-red-600 text-white'}`}>
           {toast.tipo === 'success' ? '✅' : '❌'} {toast.msg}
         </div> 
       )}
 
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-[#0D2137]">
-            Gestión de Solicitudes
-          </h1>
-          <p className="text-slate-400 text-sm mt-0.5">
-            Haz clic en una fila para ver el "Rayos X" de la cotización.
-          </p>
+          <h1 className="text-2xl font-bold text-[#0D2137]">Gestión de Solicitudes</h1>
+          <p className="text-slate-400 text-sm mt-0.5">Haz clic en una fila para ver el "Rayos X" de la cotización.</p>
         </div>
-        
-        <select 
-          value={filtroEstado} 
-          onChange={(e) => setFiltroEstado(e.target.value)} 
-          className="w-full sm:w-48 px-3 py-2.5 border-2 border-slate-200 rounded-xl text-sm font-bold text-[#0D2137] focus:outline-none focus:border-[#B7950B] bg-white cursor-pointer"
-        >
+        <select value={filtroEstado} onChange={(e) => setFiltroEstado(e.target.value)} className="w-full sm:w-48 px-3 py-2.5 border-2 border-slate-200 rounded-xl text-sm font-bold text-[#0D2137] focus:outline-none focus:border-[#B7950B] bg-white cursor-pointer">
           <option value="">Todos los estados</option>
-          {ESTADOS.map((e) => (
-            <option key={e.codigo} value={e.codigo}>
-              {e.label}
-            </option>
-          ))}
+          {ESTADOS.map((e) => (<option key={e.codigo} value={e.codigo}>{e.label}</option>))}
         </select>
       </div>
 
-      {error && (
-        <div role="alert" className="p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm">
-          ⚠ {error} 
-          <button onClick={cargar} className="ml-3 underline font-medium">Reintentar</button>
-        </div>
-      )}
+      {error && (<div role="alert" className="p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm">⚠ {error} <button onClick={cargar} className="ml-3 underline font-medium">Reintentar</button></div>)}
 
       {/* ── Tabla Principal ── */}
       <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden flex flex-col min-h-[500px]">
@@ -490,110 +327,69 @@ export default function GestionSolicitudes() {
                 <Th>Total</Th>
                 <Th>Fecha</Th>
                 <Th>Estado actual</Th>
-                <Th>Acción</Th>
+                <Th>Cambiar estado</Th>
+                <Th>Acciones</Th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
-              {loading ? ( 
-                <tr>
-                  <td colSpan="8" className="p-0">
-                    <SkeletonTabla filas={10} />
-                  </td>
-                </tr> 
-              ) : solicitudes.length === 0 ? ( 
-                <tr>
-                  <td colSpan="8" className="px-4 py-12 text-center text-slate-400">
-                    No hay solicitudes con este filtro.
-                  </td>
-                </tr> 
-              ) : (
+              {loading ? ( <tr><td colSpan="8" className="p-0"><SkeletonTabla filas={10} /></td></tr> ) 
+              : solicitudes.length === 0 ? ( <tr><td colSpan="8" className="px-4 py-12 text-center text-slate-400">No hay solicitudes con este filtro.</td></tr> ) 
+              : (
                 solicitudes.map((s) => (
-                  <tr 
-                    key={s.solicitud_id} 
-                    onClick={() => abrirDetalle(s.solicitud_id)} 
-                    className="hover:bg-[#B7950B]/5 transition-colors cursor-pointer group"
-                  >
-                    <td className="px-4 py-4 whitespace-nowrap">
-                      <span className="font-mono text-xs text-[#B7950B] font-bold group-hover:underline">
-                        {s.numero_cotizacion}
-                      </span>
-                    </td>
-                    <td className="px-4 py-4">
-                      <p className="font-bold text-[#0D2137] truncate max-w-[160px]">
-                        {s.cliente_nombre}
-                      </p>
-                      <p className="text-xs text-slate-400 truncate max-w-[160px]">
-                        {s.cliente_correo}
-                      </p>
-                    </td>
-                    <td className="px-4 py-4">
-                      <p className="font-bold text-slate-700 truncate max-w-[130px]">
-                        {s.paquete_nombre ?? '—'}
-                      </p>
-                      <p className="text-[10px] uppercase font-bold text-slate-400 truncate max-w-[130px]">
-                        {s.tipo_nombre ?? 'Sin especificar'}
-                      </p>
-                    </td>
-                    <td className="px-4 py-4 text-center">
-                      <span className="font-semibold text-slate-700 bg-slate-100 px-2.5 py-1 rounded-full">
-                        {s.num_invitados}
-                      </span>
-                    </td>
-                    <td className="px-4 py-4 whitespace-nowrap">
-                      <span className="font-bold text-[#0D2137] text-base">
-                        ${parseFloat(s.precio_estimado).toFixed(2)}
-                      </span>
-                    </td>
-                    <td className="px-4 py-4 whitespace-nowrap text-slate-500 text-xs">
-                      {new Date(s.creado_en).toLocaleDateString('es-EC', { 
-                        day: '2-digit', 
-                        month: 'short', 
-                        year: 'numeric' 
-                      })}
-                    </td>
-                    <td className="px-4 py-4">
-                      <BadgeEstado 
-                        estadoColor={s.estado_color} 
-                        estadoNombre={s.estado_nombre} 
-                        size="sm" 
-                      />
-                    </td>
+                  <tr key={s.solicitud_id} onClick={() => abrirDetalle(s.solicitud_id)} className="hover:bg-[#B7950B]/5 transition-colors cursor-pointer group">
+                    <td className="px-4 py-4 whitespace-nowrap"><span className="font-mono text-xs text-[#B7950B] font-bold group-hover:underline">{s.numero_cotizacion}</span></td>
                     
-                    {/* 🚀 SELECT INTELIGENTE (Deshabilita opciones que rompen la regla) */}
+                    <td className="px-4 py-4 max-w-[200px]">
+                      <p className="font-bold text-[#0D2137] truncate">{s.cliente_nombre}</p>
+                      <p className="text-xs text-slate-400 truncate" title={s.cliente_correo}>{s.cliente_correo}</p>
+                    </td>
+
+                    <td className="px-4 py-4"><p className="font-bold text-slate-700 truncate max-w-[130px]">{s.paquete_nombre ?? '—'}</p><p className="text-[10px] uppercase font-bold text-slate-400 truncate max-w-[130px]">{s.tipo_nombre ?? 'Sin especificar'}</p></td>
+                    <td className="px-4 py-4 text-center"><span className="font-semibold text-slate-700 bg-slate-100 px-2.5 py-1 rounded-full">{s.num_invitados}</span></td>
+                    <td className="px-4 py-4 whitespace-nowrap"><span className="font-bold text-[#0D2137] text-base">${parseFloat(s.precio_estimado).toFixed(2)}</span></td>
+                    <td className="px-4 py-4 whitespace-nowrap text-slate-500 text-xs">{new Date(s.creado_en).toLocaleDateString('es-EC', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
+                    <td className="px-4 py-4"><BadgeEstado estadoColor={s.estado_color} estadoNombre={s.estado_nombre} size="sm" /></td>
+                    
                     <td className="px-4 py-4" onClick={(e) => e.stopPropagation()}>
                       <div className="relative">
                         <select
                           value={s.estado_codigo}
                           onChange={(e) => handleCambiarEstado(s.solicitud_id, e.target.value)}
                           disabled={actualizando === s.solicitud_id || ['RECHAZADA', 'CANCELADA'].includes(s.estado_codigo)}
-                          className={`w-full pl-3 pr-8 py-1.5 text-xs font-bold border-2 rounded-lg focus:outline-none appearance-none cursor-pointer
-                            ${['RECHAZADA', 'CANCELADA'].includes(s.estado_codigo) ? 'border-red-200 bg-red-50 text-red-500' : 'border-slate-200 bg-white text-[#0D2137] focus:border-[#B7950B]'}
-                          `}
+                          className={`w-full pl-3 pr-8 py-1.5 text-xs font-bold border-2 rounded-lg focus:outline-none appearance-none cursor-pointer ${['RECHAZADA', 'CANCELADA'].includes(s.estado_codigo) ? 'border-red-200 bg-red-50 text-red-500' : 'border-slate-200 bg-white text-[#0D2137] focus:border-[#B7950B]'}`}
                         >
                           {ESTADOS.map((e) => {
                             const currentIndex = FLUJO_NORMAL.indexOf(s.estado_codigo);
                             const targetIndex = FLUJO_NORMAL.indexOf(e.codigo);
                             const isTerminal = ['RECHAZADA', 'CANCELADA'].includes(s.estado_codigo);
-                            
                             let optionDisabled = false;
                             if (isTerminal && e.codigo !== s.estado_codigo) optionDisabled = true; 
                             else if (targetIndex !== -1 && currentIndex !== -1 && targetIndex < currentIndex) optionDisabled = true;
-
-                            return (
-                              <option key={e.codigo} value={e.codigo} disabled={optionDisabled}>
-                                {e.label} {optionDisabled && e.codigo !== s.estado_codigo ? ' 🚫' : ''}
-                              </option>
-                            );
+                            return (<option key={e.codigo} value={e.codigo} disabled={optionDisabled}>{e.label} {optionDisabled && e.codigo !== s.estado_codigo ? ' 🚫' : ''}</option>);
                           })}
                         </select>
-                        
-                        {actualizando === s.solicitud_id ? (
-                          <span className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 border-2 border-[#0D2137] border-t-transparent rounded-full animate-spin" />
-                        ) : (
-                          <span className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none text-[10px]">
-                            ▼
-                          </span>
-                        )}
+                        {actualizando === s.solicitud_id ? (<span className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 border-2 border-[#0D2137] border-t-transparent rounded-full animate-spin" />) : (<span className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none text-[10px]">▼</span>)}
+                      </div>
+                    </td>
+                    {/* Acciones: Archivar + Eliminar */}
+                    <td className="px-3 py-4" onClick={(e) => e.stopPropagation()}>
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          onClick={(e) => handleArchivar(s, e)}
+                          disabled={actualizando === s.solicitud_id}
+                          title="Archivar solicitud"
+                          className="p-1.5 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors disabled:opacity-40"
+                        >
+                          <Archive size={15} />
+                        </button>
+                        <button
+                          onClick={(e) => abrirModalEliminar(s, e)}
+                          disabled={actualizando === s.solicitud_id}
+                          title="Eliminar permanentemente"
+                          className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-40"
+                        >
+                          <Trash2 size={15} />
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -603,308 +399,212 @@ export default function GestionSolicitudes() {
           </table>
         </div>
 
-        {/* Paginación */}
         {!loading && totalPaginas > 1 && (
           <div className="px-4 py-3 border-t border-slate-100 flex items-center justify-between bg-slate-50">
-            <p className="text-xs font-bold text-slate-500">
-              Página <strong className="text-[#0D2137]">{pagina}</strong> de {totalPaginas}
-            </p>
+            <p className="text-xs font-bold text-slate-500">Página <strong className="text-[#0D2137]">{pagina}</strong> de {totalPaginas}</p>
             <div className="flex gap-2">
-              <PaginaBtn 
-                onClick={() => setPagina((p) => Math.max(1, p - 1))} 
-                disabled={pagina === 1}
-              >
-                ← Anterior
-              </PaginaBtn>
-              <PaginaBtn 
-                onClick={() => setPagina((p) => Math.min(totalPaginas, p + 1))} 
-                disabled={pagina === totalPaginas}
-              >
-                Siguiente →
-              </PaginaBtn>
+              <PaginaBtn onClick={() => setPagina((p) => Math.max(1, p - 1))} disabled={pagina === 1}>← Anterior</PaginaBtn>
+              <PaginaBtn onClick={() => setPagina((p) => Math.min(totalPaginas, p + 1))} disabled={pagina === totalPaginas}>Siguiente →</PaginaBtn>
             </div>
           </div>
         )}
       </div>
 
-      {/* 🚀 DRAWER ELEGANTE Y ESTADOS CLICKEEABLES */}
       {drawerAbierto && (
         <div className="fixed inset-0 z-50 overflow-hidden">
-          
-          <div 
-            className="absolute inset-0 bg-[#0D2137]/40 backdrop-blur-sm transition-opacity" 
-            onClick={() => setDrawerAbierto(false)} 
-          />
-          
+          <div className="absolute inset-0 bg-[#0D2137]/40 backdrop-blur-sm transition-opacity" onClick={() => setDrawerAbierto(false)} />
           <div className="fixed inset-y-0 right-0 w-full max-w-2xl bg-slate-50 shadow-2xl flex flex-col animate-in slide-in-from-right duration-300 border-l border-slate-200">
-            
             {detalleCargando || !solicitudDetalle ? (
               <div className="flex-1 flex flex-col justify-center items-center">
                 <div className="w-10 h-10 border-4 border-[#B7950B] border-t-transparent rounded-full animate-spin mb-4" />
-                <p className="font-bold text-slate-500 animate-pulse">
-                  Obteniendo Rayos X...
-                </p>
+                <p className="font-bold text-slate-500 animate-pulse">Obteniendo Rayos X...</p>
               </div>
             ) : (
               <>
-                {/* Cabecera Drawer */}
                 <div className="px-8 py-6 bg-white border-b border-slate-200 flex justify-between items-center shadow-sm z-10">
                   <div>
-                    <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">
-                      Cotización Exclusiva
-                    </p>
-                    <h2 className="text-2xl font-display font-bold text-[#B7950B]">
-                      {solicitudDetalle.numero_cotizacion}
-                    </h2>
+                    <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Cotización Exclusiva</p>
+                    <h2 className="text-2xl font-display font-bold text-[#B7950B]">{solicitudDetalle.numero_cotizacion}</h2>
                   </div>
-                  <button 
-                    onClick={() => setDrawerAbierto(false)} 
-                    className="p-3 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-full transition-colors"
-                  >
-                    <X size={24} />
-                  </button>
+                  <button onClick={() => setDrawerAbierto(false)} className="p-3 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-full transition-colors"><X size={24} /></button>
                 </div>
 
-                {/* Contenido del Panel */}
                 <div className="flex-1 overflow-y-auto p-8 space-y-8">
                   
-                  {/* ── LÍNEA DE TIEMPO INTERACTIVA ── */}
                   <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
-                    <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-6 flex items-center gap-2">
-                      Estado Operativo
-                    </h3>
-                    
+                    <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-6 flex items-center gap-2">Estado Operativo</h3>
                     {['RECHAZADA', 'CANCELADA'].includes(solicitudDetalle.estado_codigo) ? (
-                      <div className="bg-red-50 text-red-600 p-4 rounded-xl font-bold flex items-center gap-3">
-                        <span>❌</span> Esta solicitud fue {solicitudDetalle.estado_codigo.toLowerCase()}. Operación detenida.
-                      </div>
+                      <div className="bg-red-50 text-red-600 p-4 rounded-xl font-bold flex items-center gap-3"><span>❌</span> Esta solicitud fue {solicitudDetalle.estado_codigo.toLowerCase()}. Operación detenida.</div>
                     ) : (
                       <div className="relative flex justify-between items-center w-full px-4">
                         <div className="absolute top-1/2 left-4 right-4 h-1.5 bg-slate-100 -translate-y-1/2 z-0 rounded-full" />
-                        
                         {FLUJO_NORMAL.map((estado, index) => {
                           const currentIndex = FLUJO_NORMAL.indexOf(solicitudDetalle.estado_codigo);
                           const isCompleted = index <= currentIndex;
                           const isCurrent = index === currentIndex;
                           const isClickable = index > currentIndex; 
-                          
                           return (
                             <div key={estado} className="relative z-10 flex flex-col items-center gap-3">
-                              <button 
-                                onClick={() => iniciarCambioEstado(estado)}
-                                disabled={!isClickable || actualizando === solicitudDetalle.solicitud_id}
-                                title={isClickable ? 'Avanzar a este estado' : isCompleted ? 'Estado completado (Irreversible)' : ''}
-                                className={`w-10 h-10 rounded-full flex items-center justify-center border-4 transition-all duration-300 focus:outline-none 
-                                  ${isCurrent ? 'bg-[#0D2137] border-[#0D2137] shadow-lg scale-110' : 
-                                    isCompleted ? 'bg-[#B7950B] border-[#B7950B]' : 
-                                    isClickable ? 'bg-white border-slate-300 hover:border-[#1A6BAC] hover:bg-blue-50 cursor-pointer' : 'bg-white border-slate-200 cursor-not-allowed'}
-                                `}
-                              >
-                                {isCompleted && !isCurrent ? (
-                                  <span className="text-white text-lg font-bold">✓</span>
-                                ) : (
-                                  <span className={`text-xs font-bold ${isCurrent ? 'text-white' : 'text-slate-400'}`}>
-                                    {index + 1}
-                                  </span>
-                                )}
+                              <button onClick={() => iniciarCambioEstado(estado)} disabled={!isClickable || actualizando === solicitudDetalle.solicitud_id} title={isClickable ? 'Avanzar a este estado' : isCompleted ? 'Estado completado (Irreversible)' : ''} className={`w-10 h-10 rounded-full flex items-center justify-center border-4 transition-all duration-300 focus:outline-none ${isCurrent ? 'bg-[#0D2137] border-[#0D2137] shadow-lg scale-110' : isCompleted ? 'bg-[#B7950B] border-[#B7950B]' : isClickable ? 'bg-white border-slate-300 hover:border-[#1A6BAC] hover:bg-blue-50 cursor-pointer' : 'bg-white border-slate-200 cursor-not-allowed'}`}>
+                                {isCompleted && !isCurrent ? (<span className="text-white text-lg font-bold">✓</span>) : (<span className={`text-xs font-bold ${isCurrent ? 'text-white' : 'text-slate-400'}`}>{index + 1}</span>)}
                               </button>
-                              <span className={`text-[10px] font-bold uppercase tracking-wider ${isCurrent ? 'text-[#0D2137]' : isCompleted ? 'text-[#B7950B]' : 'text-slate-400'}`}>
-                                {estado.replace('_', ' ')}
-                              </span>
+                              <span className={`text-[10px] font-bold uppercase tracking-wider ${isCurrent ? 'text-[#0D2137]' : isCompleted ? 'text-[#B7950B]' : 'text-slate-400'}`}>{estado.replace('_', ' ')}</span>
                             </div>
                           )
                         })}
                       </div>
                     )}
-
-                    {/* 🚀 BUZÓN DE MENSAJE PARA EL CLIENTE */}
                     {estadoPendienteConf && (
                       <div className="mt-8 p-5 bg-blue-50/50 border-2 border-blue-200 rounded-2xl animate-in slide-in-from-top-2">
-                        <label className="block text-sm font-bold text-[#0D2137] mb-2 flex items-center gap-2">
-                          <MessageSquare size={16} className="text-[#1A6BAC]"/> 
-                          Mensaje para el cliente (Opcional)
-                        </label>
-                        <p className="text-xs text-slate-500 mb-3">
-                          Este mensaje aparecerá en el portal "Mis Solicitudes" del cliente al pasar a <strong>{estadoPendienteConf.replace('_', ' ')}</strong>.
-                        </p>
-                        <textarea 
-                          rows={2}
-                          value={mensajeAdmin}
-                          onChange={(e) => setMensajeAdmin(e.target.value)}
-                          placeholder="Ej: Estimado cliente, su fecha ha sido reservada con éxito. Le llamaremos hoy a las 15:00."
-                          className="w-full p-3 rounded-xl border border-slate-300 focus:outline-none focus:border-[#1A6BAC] text-sm mb-4"
-                        />
+                        <label className="block text-sm font-bold text-[#0D2137] mb-2 flex items-center gap-2"><MessageSquare size={16} className="text-[#1A6BAC]"/> Mensaje para el cliente (Opcional)</label>
+                        <p className="text-xs text-slate-500 mb-3">Este mensaje aparecerá en el portal "Mis Solicitudes" del cliente al pasar a <strong>{estadoPendienteConf.replace('_', ' ')}</strong>.</p>
+                        <textarea rows={2} value={mensajeAdmin} onChange={(e) => setMensajeAdmin(e.target.value)} placeholder="Ej: Estimado cliente, su fecha ha sido reservada con éxito. Le llamaremos hoy a las 15:00." className="w-full p-3 rounded-xl border border-slate-300 focus:outline-none focus:border-[#1A6BAC] text-sm mb-4" />
                         <div className="flex gap-3">
-                           <button 
-                             onClick={() => setEstadoPendienteConf(null)} 
-                             className="flex-1 py-2.5 bg-white border border-slate-300 text-slate-600 font-bold rounded-xl hover:bg-slate-50 transition-colors"
-                           >
-                             Cancelar
-                           </button>
-                           <button 
-                             onClick={confirmarCambioEstado} 
-                             disabled={actualizando === solicitudDetalle.solicitud_id} 
-                             className="flex-1 py-2.5 bg-[#1A6BAC] text-white font-bold rounded-xl hover:bg-blue-700 shadow-md transition-all"
-                           >
-                             {actualizando ? 'Confirmando...' : `Avanzar a ${estadoPendienteConf.replace('_', ' ')}`}
-                           </button>
+                           <button onClick={() => setEstadoPendienteConf(null)} className="flex-1 py-2.5 bg-white border border-slate-300 text-slate-600 font-bold rounded-xl hover:bg-slate-50 transition-colors">Cancelar</button>
+                           <button onClick={confirmarCambioEstado} disabled={actualizando === solicitudDetalle.solicitud_id} className="flex-1 py-2.5 bg-[#1A6BAC] text-white font-bold rounded-xl hover:bg-blue-700 shadow-md transition-all">{actualizando ? 'Confirmando...' : `Avanzar a ${estadoPendienteConf.replace('_', ' ')}`}</button>
                         </div>
                       </div>
                     )}
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* ── DATOS DEL CLIENTE ── */}
                     <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm space-y-5">
-                      <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
-                        Datos del Cliente
-                      </h3>
+                      <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Datos del Cliente</h3>
                       <div className="flex items-center gap-4 text-sm">
-                        <div className="bg-slate-100 p-2.5 rounded-xl text-slate-500">
-                          <User size={20} />
-                        </div>
-                        <span className="font-bold text-[#0D2137] text-base">
-                          {solicitudDetalle.cliente_nombre}
-                        </span>
+                        <div className="bg-slate-100 p-2.5 rounded-xl text-slate-500 flex-shrink-0"><User size={20} /></div>
+                        <span className="font-bold text-[#0D2137] text-base break-words min-w-0">{solicitudDetalle.cliente_nombre}</span>
+                      </div>
+                      <div className="flex items-start gap-4 text-sm">
+                        <div className="bg-slate-100 p-2.5 rounded-xl text-slate-500 flex-shrink-0"><Mail size={20} /></div>
+                        <a href={`mailto:${solicitudDetalle.cliente_correo}`} className="text-slate-600 break-all min-w-0 hover:text-[#1A6BAC] hover:underline transition-colors" title={solicitudDetalle.cliente_correo}>{solicitudDetalle.cliente_correo}</a>
                       </div>
                       <div className="flex items-center gap-4 text-sm">
-                        <div className="bg-slate-100 p-2.5 rounded-xl text-slate-500">
-                          <Mail size={20} />
-                        </div>
-                        <span className="text-slate-600">
-                          {solicitudDetalle.cliente_correo}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-4 text-sm">
-                        <div className="bg-slate-100 p-2.5 rounded-xl text-slate-500">
-                          <Phone size={20} />
-                        </div>
-                        <span className="text-slate-600 font-medium">
-                          {solicitudDetalle.cliente_telefono || 'No especificado'}
-                        </span>
+                        <div className="bg-slate-100 p-2.5 rounded-xl text-slate-500 flex-shrink-0"><Phone size={20} /></div>
+                        {solicitudDetalle.cliente_telefono && solicitudDetalle.cliente_telefono !== 'No especificado' 
+                          ? <a href={`tel:${solicitudDetalle.cliente_telefono}`} className="text-slate-600 font-medium hover:text-[#1A6BAC] hover:underline transition-colors flex items-center gap-1">{solicitudDetalle.cliente_telefono} <span className="text-[10px] text-[#B7950B] font-bold">📞 Llamar</span></a>
+                          : <span className="text-slate-400 italic text-xs">No especificado</span>
+                        }
                       </div>
                     </div>
 
-                    {/* ── DETALLES DEL EVENTO ── */}
                     <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex flex-col justify-between">
-                      <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">
-                        Detalle del Evento
-                      </h3>
+                      <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">Detalle del Evento</h3>
                       <div className="grid grid-cols-2 gap-4">
-                        <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
-                          <div className="flex items-center gap-2 text-slate-500 mb-1.5">
-                            <Package size={16} />
-                            <span className="text-xs font-bold">Paquete</span>
-                          </div>
-                          <p className="font-bold text-[#0D2137] text-sm">
-                            {solicitudDetalle.paquete_nombre}
-                          </p>
-                        </div>
-                        <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
-                          <div className="flex items-center gap-2 text-slate-500 mb-1.5">
-                            <Users size={16} />
-                            <span className="text-xs font-bold">Invitados</span>
-                          </div>
-                          <p className="font-bold text-[#0D2137] text-sm">
-                            {solicitudDetalle.num_invitados} pax
-                          </p>
-                        </div>
-                        <div className="bg-[#0D2137]/5 p-4 rounded-xl border border-[#0D2137]/10 col-span-2">
-                          <div className="flex items-center gap-2 text-[#0D2137] mb-1.5">
-                            <Calendar size={16} />
-                            <span className="text-xs font-bold uppercase tracking-wider">Fecha Reservada</span>
-                          </div>
-                          <p className="font-bold text-[#0D2137] text-base">
-                            {solicitudDetalle.fecha_evento ? new Date(solicitudDetalle.fecha_evento).toLocaleDateString('es-EC', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) : 'No definida'}
-                          </p>
-                        </div>
+                        <div className="bg-slate-50 p-4 rounded-xl border border-slate-100"><div className="flex items-center gap-2 text-slate-500 mb-1.5"><Package size={16} /><span className="text-xs font-bold">Paquete</span></div><p className="font-bold text-[#0D2137] text-sm">{solicitudDetalle.paquete_nombre}</p></div>
+                        <div className="bg-slate-50 p-4 rounded-xl border border-slate-100"><div className="flex items-center gap-2 text-slate-500 mb-1.5"><Users size={16} /><span className="text-xs font-bold">Invitados</span></div><p className="font-bold text-[#0D2137] text-sm">{solicitudDetalle.num_invitados} pax</p></div>
+                        <div className="bg-[#0D2137]/5 p-4 rounded-xl border border-[#0D2137]/10 col-span-2"><div className="flex items-center gap-2 text-[#0D2137] mb-1.5"><Calendar size={16} /><span className="text-xs font-bold uppercase tracking-wider">Fecha Reservada</span></div><p className="font-bold text-[#0D2137] text-base">{solicitudDetalle.fecha_evento ? new Date(solicitudDetalle.fecha_evento).toLocaleDateString('es-EC', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) : 'No definida'}</p></div>
                       </div>
                     </div>
                   </div>
 
-                  {/* ── CONFIGURACIÓN VISUAL ── */}
+                  {/* ── Configuración Estética y Notas del Cliente ── */}
                   <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
-                    <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-5">
-                      Configuración Estética y Notas
+                    <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">
+                      Configuración Estética y Notas del Cliente
                     </h3>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-6">
-                      
-                      <div className="flex flex-col gap-2">
-                        <span className="text-xs text-slate-500 font-bold flex items-center gap-1.5">
-                          <Palette size={16}/> Paleta de Colores
-                        </span>
-                        <div className="flex gap-3 mt-1">
-                           {solicitudDetalle.color_primario ? (
-                             <>
-                               <div 
-                                 className="w-8 h-8 rounded-full shadow-md border-2 border-slate-100" 
-                                 style={{backgroundColor: solicitudDetalle.color_primario}} 
-                                 title="Primario"
-                               />
-                               <div 
-                                 className="w-8 h-8 rounded-full shadow-md border-2 border-slate-100" 
-                                 style={{backgroundColor: solicitudDetalle.color_secundario}} 
-                                 title="Secundario"
-                               />
-                             </>
-                           ) : ( 
-                             <span className="text-sm font-medium text-slate-400 italic">No seleccionados</span> 
-                           )}
+
+                    {/* Paleta de colores */}
+                    <div className="bg-blue-50 border border-blue-100 p-5 rounded-xl mb-4">
+                      <h4 className="text-[10px] font-bold text-[#1A6BAC] uppercase tracking-widest mb-4 flex items-center gap-2">
+                        <Palette size={14}/> Paleta de Colores Elegida
+                      </h4>
+                      {solicitudDetalle.color_primario ? (
+                        <div className="flex items-center gap-6">
+                          <div className="flex flex-col items-center gap-1.5">
+                            <div 
+                              className="w-14 h-14 rounded-xl border-2 border-white shadow-md" 
+                              style={{ backgroundColor: solicitudDetalle.color_primario }}
+                            />
+                            <span className="text-[10px] font-bold text-slate-500 uppercase">Color Principal</span>
+                            <span className="font-mono text-[10px] text-slate-400">{solicitudDetalle.color_primario}</span>
+                          </div>
+                          {solicitudDetalle.color_secundario && (
+                            <div className="flex flex-col items-center gap-1.5">
+                              <div 
+                                className="w-14 h-14 rounded-xl border-2 border-white shadow-md" 
+                                style={{ backgroundColor: solicitudDetalle.color_secundario }}
+                              />
+                              <span className="text-[10px] font-bold text-slate-500 uppercase">Color Secundario</span>
+                              <span className="font-mono text-[10px] text-slate-400">{solicitudDetalle.color_secundario}</span>
+                            </div>
+                          )}
+                          <div className="ml-2 flex items-center gap-3">
+                            <div className="w-20 h-8 rounded-lg shadow-inner border border-white/50" style={{ background: `linear-gradient(135deg, ${solicitudDetalle.color_primario} 50%, ${solicitudDetalle.color_secundario || solicitudDetalle.color_primario} 50%)` }} />
+                            <span className="text-xs text-slate-500 italic">Vista previa</span>
+                          </div>
                         </div>
-                      </div>
-                      
-                      <div className="flex flex-col gap-2">
-                        <span className="text-xs text-slate-500 font-bold flex items-center gap-1.5">
-                          <GripHorizontal size={16}/> Centro de Mesa
-                        </span>
-                        <span className="text-sm font-bold text-[#0D2137] mt-1">
-                          {solicitudDetalle.centro_mesa || 'Opción Estándar'}
-                        </span>
-                      </div>
-                      
-                      <div className="flex flex-col gap-2">
-                        <span className="text-xs text-slate-500 font-bold flex items-center gap-1.5">
-                          <Package size={16}/> Extras Seleccionados
-                        </span>
-                        <span className="text-sm font-bold text-[#B7950B] mt-1">
-                          {solicitudDetalle.extras?.length || 0} Servicio(s) adicionales
-                        </span>
-                      </div>
-                    </div>
-                    
-                    <h4 className="text-xs font-bold text-slate-700 flex items-center gap-2 mb-3 pt-4 border-t border-slate-100">
-                      <FileText size={16} /> Observaciones del Cliente
-                    </h4>
-                    <div className="bg-amber-50 border border-amber-100 p-4 rounded-xl text-sm text-amber-800 font-medium">
-                      {solicitudDetalle.mensaje_cliente ? (
-                        <p>{solicitudDetalle.mensaje_cliente}</p>
                       ) : (
-                        <p className="italic opacity-70">
-                          El cliente no especificó observaciones adicionales en el formulario.
-                        </p>
+                        <p className="text-sm text-slate-400 italic">El cliente no seleccionó colores en el configurador.</p>
                       )}
                     </div>
+
+                    {/* Centro de mesa y tipo de evento */}
+                    <div className="grid grid-cols-2 gap-3 mb-4">
+                      <div className="bg-purple-50 border border-purple-100 p-4 rounded-xl">
+                        <h4 className="text-[10px] font-bold text-purple-700 uppercase tracking-widest mb-2 flex items-center gap-1.5">
+                          <Flower2 size={13}/> Centro de Mesa
+                        </h4>
+                        <p className="text-sm font-bold text-[#0D2137]">
+                          {solicitudDetalle.centro_mesa || <span className="text-slate-400 italic font-normal text-xs">No especificado</span>}
+                        </p>
+                      </div>
+                      <div className="bg-indigo-50 border border-indigo-100 p-4 rounded-xl">
+                        <h4 className="text-[10px] font-bold text-indigo-700 uppercase tracking-widest mb-2 flex items-center gap-1.5">
+                          <GripHorizontal size={13}/> Tipo de Evento
+                        </h4>
+                        <p className="text-sm font-bold text-[#0D2137]">
+                          {solicitudDetalle.tipo_nombre || <span className="text-slate-400 italic font-normal text-xs">No especificado</span>}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Extras seleccionados */}
+                    {solicitudDetalle.extras && solicitudDetalle.extras.length > 0 ? (
+                      <div className="bg-amber-50 border border-amber-100 p-4 rounded-xl mb-4">
+                        <h4 className="text-[10px] font-bold text-amber-700 uppercase tracking-widest mb-3 flex items-center gap-1.5">
+                          <ShoppingBag size={13}/> Extras Seleccionados ({solicitudDetalle.extras.length})
+                        </h4>
+                        <div className="space-y-2">
+                          {solicitudDetalle.extras.map((ext, i) => (
+                            <div key={i} className="flex items-center justify-between bg-white rounded-lg px-3 py-2 border border-amber-100 shadow-sm">
+                              <div className="flex items-center gap-2">
+                                <span className="text-amber-500 text-xs">✦</span>
+                                <span className="text-sm font-medium text-[#0D2137]">{ext.nombre}</span>
+                                <span className="text-xs text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">×{ext.cantidad}</span>
+                              </div>
+                              <span className="text-sm font-bold text-[#B7950B]">${(ext.cantidad * parseFloat(ext.precio)).toFixed(2)}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="bg-slate-50 border border-slate-100 p-4 rounded-xl mb-4">
+                        <p className="text-xs text-slate-400 italic flex items-center gap-2"><ShoppingBag size={13}/> El cliente no seleccionó extras adicionales.</p>
+                      </div>
+                    )}
+
+                    {/* Mensaje adicional del cliente */}
+                    {solicitudDetalle.mensaje_cliente && (
+                      <div className="bg-amber-50 border border-amber-100 p-5 rounded-xl">
+                        <h4 className="text-[10px] font-bold text-amber-800 uppercase tracking-widest mb-2 flex items-center gap-2">
+                          <MessageSquare size={14}/> Mensaje Adicional del Cliente
+                        </h4>
+                        <p className="text-sm text-amber-900 italic font-medium">
+                          &ldquo;{solicitudDetalle.mensaje_cliente}&rdquo;
+                        </p>
+                      </div>
+                    )}
                   </div>
 
                 </div>
 
-                {/* Footer del Drawer - Botón PDF */}
                 <div className="p-8 bg-white border-t border-slate-200 shadow-[0_-10px_15px_-3px_rgba(0,0,0,0.05)]">
                   <div className="flex justify-between items-end mb-5">
-                    <span className="text-sm font-bold text-slate-500 uppercase tracking-widest">
-                      Costo Total Estimado
-                    </span>
-                    <span className="text-4xl font-display font-bold text-[#0D2137]">
-                      ${parseFloat(solicitudDetalle.precio_estimado).toFixed(2)}
-                    </span>
+                    <span className="text-sm font-bold text-slate-500 uppercase tracking-widest">Costo Total Estimado</span>
+                    <span className="text-4xl font-display font-bold text-[#0D2137]">${parseFloat(solicitudDetalle.precio_estimado).toFixed(2)}</span>
                   </div>
-                  <button 
-                    onClick={handleDescargarPDFAdmin} 
-                    disabled={descargandoPDF} 
-                    className="w-full py-4 bg-[#B7950B] text-white rounded-xl font-bold hover:bg-[#9A7D0A] shadow-lg transition-all flex items-center justify-center gap-2 text-lg disabled:opacity-50"
-                  >
-                    <Download size={22} /> 
-                    {descargandoPDF ? 'Generando Documento de Alta Calidad...' : 'Descargar Proforma Formal (PDF)'}
+                  <button onClick={handleDescargarPDFAdmin} disabled={descargandoPDF} className="w-full py-4 bg-[#B7950B] text-white rounded-xl font-bold hover:bg-[#9A7D0A] shadow-lg transition-all flex items-center justify-center gap-2 text-lg disabled:opacity-50">
+                    <Download size={22} /> {descargandoPDF ? 'Generando Documento...' : 'Descargar Proforma Formal (PDF)'}
                   </button>
                 </div>
               </>
@@ -912,43 +612,87 @@ export default function GestionSolicitudes() {
           </div>
         </div>
       )}
+
+      {/* ═══ MODAL ELIMINAR PERMANENTEMENTE ══════════════════════════════════ */}
+      {modalEliminar && (
+        <div className="fixed inset-0 z-[80] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-[#0D2137]/60 backdrop-blur-sm" onClick={() => !eliminando && setModalEliminar(null)} />
+          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md animate-in zoom-in-95 duration-200">
+            {/* Header rojo */}
+            <div className="bg-gradient-to-r from-red-600 to-red-700 p-6 rounded-t-3xl">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-white/20 flex items-center justify-center">
+                  <Trash2 size={20} className="text-white" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-white text-lg">Eliminar Permanentemente</h3>
+                  <p className="text-red-100 text-xs mt-0.5">Esta acción no se puede deshacer</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-6 space-y-4">
+              {/* Info de la solicitud */}
+              <div className="bg-red-50 border border-red-200 rounded-2xl p-4">
+                <div className="flex items-start gap-3">
+                  <AlertTriangle size={18} className="text-red-500 shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-red-800 font-bold text-sm">{modalEliminar.numero_cotizacion}</p>
+                    <p className="text-red-600 text-xs mt-0.5">Cliente: {modalEliminar.cliente_nombre}</p>
+                    <p className="text-red-600 text-xs mt-1">Se enviara un correo de notificacion al cliente con el motivo ingresado.</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Campo de motivo OBLIGATORIO */}
+              <div>
+                <label className="block text-sm font-bold text-slate-700 mb-2">
+                  Motivo de eliminacion <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  value={motivoEliminar}
+                  onChange={e => setMotivoEliminar(e.target.value)}
+                  placeholder="Describe el motivo de la cancelacion (ej. solicitud duplicada, cliente no contactable, etc.)"
+                  rows={4}
+                  className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl text-sm focus:border-red-400 focus:outline-none focus:ring-2 focus:ring-red-100 transition-all resize-none"
+                  disabled={eliminando}
+                />
+                {motivoEliminar.trim().length === 0 && (
+                  <p className="text-xs text-red-500 mt-1 flex items-center gap-1">
+                    <AlertTriangle size={12} /> El motivo es obligatorio para continuar
+                  </p>
+                )}
+              </div>
+
+              {/* Botones */}
+              <div className="flex gap-3 pt-2">
+                <button
+                  onClick={() => setModalEliminar(null)}
+                  disabled={eliminando}
+                  className="flex-1 py-3 border-2 border-slate-200 text-slate-600 font-bold rounded-xl hover:bg-slate-50 transition-colors disabled:opacity-50"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleEliminarPermanente}
+                  disabled={!motivoEliminar.trim() || eliminando}
+                  className="flex-1 py-3 bg-red-600 text-white font-bold rounded-xl hover:bg-red-700 transition-colors disabled:opacity-40 flex items-center justify-center gap-2"
+                >
+                  {eliminando ? (
+                    <><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Eliminando...</>
+                  ) : (
+                    <><Trash2 size={16} /> Eliminar y Notificar</>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
-// ── Componentes de la Tabla ──
-function Th({ children }) { 
-  return (
-    <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">
-      {children}
-    </th>
-  ); 
-}
-
-function PaginaBtn({ children, onClick, disabled }) { 
-  return (
-    <button 
-      onClick={onClick} 
-      disabled={disabled} 
-      className="px-3 py-1.5 text-xs font-bold rounded-lg border border-slate-200 text-slate-600 hover:border-[#0D2137] hover:text-[#0D2137] disabled:opacity-30 transition-colors bg-white"
-    >
-      {children}
-    </button>
-  ); 
-}
-
-function SkeletonTabla({ filas }) { 
-  return (
-    <div className="divide-y divide-slate-50 animate-pulse">
-      {Array.from({ length: filas }).map((_, i) => (
-        <div key={i} className="flex gap-4 px-4 py-4">
-          <div className="h-4 bg-slate-200 rounded w-28" />
-          <div className="h-4 bg-slate-200 rounded flex-1" />
-          <div className="h-4 bg-slate-200 rounded w-24" />
-          <div className="h-4 bg-slate-200 rounded w-16" />
-          <div className="h-4 bg-slate-200 rounded w-20" />
-        </div>
-      ))}
-    </div>
-  ); 
-}
+function Th({ children }) { return <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">{children}</th>; }
+function PaginaBtn({ children, onClick, disabled }) { return <button onClick={onClick} disabled={disabled} className="px-3 py-1.5 text-xs font-bold rounded-lg border border-slate-200 text-slate-600 hover:border-[#0D2137] hover:text-[#0D2137] disabled:opacity-30 transition-colors bg-white">{children}</button>; }
+function SkeletonTabla({ filas }) { return <div className="divide-y divide-slate-50 animate-pulse">{Array.from({ length: filas }).map((_, i) => (<div key={i} className="flex gap-4 px-4 py-4"><div className="h-4 bg-slate-200 rounded w-28" /><div className="h-4 bg-slate-200 rounded flex-1" /><div className="h-4 bg-slate-200 rounded w-24" /><div className="h-4 bg-slate-200 rounded w-16" /><div className="h-4 bg-slate-200 rounded w-20" /></div>))}</div>; }

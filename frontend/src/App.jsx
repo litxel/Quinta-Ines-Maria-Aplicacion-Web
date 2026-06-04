@@ -5,6 +5,7 @@ import { useAuthStore } from './store/useAuthStore';
 import Navbar      from './components/layout/Navbar';
 import Footer      from './components/layout/Footer';
 import AdminLayout from './components/admin/AdminLayout';
+import WelcomeModal from './components/shared/WelcomeModal';
 
 // ── Guards ──────────────────────────────────────────────────────────────────
 import ProtectedRoute from './components/shared/ProtectedRoute';
@@ -14,13 +15,15 @@ import Home         from './pages/Home';
 import Paquetes     from './pages/Paquetes';
 import Galeria      from './pages/Galeria';
 import Configurador from './pages/Configurador';
+import Resenias     from './pages/Resenias';
 
-// ── Auth ─────────────────────────────────────────────────────────────────────
+// ── Auth ───────────────────────────────────────────────────────────────────────────
 import Login           from './pages/Login';
 import Register        from './pages/Register';
 import RecuperarClave  from './pages/RecuperarClave';
 import NuevaClave      from './pages/NuevaClave';
 import VerificarCuenta from './pages/VerificarCuenta';
+import AuthCallback    from './pages/AuthCallback';
 
 // ── Cliente ───────────────────────────────────────────────────────────────────
 import Solicitar       from './pages/Solicitar';
@@ -29,9 +32,14 @@ import MisSolicitudes  from './pages/cliente/MisSolicitudes';
 // ── Admin ─────────────────────────────────────────────────────────────────────
 import Dashboard         from './pages/admin/Dashboard';
 import GestionSolicitudes from './pages/admin/GestionSolicitudes';
+import SolicitudesArchivadas from './pages/admin/SolicitudesArchivadas';
 import GestionCatalogo    from './pages/admin/GestionCatalogo';
 import GestionGaleria from './pages/admin/GestionGaleria';
 import GestionCalendario from './pages/admin/GestionCalendario';
+import MiPerfil          from './pages/cliente/MiPerfil';
+import GestionUsuarios   from './pages/admin/GestionUsuarios';
+import Reportes          from './pages/admin/Reportes';
+import PerfilAdmin        from './pages/admin/PerfilAdmin';
 // =============================================================================
 //  GUARDAS DE RUTA
 // =============================================================================
@@ -56,6 +64,7 @@ function PublicLayout() {
   return (
     <div className="flex flex-col min-h-screen">
       <Navbar />
+      <WelcomeModal />
       <main className="flex-1">
         <Outlet />
       </main>
@@ -81,6 +90,7 @@ export default function App() {
           <Route path="/paquetes"   element={<Paquetes />} />
           <Route path="/galeria"    element={<Galeria />} />
           <Route path="/configurador" element={<Configurador />} />
+          <Route path="/resenias"   element={<Resenias />} />
 
           {/* Auth — solo para no autenticados */}
           <Route path="/login"    element={<AuthRoute><Login /></AuthRoute>} />
@@ -88,6 +98,7 @@ export default function App() {
           <Route path="/recuperar-clave"   element={<RecuperarClave />} />
           <Route path="/nueva-clave"       element={<NuevaClave />} />
           <Route path="/verificar-cuenta"  element={<VerificarCuenta />} />
+          <Route path="/auth/callback"     element={<AuthCallback />} />
 
           {/* Solicitar — maneja su propio modal de login para conservar el store */}
           <Route path="/solicitar" element={<Solicitar />} />
@@ -98,6 +109,16 @@ export default function App() {
             element={
               <ProtectedRoute rol="CLIENTE">
                 <MisSolicitudes />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Mi Perfil — solo cliente */}
+          <Route
+            path="/mi-perfil"
+            element={
+              <ProtectedRoute rol="CLIENTE">
+                <MiPerfil />
               </ProtectedRoute>
             }
           />
@@ -145,6 +166,12 @@ export default function App() {
 
           {/* 🚀 NUEVA RUTA: /admin/calendario → Gestión de disponibilidad */}
           <Route path="calendario" element={<GestionCalendario />} />
+
+          {/* Sprint 6: Gestión de usuarios y reportes */}
+          <Route path="usuarios"   element={<GestionUsuarios />} />
+          <Route path="reportes"   element={<Reportes />} />
+          <Route path="perfil"     element={<PerfilAdmin />} />
+          <Route path="archivadas" element={<SolicitudesArchivadas />} />
           
         </Route>
 

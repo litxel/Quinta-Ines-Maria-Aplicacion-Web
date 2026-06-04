@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/useAuthStore';
 
@@ -7,9 +7,15 @@ import logoQuinta from "../../assets/FotosQuintaInes/LogosQuinta/logo quinta ine
 
 export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
-  const [dropdown, setDropdown] = useState(false); // Nuevo estado para el dropdown del usuario
+  const [dropdown, setDropdown] = useState(false);
   const { isAuthenticated, user, logout } = useAuthStore();
   const navigate = useNavigate();
+
+  const BACKEND_URL = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000';
+  // Agregar timestamp para evitar caché del navegador al cambiar foto
+  const fotoUrl = user?.foto_perfil ? `${BACKEND_URL}${user.foto_perfil}?t=${Date.now()}` : null;
+  const inicial = (user?.nombre_completo ?? user?.nombre ?? 'U')[0].toUpperCase();
+  const nombreCompleto = user?.nombre_completo ?? user?.nombre ?? 'Usuario';
 
   // ── Lógica de Roles (De Claude) ──
   const rolUsuario = user?.rol_codigo ?? user?.rol ?? '';
@@ -64,6 +70,7 @@ export default function Navbar() {
           <NavLink to="/" end className={linkClass}>Inicio</NavLink>
           <NavLink to="/paquetes" className={linkClass}>Paquetes</NavLink>
           <NavLink to="/galeria" className={linkClass}>Galería</NavLink>
+          <NavLink to="/resenias" className={linkClass}>Reseñas</NavLink>
           <NavLink to="/configurador" className={linkClass}>Configurar Evento</NavLink>
           
           {/* Link Mis Solicitudes — solo clientes */}
@@ -87,11 +94,14 @@ export default function Navbar() {
                 className="flex items-center gap-3 bg-white border border-slate-200 pl-2 pr-4 py-1.5 rounded-full hover:bg-slate-50 transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-[#B7950B]"
                 aria-expanded={dropdown}
               >
-                <div className="w-8 h-8 rounded-full bg-[#B7950B] flex items-center justify-center text-white font-bold text-sm">
-                  {(user?.nombre_completo ?? user?.nombre ?? 'U')[0].toUpperCase()}
+                {/* Avatar con foto o inicial */}
+                <div className="w-8 h-8 rounded-full overflow-hidden bg-[#B7950B] flex items-center justify-center text-white font-bold text-sm shrink-0">
+                  {fotoUrl ? (
+                    <img src={fotoUrl} alt="Mi foto" className="w-full h-full object-cover" />
+                  ) : inicial}
                 </div>
-                <span className="text-sm text-slate-700 font-medium max-w-[120px] truncate">
-                  {user?.nombre_completo?.split(' ')[0] ?? 'Usuario'}
+                <span className="text-sm text-slate-700 font-medium max-w-[130px] truncate">
+                  {nombreCompleto.split(' ').slice(0, 2).join(' ')}
                 </span>
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className={`w-4 h-4 text-slate-400 transition-transform ${dropdown ? 'rotate-180' : ''}`}>
                   <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clipRule="evenodd" />
@@ -105,9 +115,18 @@ export default function Navbar() {
                   <div className="absolute right-0 top-full mt-2 w-64 bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden z-40 animate-in slide-in-from-top-2">
                     
                     <div className="px-4 py-4 bg-slate-50 border-b border-slate-100">
-                      <p className="text-sm font-bold text-[#0D2137] truncate">{user?.nombre_completo ?? user?.nombre}</p>
-                      <p className="text-xs text-slate-500 truncate mt-0.5">{user?.correo}</p>
-                      <span className={`inline-block mt-2 text-[10px] font-bold uppercase px-2.5 py-1 rounded-full ${
+                      <div className="flex items-center gap-3 mb-2">
+                        <div className="w-10 h-10 rounded-full overflow-hidden bg-[#B7950B] flex items-center justify-center text-white font-bold shrink-0">
+                          {fotoUrl ? (
+                            <img src={fotoUrl} alt="Mi foto" className="w-full h-full object-cover" />
+                          ) : inicial}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-sm font-bold text-[#0D2137] truncate">{user?.nombre_completo ?? user?.nombre}</p>
+                          <p className="text-xs text-slate-500 truncate">{user?.correo}</p>
+                        </div>
+                      </div>
+                      <span className={`inline-block mt-1 text-[10px] font-bold uppercase px-2.5 py-1 rounded-full ${
                         esAdmin ? 'bg-[#B7950B] text-white' : 'bg-[#0D2137]/10 text-[#0D2137]'
                       }`}>
                         {esAdmin ? '⚡ Administrador' : '👤 Cliente'}
@@ -123,6 +142,11 @@ export default function Navbar() {
                       {esCliente && !esAdmin && (
                         <DropdownLink to="/mis-solicitudes" onClick={() => setDropdown(false)}>
                           📋 Mis eventos cotizados
+                        </DropdownLink>
+                      )}
+                      {esCliente && !esAdmin && (
+                        <DropdownLink to="/mi-perfil" onClick={() => setDropdown(false)}>
+                          👤 Mi perfil
                         </DropdownLink>
                       )}
                       <DropdownLink to="/configurador" onClick={() => setDropdown(false)}>
@@ -179,11 +203,15 @@ export default function Navbar() {
           <NavLink to="/" end className={mobileLinkClass} onClick={() => setMenuOpen(false)}>Inicio</NavLink>
           <NavLink to="/paquetes" className={mobileLinkClass} onClick={() => setMenuOpen(false)}>Paquetes</NavLink>
           <NavLink to="/galeria" className={mobileLinkClass} onClick={() => setMenuOpen(false)}>Galería</NavLink>
+          <NavLink to="/resenias" className={mobileLinkClass} onClick={() => setMenuOpen(false)}>Reseñas ⭐</NavLink>
           <NavLink to="/configurador" className={mobileLinkClass} onClick={() => setMenuOpen(false)}>Configurar Evento</NavLink>
 
           {/* Links según rol en móvil */}
           {isAuthenticated && esCliente && !esAdmin && (
             <NavLink to="/mis-solicitudes" className={mobileLinkClass} onClick={() => setMenuOpen(false)}>📋 Mis Eventos</NavLink>
+          )}
+          {isAuthenticated && esCliente && !esAdmin && (
+            <NavLink to="/mi-perfil" className={mobileLinkClass} onClick={() => setMenuOpen(false)}>👤 Mi Perfil</NavLink>
           )}
           {isAuthenticated && esAdmin && (
             <NavLink to="/admin" className={mobileLinkClass} onClick={() => setMenuOpen(false)}>⚡ Panel Admin</NavLink>

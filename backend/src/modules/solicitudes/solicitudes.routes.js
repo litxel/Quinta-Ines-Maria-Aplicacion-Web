@@ -39,6 +39,15 @@ router.get('/:id', verifyToken, ctrl.getSolicitud);
 // Actualizar estado — solo admin
 router.put('/:id/estado', verifyToken, isAdmin, ctrl.actualizarEstado);
 
+// Archivar solicitud — solo admin
+router.patch('/:id/archivar',     verifyToken, isAdmin, ctrl.archivarSolicitud);
+
+// Desarchivar solicitud — solo admin
+router.patch('/:id/desarchivar',  verifyToken, isAdmin, ctrl.desarchivarSolicitud);
+
+// Eliminar permanentemente — solo admin (requiere motivo en body)
+router.delete('/:id/permanente',  verifyToken, isAdmin, ctrl.eliminarPermanente);
+
 //cancelar solcicitud cliente
 router.put('/:id/cancelar', verifyToken, ctrl.cancelarSolicitud);
 

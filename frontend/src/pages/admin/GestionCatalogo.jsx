@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import EmojiPicker from 'emoji-picker-react';
+import { useState, useEffect, useRef } from 'react';
+import LucideIcon from '../../components/shared/LucideIcon';
 import { 
   getPaquetesAdmin, actualizarPaquete, crearPaquete, desactivarPaquete,
   agregarServicioPaquete, eliminarServicioPaquete, actualizarServicioPaquete,
@@ -8,7 +8,7 @@ import {
   getCentrosAdmin, crearCentro, actualizarCentro, desactivarCentro,
   getExtrasAdmin, crearExtra, actualizarExtra, desactivarExtra
 } from '../../services/catalogo.service';
-import { Package, GlassWater, GripHorizontal, Sparkles, Plus, Edit2, Trash2, X, Settings2 } from 'lucide-react';
+import { Package, GlassWater, GripHorizontal, Sparkles, Plus, Edit2, Trash2, X, Settings2, Eye, EyeOff } from 'lucide-react';
 
 const TABS = [
   { id: 'paquetes', label: 'Paquetes Principales', icon: <Package size={18} /> },
@@ -27,7 +27,6 @@ export default function GestionCatalogo() {
   const [modalAbierto, setModalAbierto] = useState(false);
   const [itemEditando, setItemEditando] = useState(null);
   const [form, setForm] = useState({});
-  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
   // ── ESTADOS ESPECÍFICOS DE PAQUETES (SERVICIOS INTERNOS) ──
   const [modalServiciosAbierto, setModalServiciosAbierto] = useState(false);
@@ -35,6 +34,11 @@ export default function GestionCatalogo() {
   const [nuevoServicio, setNuevoServicio] = useState('');
   const [servicioEditandoId, setServicioEditandoId] = useState(null);
   const [textoEdicionInline, setTextoEdicionInline] = useState('');
+
+  // ── ESTADO DE IMAGEN DE CATÁLOGO ──
+  const fileInputRef  = useRef(null);
+  const [imagenPreview, setImagenPreview] = useState(null); // URL local para preview
+  const BACKEND_URL = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000';
 
   // ── CARGA DE DATOS SEGÚN LA PESTAÑA ──
   const cargarDatos = async () => {
@@ -47,8 +51,8 @@ export default function GestionCatalogo() {
       if (activeTab === 'centros')  res = await getCentrosAdmin();
       if (activeTab === 'extras')   res = await getExtrasAdmin();
       
-      // Filtramos para no mostrar los que han sido "desactivados" (eliminado lógico)
-      setData(res.filter(item => item.activo !== false)); 
+      // Muestra todos, pero el Admin sabrá cuáles están ocultos por el color
+      setData(res); 
     } catch (error) {
       console.error("Error cargando catálogo", error);
     } finally {
@@ -63,27 +67,20 @@ export default function GestionCatalogo() {
   // ── MANEJO DEL MODAL DINÁMICO ──
   const abrirModal = (item = null) => {
     setItemEditando(item);
-    setShowEmojiPicker(false);
+    setImagenPreview(null); // Resetear preview
     
     if (item) {
-      setForm(item);
+      setForm({ ...item });
+      // Si tiene imagen_url, mostrar como preview
+      if (item.imagen_url && ['estilos', 'centros', 'extras', 'tipos'].includes(activeTab)) {
+        setImagenPreview(`${BACKEND_URL}${item.imagen_url}`);
+      }
     } else {
-      // Valores por defecto para un nuevo registro dependiendo de la pestaña
-      if (activeTab === 'paquetes') {
-        setForm({ paquete_nombre: '', paquete_codigo: '', descripcion: '', precio_persona: '', minimo_invitados: 100, color_principal: '#B7950B' });
-      }
-      if (activeTab === 'tipos') {
-        setForm({ tipo_nombre: '', tipo_codigo: '', tipo_icono: '🎉', descripcion: '' });
-      }
-      if (activeTab === 'estilos') {
-        setForm({ nombre: '', estilo_codigo: '', descripcion: '', costo_adicional: 0 });
-      }
-      if (activeTab === 'centros') {
-        setForm({ nombre: '', descripcion: '', costo_por_mesa: 0 });
-      }
-      if (activeTab === 'extras') {
-        setForm({ nombre: '', descripcion: '', precio_unitario: 0, unidad: 'unidad', categoria: 'GENERAL' });
-      }
+      if (activeTab === 'paquetes') setForm({ paquete_nombre: '', paquete_codigo: '', descripcion: '', precio_persona: '', minimo_invitados: 100, color_principal: '#B7950B', activo: true });
+      if (activeTab === 'tipos')    setForm({ tipo_nombre: '', tipo_codigo: '', tipo_icono: 'Sparkles', descripcion: '', activo: true });
+      if (activeTab === 'estilos')  setForm({ nombre: '', estilo_codigo: '', descripcion: '', costo_adicional: 0, icono: 'Sparkles', activo: true });
+      if (activeTab === 'centros')  setForm({ nombre: '', descripcion: '', costo_por_mesa: 0, icono: 'Sparkles', activo: true });
+      if (activeTab === 'extras')   setForm({ nombre: '', descripcion: '', precio_unitario: 0, unidad: 'unidad', categoria: 'GENERAL', icono: 'Sparkles', activo: true });
     }
     setModalAbierto(true);
   };
@@ -111,7 +108,7 @@ export default function GestionCatalogo() {
   };
 
   const handleEliminar = async (id) => {
-    if (!window.confirm('¿Seguro que deseas desactivar este elemento del catálogo?')) return;
+    if (!window.confirm('¿Seguro que deseas ELIMINAR/OCULTAR este elemento? No asomará a los clientes.')) return;
     try {
       if (activeTab === 'paquetes') await desactivarPaquete(id);
       if (activeTab === 'tipos')    await desactivarTipo(id);
@@ -121,6 +118,21 @@ export default function GestionCatalogo() {
       cargarDatos();
     } catch (error) {
       alert('Error al desactivar el elemento.');
+    }
+  };
+
+  // 🚀 NUEVA FUNCIÓN: Restaurar/Ocultar rápido
+  const toggleVisibilidad = async (item) => {
+    try {
+      const nuevoEstado = { ...item, activo: !item.activo };
+      if (activeTab === 'paquetes') await actualizarPaquete(item.paquete_id, nuevoEstado);
+      if (activeTab === 'tipos')    await actualizarTipo(item.tipo_id, nuevoEstado);
+      if (activeTab === 'estilos')  await actualizarEstilo(item.estilo_id, nuevoEstado);
+      if (activeTab === 'centros')  await actualizarCentro(item.centro_id, nuevoEstado);
+      if (activeTab === 'extras')   await actualizarExtra(item.adicional_id, nuevoEstado);
+      cargarDatos();
+    } catch (error) {
+      alert('Error al cambiar visibilidad.');
     }
   };
 
@@ -145,7 +157,7 @@ export default function GestionCatalogo() {
       const pActualizado = await getPaquetesAdmin();
       const p = pActualizado.find(x => x.paquete_id === paqueteServicios.paquete_id);
       setPaqueteServicios(p);
-      setData(pActualizado.filter(item => item.activo !== false));
+      setData(pActualizado);
     } catch (error) { 
       alert('Error al agregar servicio.'); 
     }
@@ -158,7 +170,7 @@ export default function GestionCatalogo() {
       const pActualizado = await getPaquetesAdmin();
       const p = pActualizado.find(x => x.paquete_id === paqueteServicios.paquete_id);
       setPaqueteServicios(p);
-      setData(pActualizado.filter(item => item.activo !== false));
+      setData(pActualizado);
     } catch (error) { 
       alert('Error al eliminar servicio.'); 
     }
@@ -179,7 +191,7 @@ export default function GestionCatalogo() {
       const pActualizado = await getPaquetesAdmin();
       const p = pActualizado.find(x => x.paquete_id === paqueteServicios.paquete_id);
       setPaqueteServicios(p);
-      setData(pActualizado.filter(item => item.activo !== false));
+      setData(pActualizado);
     } catch (error) { 
       alert('Error al actualizar servicio.'); 
     }
@@ -232,6 +244,7 @@ export default function GestionCatalogo() {
               <tr>
                 {activeTab === 'paquetes' && (
                   <>
+                    <th className="px-6 py-4">Estado</th>
                     <th className="px-6 py-4">Paquete</th>
                     <th className="px-6 py-4">Precio (Pax)</th>
                     <th className="px-6 py-4">Servicios Inlcuidos</th>
@@ -239,25 +252,31 @@ export default function GestionCatalogo() {
                 )}
                 {activeTab === 'tipos' && (
                   <>
+                    <th className="px-6 py-4">Estado</th>
                     <th className="px-6 py-4 text-center">Ícono</th>
                     <th className="px-6 py-4">Tipo Evento</th>
-                    <th className="px-6 py-4">Código Interno</th>
                   </>
                 )}
                 {activeTab === 'estilos' && (
                   <>
+                    <th className="px-6 py-4">Estado</th>
+                    <th className="px-6 py-4 text-center">Ícono</th>
                     <th className="px-6 py-4">Estilo</th>
                     <th className="px-6 py-4">Costo Adicional Fijo</th>
                   </>
                 )}
                 {activeTab === 'centros' && (
                   <>
+                    <th className="px-6 py-4">Estado</th>
+                    <th className="px-6 py-4 text-center">Ícono</th>
                     <th className="px-6 py-4">Centro de Mesa</th>
                     <th className="px-6 py-4">Costo por Mesa</th>
                   </>
                 )}
                 {activeTab === 'extras' && (
                   <>
+                    <th className="px-6 py-4">Estado</th>
+                    <th className="px-6 py-4 text-center">Ícono</th>
                     <th className="px-6 py-4">Servicio Extra</th>
                     <th className="px-6 py-4">Categoría</th>
                     <th className="px-6 py-4">Precio Unitario</th>
@@ -281,9 +300,15 @@ export default function GestionCatalogo() {
                 </tr>
               ) : (
                 data.map((item) => (
-                  <tr key={item.paquete_id || item.tipo_id || item.estilo_id || item.centro_id || item.adicional_id} className="hover:bg-slate-50 transition-colors">
+                  <tr key={item.paquete_id || item.tipo_id || item.estilo_id || item.centro_id || item.adicional_id} className={`transition-colors ${item.activo ? 'hover:bg-slate-50' : 'bg-red-50/50 opacity-70'}`}>
                     
                     {/* Render dinámico según pestaña */}
+                    <td className="px-6 py-4">
+                      <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full ${item.activo ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                        {item.activo ? 'Público' : 'Oculto'}
+                      </span>
+                    </td>
+
                     {activeTab === 'paquetes' && (
                       <>
                         <td className="px-6 py-4 font-bold text-[#0D2137] text-base">{item.paquete_nombre}</td>
@@ -301,14 +326,21 @@ export default function GestionCatalogo() {
 
                     {activeTab === 'tipos' && (
                       <>
-                        <td className="px-6 py-4 text-3xl text-center">{item.tipo_icono}</td>
-                        <td className="px-6 py-4 font-bold text-[#0D2137] text-base">{item.tipo_nombre}</td>
-                        <td className="px-6 py-4 font-mono text-xs text-slate-400 bg-slate-100 inline-block mt-4 px-2 py-1 rounded">{item.tipo_codigo}</td>
+                        <td className="px-6 py-4 text-center text-[#0D2137]">
+                          <div className="flex justify-center"><LucideIcon name={item.tipo_icono} size={28} /></div>
+                        </td>
+                        <td className="px-6 py-4 font-bold text-[#0D2137] text-base">
+                          {item.tipo_nombre}
+                          <span className="block font-mono text-xs text-slate-400 mt-1">{item.tipo_codigo}</span>
+                        </td>
                       </>
                     )}
 
                     {activeTab === 'estilos' && (
                       <>
+                        <td className="px-6 py-4 text-center text-[#0D2137]">
+                          <div className="flex justify-center"><LucideIcon name={item.icono} size={24} /></div>
+                        </td>
                         <td className="px-6 py-4 font-bold text-[#0D2137] text-base">{item.nombre}</td>
                         <td className="px-6 py-4 font-bold text-slate-600">${parseFloat(item.costo_adicional).toFixed(2)}</td>
                       </>
@@ -316,6 +348,9 @@ export default function GestionCatalogo() {
 
                     {activeTab === 'centros' && (
                       <>
+                        <td className="px-6 py-4 text-center text-[#0D2137]">
+                          <div className="flex justify-center"><LucideIcon name={item.icono} size={24} /></div>
+                        </td>
                         <td className="px-6 py-4 font-bold text-[#0D2137] text-base">{item.nombre}</td>
                         <td className="px-6 py-4 font-bold text-slate-600">${parseFloat(item.costo_por_mesa).toFixed(2)} / mesa</td>
                       </>
@@ -323,6 +358,9 @@ export default function GestionCatalogo() {
 
                     {activeTab === 'extras' && (
                       <>
+                        <td className="px-6 py-4 text-center text-[#0D2137]">
+                          <div className="flex justify-center"><LucideIcon name={item.icono} size={24} /></div>
+                        </td>
                         <td className="px-6 py-4 font-bold text-[#0D2137] text-base">{item.nombre}</td>
                         <td className="px-6 py-4">
                           <span className="text-[10px] font-bold text-slate-500 bg-slate-100 border border-slate-200 rounded px-2 py-1 tracking-wider">
@@ -336,6 +374,15 @@ export default function GestionCatalogo() {
                     {/* Botones de acción genéricos */}
                     <td className="px-6 py-4 text-right">
                       <div className="flex justify-end gap-2">
+                        {/* 🚀 BOTÓN OCULTAR/MOSTRAR RÁPIDO */}
+                        <button 
+                          onClick={() => toggleVisibilidad(item)} 
+                          className={`p-2.5 rounded-lg transition-colors ${item.activo ? 'text-slate-400 hover:bg-slate-200 hover:text-slate-700' : 'text-green-600 bg-green-50 hover:bg-green-100'}`}
+                          title={item.activo ? "Ocultar del público" : "Mostrar al público"}
+                        >
+                          {item.activo ? <EyeOff size={18}/> : <Eye size={18}/>}
+                        </button>
+
                         <button 
                           onClick={() => abrirModal(item)} 
                           className="p-2.5 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors"
@@ -346,7 +393,7 @@ export default function GestionCatalogo() {
                         <button 
                           onClick={() => handleEliminar(item.paquete_id || item.tipo_id || item.estilo_id || item.centro_id || item.adicional_id)} 
                           className="p-2.5 text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors"
-                          title="Desactivar"
+                          title="Eliminar lógicamente"
                         >
                           <Trash2 size={18}/>
                         </button>
@@ -382,28 +429,89 @@ export default function GestionCatalogo() {
             <div className="p-8 overflow-y-auto custom-scrollbar">
               <form id="catalogoForm" onSubmit={handleGuardar} className="space-y-5">
                 
-                {/* 🚀 SELECTOR DE EMOJIS (Solo para Tipos de Evento) */}
-                {activeTab === 'tipos' && (
-                  <div className="relative mb-6">
-                    <label className="block text-sm font-bold text-slate-700 mb-2">Ícono del Evento (Emoji)</label>
-                    <button 
-                      type="button" 
-                      onClick={() => setShowEmojiPicker(!showEmojiPicker)} 
-                      className="w-24 h-24 text-5xl border-2 border-slate-200 rounded-2xl hover:bg-slate-50 hover:border-[#B7950B] transition-all flex items-center justify-center bg-white shadow-sm"
-                      title="Haz clic para cambiar el Emoji"
-                    >
-                      {form.tipo_icono}
-                    </button>
-                    {showEmojiPicker && (
-                      <div className="absolute z-50 mt-2 shadow-2xl rounded-xl overflow-hidden border border-slate-200">
-                        <EmojiPicker 
-                          onEmojiClick={(e) => { 
-                            setForm({...form, tipo_icono: e.emoji}); 
-                            setShowEmojiPicker(false); 
-                          }} 
-                        />
+                {/* 🚀 CAMPO DE IMAGEN (Para Tipos de Evento, Estilos, Centros y Extras) */}
+                {(activeTab === 'tipos' || activeTab === 'estilos' || activeTab === 'centros' || activeTab === 'extras') && (
+                  <div className="mb-4">
+                    <label className="block text-sm font-bold text-slate-700 mb-2">Imagen de referencia (opcional)</label>
+                    <div className="flex gap-3 items-start">
+                      {/* Preview */}
+                      <div
+                        className="w-20 h-20 rounded-xl border-2 border-dashed border-slate-300 overflow-hidden flex items-center justify-center bg-slate-50 shrink-0 cursor-pointer hover:border-[#B7950B] transition-colors"
+                        onClick={() => fileInputRef.current?.click()}
+                        title="Clic para cambiar imagen"
+                      >
+                        {imagenPreview ? (
+                          <img src={imagenPreview} alt="Vista previa" className="w-full h-full object-cover" />
+                        ) : (
+                          <span className="text-slate-400 text-xs text-center px-1">Sin imagen</span>
+                        )}
                       </div>
-                    )}
+                      {/* Botón de selección */}
+                      <div className="flex-1">
+                        <button
+                          type="button"
+                          onClick={() => fileInputRef.current?.click()}
+                          className="px-4 py-2.5 border-2 border-slate-200 rounded-xl text-sm font-bold text-slate-600 hover:border-[#B7950B] hover:text-[#B7950B] transition-colors"
+                        >
+                          📷 {imagenPreview ? 'Cambiar imagen' : 'Subir imagen'}
+                        </button>
+                        {imagenPreview && (
+                          <button
+                            type="button"
+                            onClick={() => { setImagenPreview(null); setForm(f => ({ ...f, imagen_base64: null })); }}
+                            className="ml-2 px-3 py-2.5 border border-red-200 text-red-500 rounded-xl text-xs font-bold hover:bg-red-50 transition-colors"
+                          >
+                            Quitar
+                          </button>
+                        )}
+                        <p className="text-xs text-slate-400 mt-1.5">JPG, PNG o WEBP · Máx 5MB</p>
+                      </div>
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          if (file.size > 5 * 1024 * 1024) {
+                            alert('La imagen no puede superar 5MB.');
+                            return;
+                          }
+                          const reader = new FileReader();
+                          reader.onload = (ev) => {
+                            const base64 = ev.target.result;
+                            setImagenPreview(base64);
+                            setForm(f => ({ ...f, imagen_base64: base64 }));
+                          };
+                          reader.readAsDataURL(file);
+                        }}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* 🚀 SELECTOR DE ICONO LUCIDE (Para Tipos, Estilos, Centros y Extras) */}
+                {activeTab !== 'paquetes' && (
+                  <div className="relative mb-6">
+                    <label className="block text-sm font-bold text-slate-700 mb-2">Nombre del Ícono (Lucide React)</label>
+                    <div className="flex gap-4 items-center">
+                      <div className="w-16 h-16 border-2 border-slate-200 rounded-2xl flex items-center justify-center bg-slate-50 text-[#0D2137] shadow-sm">
+                        <LucideIcon name={activeTab === 'tipos' ? form.tipo_icono : form.icono} size={32} />
+                      </div>
+                      <div className="flex-1">
+                        <input 
+                          type="text" 
+                          value={activeTab === 'tipos' ? (form.tipo_icono || '') : (form.icono || '')} 
+                          onChange={(e) => setForm({...form, [activeTab === 'tipos' ? 'tipo_icono' : 'icono']: e.target.value})} 
+                          className="w-full border-2 border-slate-200 rounded-xl px-4 py-3 focus:border-[#B7950B] outline-none transition-colors" 
+                          placeholder="Ej: Sparkles, Camera, Heart"
+                        />
+                        <a href="https://lucide.dev/icons" target="_blank" rel="noopener noreferrer" className="text-xs text-blue-500 mt-1 inline-block hover:underline">
+                          Ver catálogo de iconos en Lucide.dev
+                        </a>
+                      </div>
+                    </div>
                   </div>
                 )}
 
@@ -501,6 +609,22 @@ export default function GestionCatalogo() {
                         <option value="persona">Por Persona</option>
                       </select>
                     </div>
+                  </div>
+                )}
+
+                {/* 🚀 CHECKBOX PARA OCULTAR/MOSTRAR (Solo en edición) */}
+                {itemEditando && (
+                  <div className="mt-4 flex items-center gap-3 p-4 bg-slate-50 border border-slate-200 rounded-xl">
+                    <input 
+                      type="checkbox" 
+                      id="activoCheck"
+                      checked={form.activo} 
+                      onChange={(e) => setForm({...form, activo: e.target.checked})} 
+                      className="w-5 h-5 rounded border-slate-300 text-[#B7950B] focus:ring-[#B7950B]"
+                    />
+                    <label htmlFor="activoCheck" className="text-sm font-bold text-slate-700 cursor-pointer select-none">
+                      Visible en el catálogo público
+                    </label>
                   </div>
                 )}
 

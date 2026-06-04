@@ -122,8 +122,10 @@ const loginUsuario = async ({ correo, password }) => {
       id:                  u.usuario_id,
       nombre_completo:     u.nombre_completo,
       correo:              u.correo,
+      telefono:            u.telefono || null,
       rol_codigo:          u.rol_codigo,
       correo_verificado:   u.correo_verificado,
+      foto_perfil:         u.foto_perfil || null,
     },
   };
 };

@@ -7,7 +7,8 @@ const FLUJO_NORMAL = ['PENDIENTE', 'EN_REVISION', 'CONFIRMADA', 'COMPLETADA'];
 // ─────────────────────────────────────────────────────────────────────────────
 const crearSolicitud = async ({
   usuarioId, eqimCotizacionId, numeroSolicitud, tipoEventoId, paqueteId,
-  numInvitados, precioEstimado, mensajeCliente, telefonoContacto
+  numInvitados, precioEstimado, mensajeCliente, telefonoContacto,
+  colorPrimario, colorSecundario, estilodecoId, centroMesaId, extras
 }) => {
   const existe = await pool.query(
     'SELECT solicitud_id FROM eqim_solicitudes.eqim_solicitudes WHERE numero_solicitud = $1',
@@ -21,25 +22,54 @@ const crearSolicitud = async ({
   const { rows } = await pool.query(
     `INSERT INTO eqim_solicitudes.eqim_solicitudes
        (usuario_id, eqim_cotizacion_id, numero_solicitud, tipo_evento_id, paquete_id,
-        num_invitados, telefono_contacto, precio_estimado, estado_id, mensaje_cliente, fecha_evento)
+        num_invitados, telefono_contacto, precio_estimado, estado_id, mensaje_cliente, fecha_evento,
+        color_primario, color_secundario, estilo_deco_id, centro_mesa_id)
      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,
        (SELECT estado_id FROM eqim_solicitudes.estados WHERE codigo='PENDIENTE'),
-       $9, CURRENT_DATE)
+       $9, CURRENT_DATE,
+       $10, $11, $12, $13)
      RETURNING solicitud_id, numero_solicitud AS numero_cotizacion`,
     [
-      usuarioId, 
-      eqimCotizacionId, 
-      numeroSolicitud, 
-      tipoEventoId, 
+      usuarioId,
+      eqimCotizacionId,
+      numeroSolicitud,
+      tipoEventoId,
       paqueteId,
-      numInvitados, 
+      numInvitados,
       telefonoContacto || 'No especificado',
-      precioEstimado, 
-      mensajeCliente
+      precioEstimado,
+      mensajeCliente,
+      colorPrimario    || null,
+      colorSecundario  || null,
+      estilodecoId     || null,
+      centroMesaId     || null,
     ]
   );
-  return rows[0];
+
+  const solicitud = rows[0];
+
+  // Guardar extras seleccionados por el cliente
+  if (Array.isArray(extras) && extras.length > 0) {
+    for (const ext of extras) {
+      if (!ext.nombre || ext.cantidad < 1) continue;
+      await pool.query(
+        `INSERT INTO eqim_solicitudes.solicitud_extras
+           (solicitud_id, adicional_id, nombre_snapshot, cantidad, precio_snapshot)
+         VALUES ($1, $2, $3, $4, $5)`,
+        [
+          solicitud.solicitud_id,
+          ext.adicional_id || null,
+          ext.nombre,
+          ext.cantidad,
+          parseFloat(ext.precio_snapshot || 0),
+        ]
+      );
+    }
+  }
+
+  return solicitud;
 };
+
 
 // ─────────────────────────────────────────────────────────────────────────────
 const obtenerMisSolicitudes = async (usuarioId) => {
@@ -69,10 +99,11 @@ const obtenerMisSolicitudes = async (usuarioId) => {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-const obtenerTodasSolicitudes = async ({ estado = null, pagina = 1, limite = 25 } = {}) => {
+const obtenerTodasSolicitudes = async ({ estado = null, pagina = 1, limite = 25, archivadas = false } = {}) => {
   const offset = (pagina - 1) * limite;
   const condiciones = estado && ESTADOS_VALIDOS.includes(estado.toUpperCase())
     ? `AND e.codigo = '${estado.toUpperCase()}'` : '';
+  const condArchivado = archivadas ? `AND s.archivado = true` : `AND s.archivado = false`;
 
   const { rows } = await pool.query(
     `SELECT
@@ -81,6 +112,7 @@ const obtenerTodasSolicitudes = async ({ estado = null, pagina = 1, limite = 25 
        s.num_invitados,
        s.precio_estimado,
        s.creado_en,
+       s.archivado,
        e.codigo AS estado_codigo,
        e.nombre AS estado_nombre,
        e.color_hex AS estado_color,
@@ -93,7 +125,7 @@ const obtenerTodasSolicitudes = async ({ estado = null, pagina = 1, limite = 25 
      JOIN eqim_seguridad.usuarios u            ON u.usuario_id = s.usuario_id
      LEFT JOIN eqim_catalogo.tipos_evento te   ON te.tipo_id   = s.tipo_evento_id
      LEFT JOIN eqim_catalogo.paquetes p        ON p.paquete_id = s.paquete_id
-     WHERE 1=1 ${condiciones}
+     WHERE 1=1 ${condiciones} ${condArchivado}
      ORDER BY s.creado_en DESC
      LIMIT $1 OFFSET $2`,
     [limite, offset]
@@ -103,7 +135,7 @@ const obtenerTodasSolicitudes = async ({ estado = null, pagina = 1, limite = 25 
     `SELECT COUNT(*) AS total
      FROM eqim_solicitudes.eqim_solicitudes s
      JOIN eqim_solicitudes.estados e ON e.estado_id = s.estado_id
-     WHERE 1=1 ${condiciones}`
+     WHERE 1=1 ${condiciones} ${condArchivado}`
   );
 
   return {
@@ -115,6 +147,7 @@ const obtenerTodasSolicitudes = async ({ estado = null, pagina = 1, limite = 25 
   };
 };
 
+
 // ─────────────────────────────────────────────────────────────────────────────
 const obtenerSolicitudPorId = async (solicitudId, usuarioId = null, esAdmin = false) => {
   const condicionUsuario = esAdmin ? '' : 'AND s.usuario_id = $2';
@@ -125,24 +158,27 @@ const obtenerSolicitudPorId = async (solicitudId, usuarioId = null, esAdmin = fa
        s.solicitud_id, s.numero_solicitud AS numero_cotizacion, s.precio_estimado,
        s.num_invitados, s.mensaje_cliente, s.comentario_admin AS observaciones, s.creado_en, s.fecha_evento,
        e.codigo AS estado_codigo, e.nombre AS estado_nombre, e.color_hex AS estado_color,
-       u.nombre_completo AS cliente_nombre, u.correo AS cliente_correo, u.telefono AS cliente_telefono,
+       u.nombre_completo AS cliente_nombre, u.correo AS cliente_correo,
+       COALESCE(s.telefono_contacto, u.telefono) AS cliente_telefono,
        te.tipo_nombre, p.paquete_nombre, p.precio_persona,
-       cfg.color_primario, cfg.color_secundario,
+       s.color_primario, s.color_secundario,
        ed.nombre AS estilo_decoracion, cm.nombre AS centro_mesa,
        (
-         SELECT COALESCE(json_agg(json_build_object('nombre', sa.nombre, 'cantidad', ss.cantidad, 'precio', ss.precio_snapshot)), '[]')
-         FROM eqim_configurador.sesion_servicios ss
-         JOIN eqim_catalogo.servicios_adicionales sa ON sa.adicional_id = ss.adicional_id
-         WHERE ss.sesion_id = s.eqim_cotizacion_id
+         SELECT COALESCE(json_agg(json_build_object(
+           'nombre', se.nombre_snapshot,
+           'cantidad', se.cantidad,
+           'precio', se.precio_snapshot
+         )), '[]')
+         FROM eqim_solicitudes.solicitud_extras se
+         WHERE se.solicitud_id = s.solicitud_id
        ) AS extras
      FROM eqim_solicitudes.eqim_solicitudes s
      JOIN eqim_solicitudes.estados e             ON e.estado_id  = s.estado_id
      JOIN eqim_seguridad.usuarios u              ON u.usuario_id = s.usuario_id
      LEFT JOIN eqim_catalogo.tipos_evento te     ON te.tipo_id   = s.tipo_evento_id
      LEFT JOIN eqim_catalogo.paquetes p          ON p.paquete_id = s.paquete_id
-     LEFT JOIN eqim_configurador.sesiones cfg    ON cfg.sesion_id = s.eqim_cotizacion_id
-     LEFT JOIN eqim_catalogo.estilos_decoracion ed ON ed.estilo_id = cfg.estilo_deco_id
-     LEFT JOIN eqim_catalogo.centros_mesa cm     ON cm.centro_id = cfg.centro_mesa_id
+     LEFT JOIN eqim_catalogo.estilos_decoracion ed ON ed.estilo_id = s.estilo_deco_id
+     LEFT JOIN eqim_catalogo.centros_mesa cm     ON cm.centro_id = s.centro_mesa_id
      WHERE s.solicitud_id = $1 ${condicionUsuario}`,
     params
   );
@@ -153,6 +189,7 @@ const obtenerSolicitudPorId = async (solicitudId, usuarioId = null, esAdmin = fa
   }
   return rows[0];
 };
+
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 🚀 MÁQUINA DE ESTADOS ESTRICTA
@@ -263,7 +300,63 @@ const obtenerResumenDashboard = async () => {
   return { resumen: rows[0], ultimas };
 };
 
+// ─────────────────────────────────────────────────────────────────────────────
+const archivarSolicitud = async (solicitudId) => {
+  const { rows } = await pool.query(
+    `UPDATE eqim_solicitudes.eqim_solicitudes
+     SET archivado = true, actualizado_en = NOW()
+     WHERE solicitud_id = $1
+     RETURNING solicitud_id, numero_solicitud`,
+    [solicitudId]
+  );
+  if (!rows.length) { const err = new Error('Solicitud no encontrada.'); err.statusCode = 404; throw err; }
+  return rows[0];
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+const desarchivarSolicitud = async (solicitudId) => {
+  const { rows } = await pool.query(
+    `UPDATE eqim_solicitudes.eqim_solicitudes
+     SET archivado = false, actualizado_en = NOW()
+     WHERE solicitud_id = $1
+     RETURNING solicitud_id, numero_solicitud`,
+    [solicitudId]
+  );
+  if (!rows.length) { const err = new Error('Solicitud no encontrada.'); err.statusCode = 404; throw err; }
+  return rows[0];
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+const eliminarSolicitudPermanente = async (solicitudId, motivo) => {
+  if (!motivo || !motivo.trim()) {
+    const err = new Error('El motivo de eliminación es obligatorio.'); err.statusCode = 400; throw err;
+  }
+
+  // 1. Obtener datos del cliente ANTES de eliminar
+  const { rows: datos } = await pool.query(
+    `SELECT s.numero_solicitud, u.nombre_completo, u.correo
+     FROM eqim_solicitudes.eqim_solicitudes s
+     JOIN eqim_seguridad.usuarios u ON u.usuario_id = s.usuario_id
+     WHERE s.solicitud_id = $1`,
+    [solicitudId]
+  );
+  if (!datos.length) { const err = new Error('Solicitud no encontrada.'); err.statusCode = 404; throw err; }
+  const { numero_solicitud, nombre_completo, correo } = datos[0];
+
+  // 2. Eliminar (los extras se borran por ON DELETE CASCADE)
+  await pool.query('DELETE FROM eqim_solicitudes.eqim_solicitudes WHERE solicitud_id = $1', [solicitudId]);
+
+  // 3. Notificar al cliente por email (no bloqueante)
+  const email = require('../../utils/email.service');
+  email.enviarCancelacionSolicitud({ nombre: nombre_completo, correo, numero: numero_solicitud, motivo })
+    .catch(err => console.error('[EMAIL] Error enviando cancelación:', err.message));
+
+  return { numero_solicitud, correo };
+};
+
 module.exports = {
   crearSolicitud, obtenerMisSolicitudes, obtenerTodasSolicitudes,
-  obtenerSolicitudPorId, actualizarEstado, cancelarMiSolicitud, obtenerResumenDashboard, ESTADOS_VALIDOS
-};
+  obtenerSolicitudPorId, actualizarEstado, cancelarMiSolicitud,
+  obtenerResumenDashboard, archivarSolicitud, desarchivarSolicitud,
+  eliminarSolicitudPermanente, ESTADOS_VALIDOS
+};

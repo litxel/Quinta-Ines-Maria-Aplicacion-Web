@@ -5,10 +5,10 @@ const pool = require('../../config/db');
 const obtenerDatosConfiguracion = async () => {
   const [tipos, estilos, centros, adicionales, paquetes] = await Promise.all([
 
-    pool.query(`SELECT tipo_id, tipo_codigo, tipo_nombre, tipo_icono, descripcion FROM eqim_catalogo.tipos_evento WHERE activo = true ORDER BY orden_display ASC`),
-    pool.query(`SELECT estilo_id, estilo_codigo, nombre, descripcion, imagen_url, costo_adicional FROM eqim_catalogo.estilos_decoracion WHERE activo = true ORDER BY estilo_id ASC`),
-    pool.query(`SELECT centro_id, nombre, descripcion, imagen_url, costo_por_mesa FROM eqim_catalogo.centros_mesa WHERE activo = true ORDER BY centro_id ASC`),
-    pool.query(`SELECT adicional_id, nombre, descripcion, precio_unitario, unidad, categoria, imagen_url FROM eqim_catalogo.servicios_adicionales WHERE activo = true ORDER BY categoria, adicional_id ASC`),
+    pool.query(`SELECT tipo_id, tipo_codigo, tipo_nombre, tipo_icono, descripcion, imagen_url FROM eqim_catalogo.tipos_evento WHERE activo = true ORDER BY orden_display ASC`),
+    pool.query(`SELECT estilo_id, estilo_codigo, nombre, descripcion, icono, imagen_url, costo_adicional FROM eqim_catalogo.estilos_decoracion WHERE activo = true ORDER BY estilo_id ASC`),
+    pool.query(`SELECT centro_id, nombre, descripcion, icono, imagen_url, costo_por_mesa FROM eqim_catalogo.centros_mesa WHERE activo = true ORDER BY centro_id ASC`),
+    pool.query(`SELECT adicional_id, nombre, descripcion, precio_unitario, unidad, categoria, icono, imagen_url FROM eqim_catalogo.servicios_adicionales WHERE activo = true ORDER BY categoria, adicional_id ASC`),
     pool.query(`SELECT paquete_id, paquete_nombre, paquete_codigo, precio_persona, minimo_invitados, color_principal FROM eqim_catalogo.paquetes WHERE activo = true ORDER BY orden_display ASC`)
   ]);
 
