@@ -79,11 +79,13 @@ const getMisSolicitudes = async (req, res, next) => {
 // ── GET /api/solicitudes ──────────────────────────────────────────────────────
 const getTodasSolicitudes = async (req, res, next) => {
   try {
-    const { estado, pagina = 1, limite = 25 } = req.query;
+    const { estado, pagina = 1, limite = 25, usuario_id, archivadas } = req.query;
     const resultado = await svc.obtenerTodasSolicitudes({
       estado,
-      pagina:  parseInt(pagina,  10),
-      limite:  parseInt(limite,  10),
+      pagina:     parseInt(pagina,  10),
+      limite:     parseInt(limite,  10),
+      usuario_id: usuario_id ? parseInt(usuario_id, 10) : null,
+      archivadas: archivadas === 'true',
     });
     return res.json({ success: true, ...resultado });
   } catch (err) { next(err); }
@@ -207,4 +209,4 @@ module.exports = {
   crearSolicitud, getMisSolicitudes, getTodasSolicitudes,
   getDashboard, getSolicitud, actualizarEstado, cancelarSolicitud,
   archivarSolicitud, desarchivarSolicitud, eliminarPermanente,
-};
+};

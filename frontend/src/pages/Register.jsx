@@ -7,6 +7,8 @@ import bgAuth from '../assets/FotosQuintaInes/EntradaQuinta/entrada 1 quinta ine
 import logoAuth from '../assets/FotosQuintaInes/LogosQuinta/logo quinta ines.png';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const API_BASE = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000';
+const irOAuth = (proveedor) => { window.location.href = `${API_BASE}/api/auth/${proveedor}`; };
 const PASS_RE  = /(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/;
 const PHONE_RE = /^[0-9]{9,10}$/;
 
@@ -206,7 +208,7 @@ export default function Register() {
         <div className="space-y-3 mb-6">
           <button
             type="button"
-            onClick={() => alert('🚧 Próximamente: Registro con Google estará disponible en la siguiente actualización.')}
+            onClick={() => irOAuth('google')}
             className="w-full flex items-center justify-center gap-3 py-3 px-4 bg-white border-2 border-slate-200 rounded-xl font-semibold text-slate-700 text-sm hover:border-slate-300 hover:shadow-md transition-all duration-200 hover:-translate-y-0.5 focus:outline-none"
           >
             <svg width="20" height="20" viewBox="0 0 48 48" aria-hidden="true">
@@ -219,7 +221,7 @@ export default function Register() {
           </button>
           <button
             type="button"
-            onClick={() => alert('🚧 Próximamente: Registro con Microsoft estará disponible en la siguiente actualización.')}
+            onClick={() => irOAuth('microsoft')}
             className="w-full flex items-center justify-center gap-3 py-3 px-4 bg-white border-2 border-slate-200 rounded-xl font-semibold text-slate-700 text-sm hover:border-slate-300 hover:shadow-md transition-all duration-200 hover:-translate-y-0.5 focus:outline-none"
           >
             <svg width="20" height="20" viewBox="0 0 21 21" aria-hidden="true">

@@ -6,6 +6,8 @@ import Navbar      from './components/layout/Navbar';
 import Footer      from './components/layout/Footer';
 import AdminLayout from './components/admin/AdminLayout';
 import WelcomeModal from './components/shared/WelcomeModal';
+import FloatingActionButtons from './components/shared/FloatingActionButtons';
+import TelefonoRequeridoGate from './components/shared/TelefonoRequeridoGate';
 
 // ── Guards ──────────────────────────────────────────────────────────────────
 import ProtectedRoute from './components/shared/ProtectedRoute';
@@ -62,14 +64,17 @@ function AuthRoute({ children }) {
 // ── Layout Wrapper para rutas públicas (Incluye Navbar y Footer) ──────────────
 function PublicLayout() {
   return (
-    <div className="flex flex-col min-h-screen">
-      <Navbar />
-      <WelcomeModal />
-      <main className="flex-1">
-        <Outlet />
-      </main>
-      <Footer />
-    </div>
+    <TelefonoRequeridoGate>
+      <div className="flex flex-col min-h-screen">
+        <Navbar />
+        <WelcomeModal />
+        <main className="flex-1">
+          <Outlet />
+        </main>
+        <Footer />
+        <FloatingActionButtons />
+      </div>
+    </TelefonoRequeridoGate>
   );
 }
 
@@ -143,7 +148,9 @@ export default function App() {
           path="/admin"
           element={
             <ProtectedRoute rol="ADMIN">
-              <AdminLayout />
+              <TelefonoRequeridoGate>
+                <AdminLayout />
+              </TelefonoRequeridoGate>
             </ProtectedRoute>
           }
         >

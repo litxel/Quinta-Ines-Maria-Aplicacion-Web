@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { Search, Calendar, X, ImageIcon, Filter } from 'lucide-react';
 import { 
   getImagenesAdmin, 
   subirImagen, 
@@ -14,31 +15,37 @@ export default function GestionGaleria() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
+  // ── Filtros ──
+  const [busqueda, setBusqueda] = useState('');
+  const [filtroFecha, setFiltroFecha] = useState('');
+  const [busquedaActiva, setBusquedaActiva] = useState('');
+  const [fechaActiva, setFechaActiva] = useState('');
+
   // Estados del modal
   const [modalAbierto, setModalAbierto] = useState(false);
   const [imagenEditando, setImagenEditando] = useState(null);
   const [guardando, setGuardando] = useState(false);
   const [modalCategoriaAbierto, setModalCategoriaAbierto] = useState(false);
   const [nuevaCategoria, setNuevaCategoria] = useState({ nombre: '', descripcion: '' });
-  
+
   const handleGuardarCategoria = async (e) => {
     e.preventDefault();
     try {
       await crearCategoria(nuevaCategoria);
       setModalCategoriaAbierto(false);
       setNuevaCategoria({ nombre: '', descripcion: '' });
-      cargarDatos(); // Recarga para que asome en el selector
+      cargarDatos();
       alert('¡Categoría creada con éxito!');
     } catch (err) {
       alert('Error al crear categoría: ' + (err.response?.data?.message || err.message));
     }
   };
 
-  const cargarDatos = async () => {
+  const cargarDatos = useCallback(async () => {
     try {
       setLoading(true);
       const [imgData, catData] = await Promise.all([
-        getImagenesAdmin(),
+        getImagenesAdmin({ busqueda: busquedaActiva, fecha: fechaActiva }),
         fetchCategorias()
       ]);
       setImagenes(imgData);
@@ -48,9 +55,24 @@ export default function GestionGaleria() {
     } finally {
       setLoading(false);
     }
+  }, [busquedaActiva, fechaActiva]);
+
+  useEffect(() => { cargarDatos(); }, [cargarDatos]);
+
+  // Aplicar filtros al presionar Enter o el botón buscar
+  const aplicarFiltros = () => {
+    setBusquedaActiva(busqueda);
+    setFechaActiva(filtroFecha);
   };
 
-  useEffect(() => { cargarDatos(); }, []);
+  const limpiarFiltros = () => {
+    setBusqueda('');
+    setFiltroFecha('');
+    setBusquedaActiva('');
+    setFechaActiva('');
+  };
+
+  const hayFiltrosActivos = busquedaActiva || fechaActiva;
 
   // ── ABRIR MODAL PARA FOTO NUEVA ──
   const abrirModalNuevo = () => {
@@ -59,8 +81,8 @@ export default function GestionGaleria() {
       alt_text: '',
       categoria_id: categorias.length > 0 ? categorias[0].categoria_id : '',
       orden_display: 99,
-      imagen_base64: '', // Aquí guardaremos el texto de la imagen
-      preview: null      // Para mostrar la foto antes de subirla
+      imagen_base64: '',
+      preview: null
     });
     setModalAbierto(true);
   };
@@ -75,7 +97,6 @@ export default function GestionGaleria() {
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      // Validar tamaño (Opcional, ej: max 5MB)
       if (file.size > 25 * 1024 * 1024) {
         alert('La imagen es muy pesada. Máximo 25MB.');
         return;
@@ -85,7 +106,7 @@ export default function GestionGaleria() {
         setImagenEditando({ 
           ...imagenEditando, 
           imagen_base64: reader.result, 
-          preview: reader.result // Usamos el base64 como preview temporal
+          preview: reader.result
         });
       };
       reader.readAsDataURL(file);
@@ -98,10 +119,8 @@ export default function GestionGaleria() {
     setGuardando(true);
     try {
       if (imagenEditando.imagen_id) {
-        // ACTUALIZAR (Solo enviamos los textos y estado)
         await actualizarDetallesImagen(imagenEditando.imagen_id, imagenEditando);
       } else {
-        // SUBIR NUEVA
         if (!imagenEditando.imagen_base64) {
           alert("Debes seleccionar una imagen.");
           setGuardando(false);
@@ -131,19 +150,17 @@ export default function GestionGaleria() {
     }
   };
 
-  // Helper para buscar el nombre de la categoría
   const getNombreCategoria = (id) => {
     const cat = categorias.find(c => c.categoria_id === id);
     return cat ? cat.nombre : 'Sin categoría';
   };
 
-  if (loading) return <div className="p-8 text-slate-500 font-medium animate-pulse">Cargando galería...</div>;
   if (error) return <div className="p-8 text-red-500 font-bold">{error}</div>;
 
   return (
     <div>
       {/* Header */}
-      <div className="flex justify-between items-center mb-8">
+      <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-3xl font-bold text-[#0D2137] font-display">Galería de Fotos</h1>
           <p className="text-sm text-slate-500 mt-1">Sube y organiza las fotos que verán tus clientes.</p>
@@ -164,59 +181,161 @@ export default function GestionGaleria() {
         </div>
       </div>
 
-      {/* Grid de Imágenes tipo Masonry/Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-        {imagenes.map((img) => (
-          <div key={img.imagen_id} className={`bg-white border rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all flex flex-col ${img.activo ? 'border-slate-200' : 'border-red-200 opacity-80'}`}>
-            
-            {/* Contenedor de la Imagen */}
-            <div className="relative h-48 bg-slate-100">
-              {/* Ajusta la ruta base si tu backend corre en otro puerto, ej: http://localhost:3000 */}
-              <img 
-                src={img.url_original.startsWith('http') ? img.url_original : `http://localhost:5000${img.url_original}`} 
-                alt={img.alt_text} 
-                className="w-full h-full object-cover"
+      {/* ── Barra de Filtros ── */}
+      <div className="bg-white border border-slate-200 rounded-2xl p-4 mb-6 shadow-sm">
+        <div className="flex flex-col sm:flex-row gap-3 items-end">
+          {/* Búsqueda por nombre/descripción */}
+          <div className="flex-1 min-w-0">
+            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">
+              Buscar por nombre o descripción
+            </label>
+            <div className="relative">
+              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+              <input
+                type="text"
+                value={busqueda}
+                onChange={e => setBusqueda(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && aplicarFiltros()}
+                placeholder="Ej: decoración boda, jardín..."
+                className="w-full pl-9 pr-4 py-2.5 border-2 border-slate-200 rounded-xl text-sm focus:outline-none focus:border-[#B7950B] transition-colors"
               />
-              {!img.activo && (
-                <div className="absolute inset-0 bg-red-900/50 flex items-center justify-center">
-                  <span className="bg-red-500 text-white text-xs font-bold px-3 py-1 rounded-full border border-red-300 shadow-lg">OCULTA</span>
-                </div>
-              )}
-            </div>
-
-            {/* Detalles de la Imagen */}
-            <div className="p-4 flex flex-col flex-1">
-              <span className="text-[10px] uppercase font-bold text-[#B7950B] tracking-wider mb-1">
-                {getNombreCategoria(img.categoria_id)}
-              </span>
-              <h3 className="font-bold text-sm text-[#0D2137] mb-1 line-clamp-1" title={img.titulo}>{img.titulo}</h3>
-              <p className="text-xs text-slate-500 mb-4 line-clamp-2" title={img.alt_text}>{img.alt_text}</p>
-              
-              <div className="mt-auto flex gap-2">
-                <button 
-                  onClick={() => abrirModalEdicion(img)}
-                  className="flex-1 py-1.5 bg-slate-100 text-slate-600 rounded-lg font-bold hover:bg-[#0D2137] hover:text-white transition-colors text-xs"
-                >
-                  ✏️ Editar
-                </button>
-                <button 
-                  onClick={() => handleEliminar(img.imagen_id, img.titulo)}
-                  className="px-3 py-1.5 bg-red-50 text-red-600 rounded-lg font-bold hover:bg-red-500 hover:text-white transition-colors text-xs"
-                  title="Eliminar foto"
-                >
-                  🗑️
-                </button>
-              </div>
             </div>
           </div>
-        ))}
-        
-        {imagenes.length === 0 && (
-          <div className="col-span-full py-12 text-center text-slate-500">
-            No hay fotos en la galería. ¡Haz clic en "Subir Foto" para empezar!
+
+          {/* Filtro por fecha */}
+          <div className="w-full sm:w-52">
+            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">
+              Fecha de subida
+            </label>
+            <div className="relative">
+              <Calendar size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+              <input
+                type="date"
+                value={filtroFecha}
+                onChange={e => setFiltroFecha(e.target.value)}
+                className="w-full pl-9 pr-4 py-2.5 border-2 border-slate-200 rounded-xl text-sm focus:outline-none focus:border-[#B7950B] transition-colors"
+              />
+            </div>
+          </div>
+
+          {/* Botones */}
+          <div className="flex gap-2 shrink-0">
+            <button
+              onClick={aplicarFiltros}
+              className="flex items-center gap-2 px-5 py-2.5 bg-[#0D2137] text-white rounded-xl font-bold text-sm hover:bg-[#1A6BAC] transition-colors shadow-sm"
+            >
+              <Filter size={15} /> Filtrar
+            </button>
+            {hayFiltrosActivos && (
+              <button
+                onClick={limpiarFiltros}
+                className="flex items-center gap-2 px-4 py-2.5 bg-slate-100 text-slate-600 rounded-xl font-bold text-sm hover:bg-slate-200 transition-colors"
+              >
+                <X size={15} /> Limpiar
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Badge de filtros activos */}
+        {hayFiltrosActivos && (
+          <div className="mt-3 pt-3 border-t border-slate-100 flex flex-wrap gap-2">
+            {busquedaActiva && (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#B7950B]/10 text-[#B7950B] rounded-full text-xs font-bold">
+                <Search size={11} /> "{busquedaActiva}"
+              </span>
+            )}
+            {fechaActiva && (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-xs font-bold">
+                <Calendar size={11} /> {new Date(fechaActiva + 'T12:00:00').toLocaleDateString('es-EC', { day: '2-digit', month: 'long', year: 'numeric' })}
+              </span>
+            )}
+            <span className="inline-flex items-center px-3 py-1 bg-slate-100 text-slate-500 rounded-full text-xs font-medium">
+              {imagenes.length} resultado{imagenes.length !== 1 ? 's' : ''}
+            </span>
           </div>
         )}
       </div>
+
+      {/* Grid de Imágenes */}
+      {loading ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <div key={i} className="bg-white border border-slate-100 rounded-2xl overflow-hidden shadow-sm animate-pulse">
+              <div className="h-48 bg-slate-200" />
+              <div className="p-4 space-y-2">
+                <div className="h-3 bg-slate-200 rounded w-1/3" />
+                <div className="h-4 bg-slate-200 rounded w-2/3" />
+                <div className="h-3 bg-slate-200 rounded w-full" />
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          {imagenes.map((img) => (
+            <div key={img.imagen_id} className={`bg-white border rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col group ${img.activo ? 'border-slate-200' : 'border-red-200 opacity-80'}`}>
+              
+              {/* Imagen */}
+              <div className="relative h-48 bg-slate-100 overflow-hidden">
+                <img 
+                  src={img.url_original.startsWith('http') ? img.url_original : `http://localhost:5000${img.url_original}`} 
+                  alt={img.alt_text} 
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                />
+                {!img.activo && (
+                  <div className="absolute inset-0 bg-red-900/50 flex items-center justify-center">
+                    <span className="bg-red-500 text-white text-xs font-bold px-3 py-1 rounded-full border border-red-300 shadow-lg">OCULTA</span>
+                  </div>
+                )}
+                {/* Overlay fecha */}
+                {img.creado_en && (
+                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent px-3 py-2">
+                    <p className="text-white text-[10px] font-medium opacity-90">
+                      📅 {new Date(img.creado_en).toLocaleDateString('es-EC', { day: '2-digit', month: 'short', year: 'numeric' })}
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Detalles */}
+              <div className="p-4 flex flex-col flex-1">
+                <span className="text-[10px] uppercase font-bold text-[#B7950B] tracking-wider mb-1">
+                  {getNombreCategoria(img.categoria_id)}
+                </span>
+                <h3 className="font-bold text-sm text-[#0D2137] mb-1 line-clamp-1" title={img.titulo}>{img.titulo}</h3>
+                <p className="text-xs text-slate-500 mb-4 line-clamp-2" title={img.alt_text}>{img.alt_text}</p>
+                
+                <div className="mt-auto flex gap-2">
+                  <button 
+                    onClick={() => abrirModalEdicion(img)}
+                    className="flex-1 py-1.5 bg-slate-100 text-slate-600 rounded-lg font-bold hover:bg-[#0D2137] hover:text-white transition-colors text-xs"
+                  >
+                    ✏️ Editar
+                  </button>
+                  <button 
+                    onClick={() => handleEliminar(img.imagen_id, img.titulo)}
+                    className="px-3 py-1.5 bg-red-50 text-red-600 rounded-lg font-bold hover:bg-red-500 hover:text-white transition-colors text-xs"
+                    title="Eliminar foto"
+                  >
+                    🗑️
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+          
+          {imagenes.length === 0 && (
+            <div className="col-span-full py-20 flex flex-col items-center justify-center text-slate-400">
+              <ImageIcon size={48} className="mb-4 opacity-30" />
+              <p className="font-bold text-lg">No se encontraron imágenes</p>
+              <p className="text-sm mt-1">
+                {hayFiltrosActivos ? 'Intenta con otros criterios de búsqueda.' : '¡Haz clic en "Subir Foto" para empezar!'}
+              </p>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* MODAL PARA SUBIR / EDITAR */}
       {modalAbierto && imagenEditando && (
@@ -227,8 +346,6 @@ export default function GestionGaleria() {
             </h2>
             
             <form onSubmit={handleGuardarCambios} className="space-y-4">
-              
-              {/* SOLO MOSTRAR INPUT DE ARCHIVO SI ES NUEVA */}
               {!imagenEditando.imagen_id && (
                 <div>
                   <label className="block text-sm font-bold text-slate-700 mb-1.5">Seleccionar Imagen</label>
@@ -241,7 +358,6 @@ export default function GestionGaleria() {
                 </div>
               )}
 
-              {/* PREVIEW DE LA IMAGEN */}
               {(imagenEditando.preview || imagenEditando.url_original) && (
                 <div className="w-full h-40 rounded-xl overflow-hidden bg-slate-100 border border-slate-200 flex justify-center items-center">
                   <img 
@@ -279,7 +395,6 @@ export default function GestionGaleria() {
                 </div>
               </div>
 
-              {/* Toggle de Estado (Solo si estamos editando) */}
               {imagenEditando.imagen_id && (
                 <div className="flex items-center gap-3 p-4 bg-slate-50 border border-slate-200 rounded-xl mt-2">
                   <input 
@@ -305,6 +420,7 @@ export default function GestionGaleria() {
           </div>
         </div>
       )}
+
       {/* MODAL PARA NUEVA CATEGORÍA */}
       {modalCategoriaAbierto && (
         <div className="fixed inset-0 bg-[#0D2137]/60 backdrop-blur-sm flex justify-center items-center z-50 p-4">

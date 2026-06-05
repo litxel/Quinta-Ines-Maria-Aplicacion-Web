@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
+import { Link } from 'react-router-dom';
 import { getClientes, toggleActivoCliente } from '../../services/usuarios.service';
-import { Users, Search, UserCheck, UserX, Mail, Phone, Calendar, RefreshCw, ChevronLeft, ChevronRight, Shield, Clock, AlertCircle, CheckCircle } from 'lucide-react';
+import { Users, Search, UserCheck, UserX, Mail, Phone, Calendar, RefreshCw, ChevronLeft, ChevronRight, Clock, AlertCircle, CheckCircle, MessageCircle, FileText } from 'lucide-react';
+import { telefonoAWa } from '../../config/contacto';
 
 const BACKEND_URL = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000';
 const LIMITE = 12;
@@ -127,11 +129,37 @@ function UserCard({ cliente, onToggle, toggling }) {
         </div>
       </div>
 
-      {/* Acción */}
+      {/* Acciones rápidas */}
+      <div className="flex flex-wrap gap-2 mt-4">
+        {cliente.telefono && telefonoAWa(cliente.telefono) && (
+          <a
+            href={telefonoAWa(cliente.telefono)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex-1 min-w-[100px] flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-bold bg-[#25D366]/10 text-[#128C7E] border border-[#25D366]/30 hover:bg-[#25D366]/20 transition-colors"
+          >
+            <MessageCircle size={14} /> WhatsApp
+          </a>
+        )}
+        <a
+          href={`mailto:${cliente.correo}`}
+          className="flex-1 min-w-[100px] flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-bold bg-[#0D2137]/5 text-[#0D2137] border border-[#0D2137]/15 hover:bg-[#0D2137]/10 transition-colors"
+        >
+          <Mail size={14} /> Email
+        </a>
+        <Link
+          to={`/admin/solicitudes?usuario_id=${cliente.usuario_id}&cliente=${encodeURIComponent(cliente.nombre_completo)}`}
+          className="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-bold bg-[#B7950B]/15 text-[#9A7D0A] border border-[#B7950B]/40 hover:bg-[#B7950B]/25 transition-colors"
+        >
+          <FileText size={14} />
+          Ver Solicitudes ({cliente.solicitudes_count ?? 0})
+        </Link>
+      </div>
+
       <button
         onClick={() => onToggle(cliente)}
         disabled={toggling === cliente.usuario_id}
-        className={`mt-4 w-full py-2.5 rounded-xl text-xs font-bold transition-all duration-200 flex items-center justify-center gap-2 ${
+        className={`mt-3 w-full py-2.5 rounded-xl text-xs font-bold transition-all duration-200 flex items-center justify-center gap-2 ${
           cliente.activo
             ? 'bg-red-50 text-red-600 border border-red-200 hover:bg-red-100'
             : 'bg-green-50 text-green-700 border border-green-200 hover:bg-green-100'

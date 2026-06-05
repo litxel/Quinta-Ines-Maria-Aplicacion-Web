@@ -8,6 +8,11 @@ import bgAuth from '../assets/FotosQuintaInes/EntradaQuinta/entrada 1 quinta ine
 import logoAuth from '../assets/FotosQuintaInes/LogosQuinta/logo quinta ines.png';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const API_BASE = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000';
+
+const irOAuth = (proveedor) => {
+  window.location.href = `${API_BASE}/api/auth/${proveedor}`;
+};
 
 export default function Login() {
   const navigate = useNavigate();
@@ -88,7 +93,7 @@ export default function Login() {
         <div className="space-y-3 mb-6">
           <button
             type="button"
-            onClick={() => { window.location.href = `${import.meta.env.VITE_API_URL?.replace('/api','') || 'http://localhost:5000'}/api/auth/google`; }}
+            onClick={() => irOAuth('google')}
             className="w-full flex items-center justify-center gap-3 py-3 px-4 bg-white border-2 border-slate-200 rounded-xl font-semibold text-slate-700 text-sm hover:border-[#4285F4]/50 hover:shadow-md transition-all duration-200 hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-[#4285F4]/30"
           >
             {/* Google SVG Icon */}
@@ -103,7 +108,7 @@ export default function Login() {
 
           <button
             type="button"
-            onClick={() => alert('🚧 Microsoft OAuth: Configura MICROSOFT_CLIENT_ID en el .env del servidor.')}
+            onClick={() => irOAuth('microsoft')}
             className="w-full flex items-center justify-center gap-3 py-3 px-4 bg-white border-2 border-slate-200 rounded-xl font-semibold text-slate-700 text-sm hover:border-[#00a4ef]/50 hover:shadow-md transition-all duration-200 hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-[#00a4ef]/30"
           >
             {/* Microsoft SVG Icon */}

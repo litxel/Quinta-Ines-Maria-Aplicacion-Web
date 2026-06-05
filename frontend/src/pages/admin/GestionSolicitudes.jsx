@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { 
   getTodasSolicitudes, 
   actualizarEstadoSolicitud, 
@@ -34,6 +35,10 @@ const INCLUSIONES_PAQUETES = {
 };
 
 export default function GestionSolicitudes() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const filtroUsuarioId = searchParams.get('usuario_id') || '';
+  const filtroClienteNombre = searchParams.get('cliente') || '';
+
   const [solicitudes,   setSolicitudes]   = useState([]);
   const [total,         setTotal]         = useState(0);
   const [totalPaginas,  setTotalPaginas]  = useState(1);
@@ -63,6 +68,7 @@ export default function GestionSolicitudes() {
     try {
       const resultado = await getTodasSolicitudes({ 
         ...(filtroEstado ? { estado: filtroEstado } : {}), 
+        ...(filtroUsuarioId ? { usuario_id: filtroUsuarioId } : {}),
         pagina, 
         limite: LIMITE 
       });
@@ -74,10 +80,17 @@ export default function GestionSolicitudes() {
     } finally { 
       setLoading(false); 
     }
-  }, [filtroEstado, pagina]);
+  }, [filtroEstado, pagina, filtroUsuarioId]);
 
   useEffect(() => { cargar(); }, [cargar]);
-  useEffect(() => { setPagina(1); }, [filtroEstado]);
+  useEffect(() => { setPagina(1); }, [filtroEstado, filtroUsuarioId]);
+
+  const limpiarFiltroCliente = () => {
+    const next = new URLSearchParams(searchParams);
+    next.delete('usuario_id');
+    next.delete('cliente');
+    setSearchParams(next);
+  };
 
   const abrirDetalle = async (id) => {
     setDrawerAbierto(true); 
@@ -301,10 +314,25 @@ export default function GestionSolicitudes() {
         </div> 
       )}
 
+      {filtroUsuarioId && (
+        <div className="flex flex-wrap items-center justify-between gap-3 p-4 bg-[#B7950B]/10 border border-[#B7950B]/30 rounded-2xl">
+          <p className="text-sm text-[#0D2137] font-medium">
+            Filtrando solicitudes de: <strong>{decodeURIComponent(filtroClienteNombre || 'Cliente')}</strong>
+          </p>
+          <button
+            type="button"
+            onClick={limpiarFiltroCliente}
+            className="text-xs font-bold text-[#0D2137] px-4 py-2 bg-white rounded-xl border border-[#B7950B]/40 hover:bg-[#B7950B]/10 transition-colors"
+          >
+            ✕ Quitar filtro
+          </button>
+        </div>
+      )}
+
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-[#0D2137]">Gestión de Solicitudes</h1>
-          <p className="text-slate-400 text-sm mt-0.5">Haz clic en una fila para ver el "Rayos X" de la cotización.</p>
+          <p className="text-slate-400 text-sm mt-0.5">Haz clic en una fila para ver el detalle de la cotización.</p>
         </div>
         <select value={filtroEstado} onChange={(e) => setFiltroEstado(e.target.value)} className="w-full sm:w-48 px-3 py-2.5 border-2 border-slate-200 rounded-xl text-sm font-bold text-[#0D2137] focus:outline-none focus:border-[#B7950B] bg-white cursor-pointer">
           <option value="">Todos los estados</option>
@@ -315,48 +343,97 @@ export default function GestionSolicitudes() {
       {error && (<div role="alert" className="p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm">⚠ {error} <button onClick={cargar} className="ml-3 underline font-medium">Reintentar</button></div>)}
 
       {/* ── Tabla Principal ── */}
-      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden flex flex-col min-h-[500px]">
+      <div className="bg-white rounded-2xl border border-slate-100 shadow-md overflow-hidden flex flex-col min-h-[500px]">
         <div className="flex-1 overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="bg-slate-50 border-b border-slate-200">
+              <tr className="bg-gradient-to-r from-[#0D2137] to-[#1A3A5C]">
                 <Th>N.° Cotización</Th>
                 <Th>Cliente</Th>
-                <Th>Paquete</Th>
+                <Th>Paquete / Tipo</Th>
                 <Th>Invitados</Th>
                 <Th>Total</Th>
-                <Th>Fecha</Th>
-                <Th>Estado actual</Th>
+                <Th>Fecha sol.</Th>
+                <Th>Estado</Th>
                 <Th>Cambiar estado</Th>
                 <Th>Acciones</Th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-50">
-              {loading ? ( <tr><td colSpan="8" className="p-0"><SkeletonTabla filas={10} /></td></tr> ) 
-              : solicitudes.length === 0 ? ( <tr><td colSpan="8" className="px-4 py-12 text-center text-slate-400">No hay solicitudes con este filtro.</td></tr> ) 
-              : (
-                solicitudes.map((s) => (
-                  <tr key={s.solicitud_id} onClick={() => abrirDetalle(s.solicitud_id)} className="hover:bg-[#B7950B]/5 transition-colors cursor-pointer group">
-                    <td className="px-4 py-4 whitespace-nowrap"><span className="font-mono text-xs text-[#B7950B] font-bold group-hover:underline">{s.numero_cotizacion}</span></td>
+            <tbody className="divide-y divide-slate-100">
+              {loading ? ( <tr><td colSpan="9" className="p-0"><SkeletonTabla filas={10} /></td></tr> ) 
+              : solicitudes.length === 0 ? ( 
+                <tr><td colSpan="9" className="px-4 py-16 text-center">
+                  <div className="flex flex-col items-center gap-3 text-slate-400">
+                    <span className="text-4xl">📋</span>
+                    <p className="font-bold">No hay solicitudes con este filtro.</p>
+                  </div>
+                </td></tr> 
+              ) : (
+                solicitudes.map((s, idx) => (
+                  <tr 
+                    key={s.solicitud_id} 
+                    onClick={() => abrirDetalle(s.solicitud_id)} 
+                    className={`cursor-pointer group transition-all duration-150 hover:bg-[#B7950B]/8 hover:shadow-sm ${
+                      idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/50'
+                    }`}
+                  >
+                    {/* N° Cotización */}
+                    <td className="px-4 py-3.5 whitespace-nowrap">
+                      <span className="font-mono text-xs font-bold text-[#B7950B] bg-[#B7950B]/10 px-2.5 py-1.5 rounded-lg group-hover:bg-[#B7950B]/20 transition-colors">
+                        {s.numero_cotizacion}
+                      </span>
+                    </td>
                     
-                    <td className="px-4 py-4 max-w-[200px]">
-                      <p className="font-bold text-[#0D2137] truncate">{s.cliente_nombre}</p>
-                      <p className="text-xs text-slate-400 truncate" title={s.cliente_correo}>{s.cliente_correo}</p>
+                    {/* Cliente */}
+                    <td className="px-4 py-3.5 max-w-[190px]">
+                      <p className="font-bold text-[#0D2137] truncate text-sm">{s.cliente_nombre}</p>
+                      <p className="text-[11px] text-slate-400 truncate mt-0.5" title={s.cliente_correo}>{s.cliente_correo}</p>
                     </td>
 
-                    <td className="px-4 py-4"><p className="font-bold text-slate-700 truncate max-w-[130px]">{s.paquete_nombre ?? '—'}</p><p className="text-[10px] uppercase font-bold text-slate-400 truncate max-w-[130px]">{s.tipo_nombre ?? 'Sin especificar'}</p></td>
-                    <td className="px-4 py-4 text-center"><span className="font-semibold text-slate-700 bg-slate-100 px-2.5 py-1 rounded-full">{s.num_invitados}</span></td>
-                    <td className="px-4 py-4 whitespace-nowrap"><span className="font-bold text-[#0D2137] text-base">${parseFloat(s.precio_estimado).toFixed(2)}</span></td>
-                    <td className="px-4 py-4 whitespace-nowrap text-slate-500 text-xs">{new Date(s.creado_en).toLocaleDateString('es-EC', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
-                    <td className="px-4 py-4"><BadgeEstado estadoColor={s.estado_color} estadoNombre={s.estado_nombre} size="sm" /></td>
+                    {/* Paquete */}
+                    <td className="px-4 py-3.5">
+                      <p className="font-bold text-[#0D2137] truncate max-w-[140px] text-sm">{s.paquete_nombre ?? '—'}</p>
+                      <span className="inline-block mt-0.5 text-[10px] uppercase font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full truncate max-w-[140px]">
+                        {s.tipo_nombre ?? 'Sin tipo'}
+                      </span>
+                    </td>
+
+                    {/* Invitados */}
+                    <td className="px-4 py-3.5 text-center">
+                      <span className="inline-flex items-center justify-center w-10 h-7 font-bold text-sm text-[#0D2137] bg-[#0D2137]/8 rounded-lg">
+                        {s.num_invitados}
+                      </span>
+                    </td>
+
+                    {/* Total */}
+                    <td className="px-4 py-3.5 whitespace-nowrap">
+                      <span className="font-bold text-[#0D2137] text-base">${parseFloat(s.precio_estimado).toFixed(2)}</span>
+                    </td>
+
+                    {/* Fecha */}
+                    <td className="px-4 py-3.5 whitespace-nowrap">
+                      <span className="text-xs font-medium text-slate-500">
+                        {new Date(s.creado_en).toLocaleDateString('es-EC', { day: '2-digit', month: 'short', year: 'numeric' })}
+                      </span>
+                    </td>
+
+                    {/* Estado actual — badge grande */}
+                    <td className="px-4 py-3.5">
+                      <BadgeEstadoTabla codigo={s.estado_codigo} nombre={s.estado_nombre} />
+                    </td>
                     
-                    <td className="px-4 py-4" onClick={(e) => e.stopPropagation()}>
+                    {/* Cambiar estado */}
+                    <td className="px-4 py-3.5" onClick={(e) => e.stopPropagation()}>
                       <div className="relative">
                         <select
                           value={s.estado_codigo}
                           onChange={(e) => handleCambiarEstado(s.solicitud_id, e.target.value)}
                           disabled={actualizando === s.solicitud_id || ['RECHAZADA', 'CANCELADA'].includes(s.estado_codigo)}
-                          className={`w-full pl-3 pr-8 py-1.5 text-xs font-bold border-2 rounded-lg focus:outline-none appearance-none cursor-pointer ${['RECHAZADA', 'CANCELADA'].includes(s.estado_codigo) ? 'border-red-200 bg-red-50 text-red-500' : 'border-slate-200 bg-white text-[#0D2137] focus:border-[#B7950B]'}`}
+                          className={`w-full pl-3 pr-7 py-2 text-xs font-bold border-2 rounded-lg focus:outline-none appearance-none cursor-pointer transition-colors ${
+                            ['RECHAZADA', 'CANCELADA'].includes(s.estado_codigo) 
+                              ? 'border-red-200 bg-red-50/80 text-red-500 cursor-not-allowed' 
+                              : 'border-slate-200 bg-white text-[#0D2137] focus:border-[#B7950B] hover:border-slate-300'
+                          }`}
                         >
                           {ESTADOS.map((e) => {
                             const currentIndex = FLUJO_NORMAL.indexOf(s.estado_codigo);
@@ -365,30 +442,36 @@ export default function GestionSolicitudes() {
                             let optionDisabled = false;
                             if (isTerminal && e.codigo !== s.estado_codigo) optionDisabled = true; 
                             else if (targetIndex !== -1 && currentIndex !== -1 && targetIndex < currentIndex) optionDisabled = true;
-                            return (<option key={e.codigo} value={e.codigo} disabled={optionDisabled}>{e.label} {optionDisabled && e.codigo !== s.estado_codigo ? ' 🚫' : ''}</option>);
+                            return (<option key={e.codigo} value={e.codigo} disabled={optionDisabled}>{e.label}{optionDisabled && e.codigo !== s.estado_codigo ? ' 🚫' : ''}</option>);
                           })}
                         </select>
-                        {actualizando === s.solicitud_id ? (<span className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 border-2 border-[#0D2137] border-t-transparent rounded-full animate-spin" />) : (<span className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none text-[10px]">▼</span>)}
+                        {actualizando === s.solicitud_id 
+                          ? (<span className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 border-2 border-[#0D2137] border-t-transparent rounded-full animate-spin" />) 
+                          : (<span className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none text-[9px]">▼</span>)
+                        }
                       </div>
                     </td>
-                    {/* Acciones: Archivar + Eliminar */}
-                    <td className="px-3 py-4" onClick={(e) => e.stopPropagation()}>
-                      <div className="flex items-center gap-1.5">
+
+                    {/* Acciones */}
+                    <td className="px-3 py-3.5" onClick={(e) => e.stopPropagation()}>
+                      <div className="flex items-center gap-1">
                         <button
                           onClick={(e) => handleArchivar(s, e)}
                           disabled={actualizando === s.solicitud_id}
                           title="Archivar solicitud"
-                          className="p-1.5 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors disabled:opacity-40"
+                          className="group/btn flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-bold text-amber-600 bg-amber-50 hover:bg-amber-500 hover:text-white rounded-lg transition-all disabled:opacity-40 border border-amber-100 hover:border-amber-500"
                         >
-                          <Archive size={15} />
+                          <Archive size={13} />
+                          <span className="hidden lg:inline">Archivar</span>
                         </button>
                         <button
                           onClick={(e) => abrirModalEliminar(s, e)}
                           disabled={actualizando === s.solicitud_id}
                           title="Eliminar permanentemente"
-                          className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-40"
+                          className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-bold text-red-600 bg-red-50 hover:bg-red-500 hover:text-white rounded-lg transition-all disabled:opacity-40 border border-red-100 hover:border-red-500"
                         >
-                          <Trash2 size={15} />
+                          <Trash2 size={13} />
+                          <span className="hidden lg:inline">Eliminar</span>
                         </button>
                       </div>
                     </td>
@@ -693,6 +776,62 @@ export default function GestionSolicitudes() {
   );
 }
 
-function Th({ children }) { return <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">{children}</th>; }
-function PaginaBtn({ children, onClick, disabled }) { return <button onClick={onClick} disabled={disabled} className="px-3 py-1.5 text-xs font-bold rounded-lg border border-slate-200 text-slate-600 hover:border-[#0D2137] hover:text-[#0D2137] disabled:opacity-30 transition-colors bg-white">{children}</button>; }
-function SkeletonTabla({ filas }) { return <div className="divide-y divide-slate-50 animate-pulse">{Array.from({ length: filas }).map((_, i) => (<div key={i} className="flex gap-4 px-4 py-4"><div className="h-4 bg-slate-200 rounded w-28" /><div className="h-4 bg-slate-200 rounded flex-1" /><div className="h-4 bg-slate-200 rounded w-24" /><div className="h-4 bg-slate-200 rounded w-16" /><div className="h-4 bg-slate-200 rounded w-20" /></div>))}</div>; }
+function Th({ children }) { 
+  return (
+    <th className="px-4 py-3.5 text-left text-[11px] font-bold text-white/80 uppercase tracking-widest whitespace-nowrap">
+      {children}
+    </th>
+  );
+}
+
+function PaginaBtn({ children, onClick, disabled }) { 
+  return (
+    <button 
+      onClick={onClick} 
+      disabled={disabled} 
+      className="px-4 py-2 text-xs font-bold rounded-xl border-2 border-slate-200 text-slate-600 hover:border-[#0D2137] hover:text-[#0D2137] hover:bg-[#0D2137]/5 disabled:opacity-30 transition-all bg-white shadow-sm"
+    >
+      {children}
+    </button>
+  );
+}
+
+const ESTADO_ESTILOS = {
+  PENDIENTE:   { bg: 'bg-amber-100',  text: 'text-amber-800',  border: 'border-amber-200',  dot: 'bg-amber-500',  icon: '⏳' },
+  EN_REVISION: { bg: 'bg-blue-100',   text: 'text-blue-800',   border: 'border-blue-200',   dot: 'bg-blue-500',   icon: '🔍' },
+  CONFIRMADA:  { bg: 'bg-green-100',  text: 'text-green-800',  border: 'border-green-200',  dot: 'bg-green-500',  icon: '✅' },
+  RECHAZADA:   { bg: 'bg-red-100',    text: 'text-red-800',    border: 'border-red-200',    dot: 'bg-red-500',    icon: '❌' },
+  CANCELADA:   { bg: 'bg-slate-100',  text: 'text-slate-600',  border: 'border-slate-200',  dot: 'bg-slate-400',  icon: '🚫' },
+  COMPLETADA:  { bg: 'bg-purple-100', text: 'text-purple-800', border: 'border-purple-200', dot: 'bg-purple-500', icon: '🏆' },
+};
+
+function BadgeEstadoTabla({ codigo, nombre }) {
+  const estilos = ESTADO_ESTILOS[codigo] || { bg: 'bg-slate-100', text: 'text-slate-600', border: 'border-slate-200', dot: 'bg-slate-400', icon: '•' };
+  return (
+    <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border ${estilos.bg} ${estilos.text} ${estilos.border} whitespace-nowrap shadow-sm`}>
+      <span className="text-sm leading-none">{estilos.icon}</span>
+      {nombre}
+    </span>
+  );
+}
+
+function SkeletonTabla({ filas }) { 
+  return (
+    <div className="divide-y divide-slate-100 animate-pulse">
+      {Array.from({ length: filas }).map((_, i) => (
+        <div key={i} className="flex gap-4 px-4 py-4 items-center">
+          <div className="h-6 bg-slate-200 rounded-lg w-28" />
+          <div className="flex-1 space-y-1.5">
+            <div className="h-3.5 bg-slate-200 rounded w-36" />
+            <div className="h-2.5 bg-slate-100 rounded w-44" />
+          </div>
+          <div className="h-3.5 bg-slate-200 rounded w-20" />
+          <div className="h-5 bg-slate-200 rounded-full w-8" />
+          <div className="h-3.5 bg-slate-200 rounded w-16" />
+          <div className="h-3.5 bg-slate-200 rounded w-20" />
+          <div className="h-6 bg-slate-200 rounded-full w-24" />
+        </div>
+      ))}
+    </div>
+  );
+}

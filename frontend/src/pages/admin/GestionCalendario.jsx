@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Calendar, Lock, PartyPopper, Info, X } from 'lucide-react';
 import api from '../../services/api';
 
 export default function GestionCalendario() {
@@ -13,6 +14,7 @@ export default function GestionCalendario() {
 
   // Navegación del mes
   const [mesActual, setMesActual] = useState(new Date());
+  const [ayudaVisible, setAyudaVisible] = useState(true);
 
   const cargarDatos = async () => {
     try {
@@ -86,11 +88,50 @@ export default function GestionCalendario() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-[#0D2137] font-display">Calendario de Disponibilidad</h1>
-        <p className="text-sm text-slate-500 mt-1">Bloquea fechas por mantenimiento o revisa los eventos agendados.</p>
+        <h1 className="text-3xl font-bold text-[#0D2137] font-display flex items-center gap-3">
+          <Calendar className="text-[#B7950B]" size={32} />
+          Calendario de Disponibilidad
+        </h1>
+        <p className="text-sm text-slate-500 mt-1">Bloquea fechas o consulta eventos confirmados en la quinta.</p>
       </div>
 
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
+      {ayudaVisible && (
+        <div className="relative p-5 pr-12 bg-gradient-to-r from-[#0D2137]/5 to-[#B7950B]/10 border border-[#B7950B]/25 rounded-2xl">
+          <button
+            type="button"
+            onClick={() => setAyudaVisible(false)}
+            className="absolute top-3 right-3 p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-white/80"
+            aria-label="Cerrar ayuda"
+          >
+            <X size={18} />
+          </button>
+          <div className="flex gap-3">
+            <Info size={22} className="text-[#B7950B] shrink-0 mt-0.5" />
+            <div className="text-sm text-slate-700 space-y-2">
+              <p className="font-bold text-[#0D2137]">¿Cómo usar este calendario?</p>
+              <ul className="list-disc list-inside space-y-1 text-slate-600">
+                <li><strong className="text-[#0D2137]">Celdas vacías:</strong> haz clic para bloquear la fecha (mantenimiento, feriado, etc.).</li>
+                <li><strong className="text-[#0D2137]">Azul oscuro:</strong> evento agendado con cliente — no se puede bloquear desde aquí.</li>
+                <li><strong className="text-red-600">Rojo:</strong> fecha bloqueada manualmente; usa &quot;Desbloquear&quot; para habilitarla.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="flex flex-wrap gap-4 text-xs font-bold uppercase tracking-wider">
+        <span className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-white border border-slate-200 text-slate-600">
+          <span className="w-4 h-4 rounded border-2 border-slate-200 bg-white" /> Disponible
+        </span>
+        <span className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-[#0D2137]/10 text-[#0D2137]">
+          <PartyPopper size={14} /> Evento agendado
+        </span>
+        <span className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-red-50 text-red-700 border border-red-100">
+          <Lock size={14} /> Bloqueado
+        </span>
+      </div>
+
+      <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 md:p-8">
         
         {/* Cabecera del Calendario */}
         <div className="flex justify-between items-center mb-6">
@@ -102,23 +143,26 @@ export default function GestionCalendario() {
         </div>
 
         {/* Nombres de los Días */}
-        <div className="grid grid-cols-7 gap-2 mb-2 text-center text-xs font-bold text-slate-400 uppercase">
-          <div>Lun</div><div>Mar</div><div>Mié</div><div>Jue</div><div>Vie</div><div>Sáb</div><div>Dom</div>
+        <div className="grid grid-cols-7 gap-2 mb-3 text-center text-xs font-bold text-[#0D2137]/60 uppercase tracking-widest">
+          {['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'].map((d) => (
+            <div key={d} className="py-2 bg-slate-50 rounded-lg">{d}</div>
+          ))}
         </div>
 
-        {/* Cuadrícula del Calendario */}
         <div className="grid grid-cols-7 gap-2">
-          {celdasVacias.map(i => <div key={`empty-${i}`} className="p-4 bg-slate-50/50 rounded-xl" />)}
+          {celdasVacias.map(i => <div key={`empty-${i}`} className="min-h-[7rem] bg-slate-50/80 rounded-xl" />)}
           
           {diasArray.map((info) => {
             const esHoy = info.fecha === new Date().toISOString().split('T')[0];
+            const libre = !info.evento && !info.bloqueo;
             
             return (
               <div 
                 key={info.dia} 
-                className={`relative p-2 h-28 border rounded-xl flex flex-col transition-all 
-                  ${esHoy ? 'ring-2 ring-[#0D2137]' : 'border-slate-100'}
-                  ${!info.evento && !info.bloqueo ? 'hover:border-[#B7950B] cursor-pointer hover:shadow-md group' : 'bg-slate-50'}
+                title={libre ? 'Clic para bloquear esta fecha' : info.evento ? `Evento: ${info.evento.cliente}` : 'Fecha bloqueada'}
+                className={`relative p-2 min-h-[7rem] border-2 rounded-xl flex flex-col transition-all 
+                  ${esHoy ? 'ring-2 ring-[#B7950B] ring-offset-1' : ''}
+                  ${libre ? 'border-slate-100 bg-white hover:border-[#B7950B] cursor-pointer hover:shadow-lg group' : info.bloqueo ? 'border-red-200 bg-red-50/50' : 'border-[#0D2137]/20 bg-[#0D2137]/5'}
                 `}
                 onClick={() => {
                   if (!info.evento && !info.bloqueo) {

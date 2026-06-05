@@ -44,15 +44,24 @@ export default function AuthCallback() {
     // Llamar al endpoint de perfil para obtener datos completos
     api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
 
+    const requiereTel = searchParams.get('requiere_telefono') === '1';
+
     api.get('/usuarios/me')
       .then(({ data }) => {
-        login(token, data.usuario ?? usuarioData);
-        const esAdmin = (data.usuario?.rol_codigo ?? rol) === 'ADMIN';
+        const usuario = data.usuario ?? usuarioData;
+        login(usuario, token);
+        const esAdmin = (usuario.rol_codigo ?? rol) === 'ADMIN';
+        const sinTelefono = !usuario.telefono || String(usuario.telefono).trim() === '';
+        if (requiereTel || sinTelefono) {
+          if (!esAdmin) {
+            navigate('/paquetes', { replace: true });
+            return;
+          }
+        }
         navigate(esAdmin ? '/admin' : '/paquetes', { replace: true });
       })
       .catch(() => {
-        // Si falla, usar datos del query param
-        login(token, usuarioData);
+        login(usuarioData, token);
         navigate('/paquetes', { replace: true });
       });
   }, []);

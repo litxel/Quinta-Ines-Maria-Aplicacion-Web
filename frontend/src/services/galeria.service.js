@@ -53,8 +53,12 @@ export const fetchCategorias = async () => {
 // =============================================================================
 
 // Obtener todas las imágenes (activas e inactivas) para la tabla del admin
-export const getImagenesAdmin = async () => {
-  const { data } = await api.get('/galeria/admin');
+export const getImagenesAdmin = async ({ busqueda = '', fecha = '' } = {}) => {
+  const params = new URLSearchParams();
+  if (busqueda) params.set('busqueda', busqueda);
+  if (fecha) params.set('fecha', fecha);
+  const query = params.toString() ? `?${params.toString()}` : '';
+  const { data } = await api.get(`/galeria/admin${query}`);
   return data.data;
 };
 

@@ -28,7 +28,8 @@ const imagenesDePaquete = async (req, res, next) => {
 
 const listarTodasAdmin = async (req, res, next) => {
   try {
-    const imagenes = await svc.obtenerTodasImagenesAdmin();
+    const { busqueda = null, fecha = null } = req.query;
+    const imagenes = await svc.obtenerTodasImagenesAdmin({ busqueda, fecha });
     return res.json({ success: true, total: imagenes.length, data: imagenes });
   } catch (err) { next(err); }
 };

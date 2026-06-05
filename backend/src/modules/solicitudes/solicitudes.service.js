@@ -99,15 +99,19 @@ const obtenerMisSolicitudes = async (usuarioId) => {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-const obtenerTodasSolicitudes = async ({ estado = null, pagina = 1, limite = 25, archivadas = false } = {}) => {
+const obtenerTodasSolicitudes = async ({ estado = null, pagina = 1, limite = 25, archivadas = false, usuario_id = null } = {}) => {
   const offset = (pagina - 1) * limite;
   const condiciones = estado && ESTADOS_VALIDOS.includes(estado.toUpperCase())
     ? `AND e.codigo = '${estado.toUpperCase()}'` : '';
   const condArchivado = archivadas ? `AND s.archivado = true` : `AND s.archivado = false`;
+  const uid = usuario_id ? parseInt(usuario_id, 10) : null;
+  const condUsuario = uid ? `AND s.usuario_id = $3` : '';
+  const queryParams = uid ? [limite, offset, uid] : [limite, offset];
 
   const { rows } = await pool.query(
     `SELECT
        s.solicitud_id,
+       s.usuario_id,
        s.numero_solicitud AS numero_cotizacion,
        s.num_invitados,
        s.precio_estimado,
@@ -125,17 +129,20 @@ const obtenerTodasSolicitudes = async ({ estado = null, pagina = 1, limite = 25,
      JOIN eqim_seguridad.usuarios u            ON u.usuario_id = s.usuario_id
      LEFT JOIN eqim_catalogo.tipos_evento te   ON te.tipo_id   = s.tipo_evento_id
      LEFT JOIN eqim_catalogo.paquetes p        ON p.paquete_id = s.paquete_id
-     WHERE 1=1 ${condiciones} ${condArchivado}
+     WHERE 1=1 ${condiciones} ${condArchivado} ${condUsuario}
      ORDER BY s.creado_en DESC
      LIMIT $1 OFFSET $2`,
-    [limite, offset]
+    queryParams
   );
 
+  const countParams = uid ? [uid] : [];
+  const countUsuario = uid ? 'AND s.usuario_id = $1' : '';
   const { rows: total } = await pool.query(
     `SELECT COUNT(*) AS total
      FROM eqim_solicitudes.eqim_solicitudes s
      JOIN eqim_solicitudes.estados e ON e.estado_id = s.estado_id
-     WHERE 1=1 ${condiciones} ${condArchivado}`
+     WHERE 1=1 ${condiciones} ${condArchivado} ${countUsuario}`,
+    countParams
   );
 
   return {
@@ -359,4 +366,4 @@ module.exports = {
   obtenerSolicitudPorId, actualizarEstado, cancelarMiSolicitud,
   obtenerResumenDashboard, archivarSolicitud, desarchivarSolicitud,
   eliminarSolicitudPermanente, ESTADOS_VALIDOS
-};
+};

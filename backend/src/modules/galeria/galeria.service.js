@@ -17,11 +17,26 @@ const obtenerImagenesPublicas = async (categoriaId = null) => {
   return rows;
 };
 
-const obtenerTodasImagenesAdmin = async () => {
-  const { rows } = await pool.query(
-    `SELECT imagen_id, url_original, titulo, categoria_id, orden_display, activo 
-     FROM eqim_galeria.imagenes ORDER BY orden_display ASC`
-  );
+const obtenerTodasImagenesAdmin = async ({ busqueda = null, fecha = null } = {}) => {
+  let query = `SELECT imagen_id, url_original, titulo, alt_text, categoria_id, orden_display, activo, creado_en 
+     FROM eqim_galeria.imagenes`;
+  const params = [];
+  const condiciones = [];
+
+  if (busqueda) {
+    params.push(`%${busqueda}%`);
+    condiciones.push(`(titulo ILIKE $${params.length} OR alt_text ILIKE $${params.length})`);
+  }
+  if (fecha) {
+    params.push(fecha);
+    condiciones.push(`DATE(creado_en) = $${params.length}`);
+  }
+  if (condiciones.length > 0) {
+    query += ' WHERE ' + condiciones.join(' AND ');
+  }
+  query += ' ORDER BY creado_en DESC, imagen_id DESC';
+
+  const { rows } = await pool.query(query, params);
   return rows;
 };
 

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { NavLink, Link, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../../store/useAuthStore';
+import logoQuinta from '../../assets/FotosQuintaInes/LogosQuinta/logo quinta ines.png';
 import { 
   LayoutDashboard, 
   ClipboardList, 
@@ -101,16 +102,18 @@ export default function AdminLayout() {
         </button>
 
         {/* Header Sidebar */}
-        <div className={`p-6 border-b border-white/10 flex items-center transition-all ${isCollapsed ? 'justify-center px-0' : 'gap-4'}`}>
-          <Link to="/" className="flex items-center group shrink-0">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#B7950B] to-yellow-600 flex items-center justify-center text-white font-bold text-xl shadow-lg group-hover:scale-105 transition-transform">
-              Q
-            </div>
+        <div className={`p-5 border-b border-white/10 transition-all ${isCollapsed ? 'flex justify-center' : ''}`}>
+          <Link to="/" className={`flex items-center group ${isCollapsed ? 'justify-center' : 'gap-3'}`} title="Quinta Inés María">
+            <img
+              src={logoQuinta}
+              alt="Quinta Inés María"
+              className={`object-contain drop-shadow-lg transition-transform group-hover:scale-105 ${isCollapsed ? 'h-10 w-10' : 'h-14 w-auto max-w-[180px]'}`}
+            />
           </Link>
           {!isCollapsed && (
-            <div className="flex flex-col animate-in fade-in duration-300 whitespace-nowrap overflow-hidden">
-              <span className="font-display font-bold text-lg leading-tight tracking-wide">Event Planner QIM</span>
-              <span className="text-[9px] text-[#B7950B] font-bold tracking-[0.2em] uppercase">Gestión Empresarial</span>
+            <div className="flex flex-col animate-in fade-in duration-300 whitespace-nowrap overflow-hidden mt-1">
+              <span className="font-display font-bold text-base leading-tight tracking-wide text-white">Quinta Inés María</span>
+              <span className="text-[9px] text-[#B7950B] font-bold tracking-[0.2em] uppercase">Panel Administrador</span>
             </div>
           )}
         </div>
@@ -134,11 +137,11 @@ export default function AdminLayout() {
                         `flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-300 ${
                           isActive
                             ? 'bg-gradient-to-r from-[#B7950B] to-yellow-600 text-white shadow-lg shadow-yellow-600/20'
-                            : 'text-slate-300 hover:text-white hover:bg-white/5'
+                            : 'text-slate-300 hover:text-white hover:bg-white/10 hover:translate-x-0.5'
                         } ${isCollapsed ? 'justify-center' : ''}`
                       }
                     >
-                      <span className={`${isCollapsed ? 'scale-110' : ''}`}>{item.icon}</span>
+                      <span className={`${isCollapsed ? 'scale-110' : ''} transition-transform group-hover:scale-110`}>{item.icon}</span>
                       {!isCollapsed && <span className="truncate">{item.label}</span>}
                     </NavLink>
                   ))}
@@ -157,11 +160,11 @@ export default function AdminLayout() {
                   className={`w-full flex items-center justify-between px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 ${
                     isAnyChildActive && !isOpen 
                       ? 'bg-white/10 text-white shadow-inner' 
-                      : 'text-slate-300 hover:text-white hover:bg-white/5'
+                      : 'text-slate-300 hover:text-white hover:bg-white/10'
                   } ${isCollapsed ? 'justify-center' : ''}`}
                 >
                   <div className="flex items-center gap-3">
-                    <span className={`${isCollapsed ? 'scale-110' : ''} ${isAnyChildActive ? 'text-[#B7950B]' : ''}`}>{group.icon}</span>
+                    <span className={`${isCollapsed ? 'scale-110' : ''} ${isAnyChildActive ? 'text-[#B7950B]' : ''} transition-colors`}>{group.icon}</span>
                     {!isCollapsed && <span className={`truncate ${isAnyChildActive ? 'font-bold' : ''}`}>{group.title}</span>}
                   </div>
                   {!isCollapsed && (
@@ -184,7 +187,7 @@ export default function AdminLayout() {
                           `flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm transition-all duration-200 relative ${
                             isActive
                               ? 'text-white font-bold bg-white/5'
-                              : 'text-slate-400 font-medium hover:text-white hover:bg-white/5'
+                              : 'text-slate-400 font-medium hover:text-white hover:bg-white/10 hover:pl-5'
                           }`
                         }
                       >

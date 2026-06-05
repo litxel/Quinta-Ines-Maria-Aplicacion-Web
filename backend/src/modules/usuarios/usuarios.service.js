@@ -16,7 +16,9 @@ const listarClientes = async ({ busqueda = '', pagina = 1, limite = 20 } = {}) =
     SELECT
       u.usuario_id, u.usuario_uuid, u.nombre_completo, u.correo, u.telefono,
       u.correo_verificado, u.activo, u.ultimo_login, u.creado_en, r.rol_codigo,
-      u.foto_perfil
+      u.foto_perfil,
+      (SELECT COUNT(*)::int FROM eqim_solicitudes.eqim_solicitudes s
+       WHERE s.usuario_id = u.usuario_id AND s.archivado = false) AS solicitudes_count
     FROM eqim_seguridad.usuarios u
     JOIN eqim_seguridad.roles r ON r.rol_id = u.rol_id
     WHERE r.rol_codigo = 'CLIENTE'
