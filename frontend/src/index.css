@@ -1,16 +1,21 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap');
 @import "tailwindcss";
+
+/* ─── Dark mode variant (clase .dark en <html>) ───────────────────────────── */
+@custom-variant dark (&:where(.dark, .dark *));
 
 /* ─── Variables globales de la Quinta Inés María ───────────────────────────── */
 @theme {
+  /* Paleta institucional */
   --color-qim-navy:    #0D2137;
   --color-qim-blue:    #1A6BAC;
-  --color-qim-gold:    #B7950B;
+  --color-qim-gold:    #C9A227;
   --color-qim-cream:   #FDF8F0;
   --color-qim-dark:    #1A1A1A;
+  --color-qim-surface: #F8F5EF;
 
-  --font-sans: 'Inter', system-ui, sans-serif;
-  --font-display: 'Playfair Display', Georgia, serif;
+  /* Tipografías */
+  --font-sans:    'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  --font-display: 'Cormorant Garamond', Georgia, serif;
 }
 
 /* ─── Reset y base ──────────────────────────────────────────────────────────── */
@@ -27,6 +32,13 @@ body {
   color: #1A1A1A;
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  transition: background-color 0.35s ease, color 0.35s ease;
+}
+
+html.dark body {
+  background-color: #060D18;
+  color: #E2DDD6;
 }
 
 /* ─── Utilidades custom ─────────────────────────────────────────────────────── */
@@ -34,30 +46,230 @@ body {
   font-family: var(--font-display);
 }
 
-.card-shadow { box-shadow: 0 2px 16px 0 rgba(13, 33, 55, 0.08); }
-.card-shadow-hover { transition: box-shadow 0.25s ease, transform 0.25s ease; }
+/* Sombras de tarjeta */
+.card-shadow {
+  box-shadow: 0 2px 20px 0 rgba(13, 33, 55, 0.07);
+}
+.dark .card-shadow {
+  box-shadow: 0 2px 20px 0 rgba(0, 0, 0, 0.35);
+}
+.card-shadow-hover {
+  transition: box-shadow 0.3s ease, transform 0.3s ease;
+}
 .card-shadow-hover:hover {
-  box-shadow: 0 8px 32px 0 rgba(13, 33, 55, 0.16);
-  transform: translateY(-2px);
+  box-shadow: 0 16px 48px 0 rgba(13, 33, 55, 0.14);
+  transform: translateY(-4px);
+}
+.dark .card-shadow-hover:hover {
+  box-shadow: 0 16px 48px 0 rgba(0, 0, 0, 0.45);
 }
 
+/* Spinner de carga */
 .spinner {
   width: 2.5rem;
   height: 2.5rem;
-  border: 3px solid #e5e7eb;
-  border-top-color: #1A6BAC;
+  border: 3px solid rgba(201, 162, 39, 0.15);
+  border-top-color: #C9A227;
   border-radius: 50%;
   animation: spin 0.7s linear infinite;
 }
-
 @keyframes spin { to { transform: rotate(360deg); } }
 
+/* Línea dorada decorativa */
 .section-line::after {
   content: '';
   display: block;
   width: 3.5rem;
   height: 3px;
-  background: #B7950B;
+  background: linear-gradient(90deg, transparent, #C9A227, transparent);
   margin: 0.75rem auto 0;
   border-radius: 2px;
 }
+
+/* ─── Glass Card ─────────────────────────────────────────────────────────────── */
+.glass-card {
+  background: rgba(255, 255, 255, 0.74);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.32);
+}
+.dark .glass-card {
+  background: rgba(12, 22, 42, 0.78);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* ─── Gradient Text ─────────────────────────────────────────────────────────── */
+.gradient-text {
+  background: linear-gradient(135deg, #B7950B 0%, #E8C84A 45%, #C9A227 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.gradient-text-blue {
+  background: linear-gradient(135deg, #0D2137 0%, #1A6BAC 50%, #0D2137 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ─── Input Field Global ─────────────────────────────────────────────────────── */
+.input-field {
+  width: 100%;
+  padding: 0.875rem 1.125rem;
+  border-radius: 0.875rem;
+  border: 1.5px solid rgba(203, 213, 225, 0.85);
+  background: rgba(255, 255, 255, 0.62);
+  font-size: 0.9375rem;
+  font-family: var(--font-sans);
+  font-weight: 500;
+  color: #0D2137;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+  outline: none;
+}
+.input-field::placeholder {
+  color: rgba(100, 116, 139, 0.6);
+  font-weight: 400;
+}
+.input-field:focus {
+  border-color: #C9A227;
+  box-shadow: 0 0 0 3.5px rgba(201, 162, 39, 0.14);
+  background: rgba(255, 255, 255, 0.94);
+}
+.input-field.error {
+  border-color: #EF4444;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+}
+.dark .input-field {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.09);
+  color: #E2DDD6;
+}
+.dark .input-field::placeholder {
+  color: rgba(148, 163, 184, 0.55);
+}
+.dark .input-field:focus {
+  border-color: #C9A227;
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 0 0 3.5px rgba(201, 162, 39, 0.18);
+}
+
+/* ─── Botones globales ───────────────────────────────────────────────────────── */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.875rem 1.875rem;
+  background: linear-gradient(145deg, #0D2137 0%, #1A3A5C 100%);
+  color: #fff;
+  font-family: var(--font-sans);
+  font-weight: 700;
+  font-size: 0.9375rem;
+  border-radius: 0.875rem;
+  border: none;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  box-shadow: 0 4px 16px rgba(13, 33, 55, 0.28);
+}
+.btn-primary:hover:not(:disabled) {
+  background: linear-gradient(145deg, #1A6BAC 0%, #0D2137 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 28px rgba(13, 33, 55, 0.38);
+}
+.btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-gold {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.875rem 1.875rem;
+  background: linear-gradient(145deg, #B7950B 0%, #D4AF37 100%);
+  color: #0D2137;
+  font-family: var(--font-sans);
+  font-weight: 700;
+  font-size: 0.9375rem;
+  border-radius: 0.875rem;
+  border: none;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  box-shadow: 0 4px 16px rgba(183, 149, 11, 0.32);
+}
+.btn-gold:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 28px rgba(183, 149, 11, 0.46);
+  filter: brightness(1.06);
+}
+
+/* ─── Custom Scrollbar ─────────────────────────────────────────────────────── */
+::-webkit-scrollbar          { width: 5px; height: 5px; }
+::-webkit-scrollbar-track    { background: transparent; }
+::-webkit-scrollbar-thumb    { background: rgba(201, 162, 39, 0.22); border-radius: 10px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(201, 162, 39, 0.42); }
+
+/* ─── Selección de texto ────────────────────────────────────────────────────── */
+::selection {
+  background: rgba(201, 162, 39, 0.22);
+  color: #0D2137;
+}
+.dark ::selection {
+  background: rgba(201, 162, 39, 0.3);
+  color: #F0D060;
+}
+
+/* ─── Focus ring global ─────────────────────────────────────────────────────── */
+:focus-visible {
+  outline: 2px solid #C9A227;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ─── Animación pulse ring (WhatsApp) ──────────────────────────────────────── */
+@keyframes pulse-ring {
+  0%   { transform: scale(1);    opacity: 0.6; }
+  70%  { transform: scale(1.55); opacity: 0; }
+  100% { transform: scale(1.55); opacity: 0; }
+}
+.animate-pulse-ring::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: #25D366;
+  animation: pulse-ring 2.2s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+  z-index: -1;
+}
+
+/* ─── Skeleton shimmer ─────────────────────────────────────────────────────── */
+@keyframes shimmer {
+  0%   { background-position: -600px 0; }
+  100% { background-position: 600px 0; }
+}
+.skeleton {
+  background: linear-gradient(90deg, #f0ebe3 25%, #e8e3dc 50%, #f0ebe3 75%);
+  background-size: 600px 100%;
+  animation: shimmer 1.6s ease-in-out infinite;
+  border-radius: 0.75rem;
+}
+.dark .skeleton {
+  background: linear-gradient(90deg, #0f1a2a 25%, #162030 50%, #0f1a2a 75%);
+  background-size: 600px 100%;
+}
+
+/* ─── Page transition wrapper ──────────────────────────────────────────────── */
+.page-transition {
+  animation: page-in 0.38s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@keyframes page-in {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ─── Sidebar admin scrollbar ─────────────────────────────────────────────── */
+.custom-scrollbar::-webkit-scrollbar       { width: 4px; }
+.custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+.custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
+.custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
