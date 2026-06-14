@@ -1,5 +1,4 @@
 import { BrowserRouter, Routes, Route, Navigate, Outlet, useLocation } from 'react-router-dom';
-import { AnimatePresence } from 'framer-motion';
 import { useAuthStore } from './store/useAuthStore';
 
 // ── Layout ──────────────────────────────────────────────────────────────────
@@ -10,6 +9,7 @@ import WelcomeModal from './components/shared/WelcomeModal';
 import FloatingActionButtons from './components/shared/FloatingActionButtons';
 import TelefonoRequeridoGate from './components/shared/TelefonoRequeridoGate';
 import PageTransition from './components/shared/PageTransition';
+import ScrollToTop from './components/shared/ScrollToTop';
 
 // ── Guards ──────────────────────────────────────────────────────────────────
 import ProtectedRoute from './components/shared/ProtectedRoute';
@@ -58,14 +58,15 @@ function AuthRoute({ children }) {
 }
 
 // ── Layout público con transición de página ───────────────────────────────────
+// Sin AnimatePresence mode="wait": la nueva ruta se monta de inmediato (evita el
+// bug de "2-3 clics" donde el exit bloqueaba el montaje). La animación de entrada
+// se reproduce al remontar PageTransition gracias al key=pathname.
 function AnimatedOutlet() {
   const location = useLocation();
   return (
-    <AnimatePresence mode="wait" initial={false}>
-      <PageTransition key={location.pathname}>
-        <Outlet />
-      </PageTransition>
-    </AnimatePresence>
+    <PageTransition key={location.pathname}>
+      <Outlet />
+    </PageTransition>
   );
 }
 
@@ -91,6 +92,7 @@ function PublicLayout() {
 export default function App() {
   return (
     <BrowserRouter>
+      <ScrollToTop />
       <Routes>
 
         {/* ── Rutas públicas y de cliente ── */}

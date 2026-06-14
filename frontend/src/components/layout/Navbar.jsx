@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Menu, X, Sun, Moon, ChevronDown } from 'lucide-react';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useDarkMode } from '../../hooks/useDarkMode';
-import logoQuinta from '../../assets/FotosQuintaInes/LogosQuinta/logo quinta ines.png';
+import LogoQuinta from '../shared/LogoQuinta';
 
 export default function Navbar() {
   const [menuOpen, setMenuOpen]   = useState(false);
@@ -47,15 +47,14 @@ export default function Navbar() {
   };
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 bg-[#FCF9F2]/92 dark:bg-[#060D18]/92 backdrop-blur-xl border-b border-[#C9A227]/20 dark:border-[#C9A227]/12 shadow-sm transition-colors duration-300">
+    <header className="fixed top-0 left-0 right-0 z-50 bg-[#E7D8BD]/92 dark:bg-[#2E2046]/92 backdrop-blur-xl border-b border-[#C9A227]/20 dark:border-[#C9A227]/15 shadow-sm transition-colors duration-300">
       <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
 
         {/* ── Logo ── */}
         <Link to="/" className="flex items-center gap-3 group shrink-0">
-          <img
-            src={logoQuinta}
-            alt="Logo Quinta Inés María"
-            className="h-13 w-auto drop-shadow-sm group-hover:scale-105 transition-transform duration-300"
+          <LogoQuinta
+            imgClassName="h-13 w-auto drop-shadow-sm group-hover:scale-105 transition-transform duration-300"
+            glowClassName="-inset-4"
           />
           <div className="hidden lg:flex flex-col">
             <span className="font-display text-xl font-bold text-[#0D2137] dark:text-white leading-none group-hover:text-[#C9A227] transition-colors duration-200">
@@ -137,7 +136,7 @@ export default function Navbar() {
                       variants={dropdownVariants}
                       initial="hidden" animate="visible" exit="exit"
                       transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
-                      className="absolute right-0 top-full mt-2.5 w-64 bg-white dark:bg-[#0C1829] rounded-2xl shadow-2xl border border-slate-100 dark:border-white/8 overflow-hidden z-40"
+                      className="absolute right-0 top-full mt-2.5 w-64 bg-white dark:bg-[#332247] rounded-2xl shadow-2xl border border-slate-100 dark:border-white/8 overflow-hidden z-40"
                     >
                       {/* Cabecera dropdown */}
                       <div className="px-4 py-4 bg-slate-50/80 dark:bg-white/4 border-b border-slate-100 dark:border-white/8">
@@ -237,7 +236,7 @@ export default function Navbar() {
             transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
             className="md:hidden overflow-hidden border-b border-[#C9A227]/15 dark:border-[#C9A227]/10"
           >
-            <div className="bg-[#FCF9F2]/98 dark:bg-[#060D18]/98 backdrop-blur-xl px-4 py-5 flex flex-col gap-1.5">
+            <div className="bg-[#E7D8BD]/98 dark:bg-[#2E2046]/98 backdrop-blur-xl px-4 py-5 flex flex-col gap-1.5">
               <NavLink to="/" end className={mobileLinkClass} onClick={() => setMenuOpen(false)}>Inicio</NavLink>
               <NavLink to="/paquetes" className={mobileLinkClass} onClick={() => setMenuOpen(false)}>Paquetes</NavLink>
               <NavLink to="/galeria" className={mobileLinkClass} onClick={() => setMenuOpen(false)}>Galería</NavLink>

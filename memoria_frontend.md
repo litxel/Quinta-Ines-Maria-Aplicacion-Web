@@ -586,4 +586,151 @@ El Configurador tiene 8 pasos con UI muy densa y estilos inline complejos en `us
 
 ---
 
+# FASE 4 — Nuevo ADN Crema/Púrpura + Bugs + Vistas de usuario
+> Generada: 2026-06-06
+
+## 1. Nueva paleta (index.css reescrito)
+- **Claro = Crema/Beige**: `cream-50 #FFFDF8` (tarjetas elevadas), `cream-100 #FDF8F0` (canvas), `cream-200 #F6EEDF`, `cream-300 #EFE6D6` (secciones alt/hover), `cream-400 #E6D9C3` (bordes).
+- **Oscuro = Aubergine/Violeta profundo (NO negro)**: `plum-900 #170E20` (body), `plum-850 #1E1329` (secciones alt), `plum-800 #261635` (tarjetas/menús), `plum-700 #311E42` (elevado/popovers), `plum-600 #3D2750` (hover/bordes).
+- **Acento puente**: Gold `#C9A227` (combina con ambos modos).
+- **Acento extra**: Amethyst `#A971D6` + `#6B3F7A` (highlights, estados activos dark, gradientes).
+- Tokens en `@theme`: `--color-cream-*`, `--color-plum-*`, `--color-amethyst*`.
+- Helpers semánticos nuevos: `.surface-base/.surface-alt/.surface-card/.surface-elevated`, `.text-ink/.text-soft`, `.border-soft` (cada uno con su `.dark`).
+- `.btn-primary` ahora plum→aubergine (dark: amethyst gradient). `.glass-card`, `.skeleton`, scrollbar y `::selection` con variante púrpura en dark. `.gradient-text-plum` nuevo.
+
+### Migración de literales (sed, 10 archivos)
+`#060D18→#170E20` · `#080F1C→#1E1329` · `#0C1829→#261635` · `#0A1520→#1E1329` · `#162030→#311E42` · `#F8F5EF→#EFE6D6` · `#F4F6F8→#EFE7DA` · `#F8F9FA→#F5EDDF`.
+> Navy `#0D2137` (tinta) y gold se conservan en claro a propósito (elegancia crema). Mapa dark→purple aplicado donde había navy oscuro.
+
+## 2. Bugs + vistas de usuario (COMPLETADO)
+- **Bug navegación**: nuevo `components/shared/ScrollToTop.jsx` (scroll a 0 por `pathname`) montado en `App.jsx`. Se quitó `AnimatePresence mode="wait"` del `AnimatedOutlet` (causaba el "2-3 clics" / montaje bloqueado): ahora `PageTransition key={pathname}` monta al instante y anima la entrada. Eliminado import de `AnimatePresence` en App.
+- **Paquetes.jsx**: dark mode en página + modal (todos los bloques blancos → `dark:bg-[#261635]/#311E42/#1E1329`). Skeletons en carga (`SkeletonList`). Reemplazado `window.location.href` por `navigate()` (sin reload duro). Iconos `Sparkles`/`Rocket`.
+- **Galería.jsx**: dark mode completo (fondo, chips filtro, dropdown orden, headers de sección, masonry, empty state, skeleton img). **Fix filtro "Más nuevas"**: `seccionesOrdenadas` ahora ordena también las CATEGORÍAS por la imagen más reciente (mayor `id`), no solo las fotos dentro de cada una. Chips usan `seccionesOrdenadas`.
+- **Configurador.jsx (8 pasos)**: dark mode integral (shell, barra progreso con gradiente plum→amethyst, tarjeta de pasos `#261635`, modal alerta, preview lateral flotante, sub-tarjetas de resumen, calendario, slider, chips, botones nav). Estados seleccionados con borde/fondo amethyst en dark. **Transiciones**: pasos envueltos en `<AnimatePresence mode="wait"><motion.div key={paso} initial x:28 / exit x:-28>` para deslizado fluido. Texto navy invisible-en-dark corregido en todos los sub-componentes.
+
+## 3. Refactor Admin Parte 1 (COMPLETADO)
+- **AdminLayout.jsx**: botón toggle dark mode en topbar (`useDarkMode` + Sun/Moon con `AnimatePresence`). El layout ya tenía clases dark.
+- **Dashboard.jsx** (reescrito): tarjetas con entrada escalonada (`motion` stagger) + `whileHover`, dark mode integral, tooltips/recharts en púrpura, decoraciones que escalan en hover.
+- **GestionUsuarios.jsx** (reescrito): **4 tonalidades intercaladas** por índice (gold/amatista/azul/rosa) vía `TINTS[i%4]`; cards bloqueadas en rojo. Hover en los 4 botones (WhatsApp con **ícono SVG oficial**, Email, Ver Solicitudes, Bloquear) con elevación+sombra+relleno. Dark mode + entrada animada.
+
+## 4. Refactor Admin Parte 2 (COMPLETADO)
+- **GestionSolicitudes.jsx**: tabla claro/oscuro completa. Drawer "Cotización Exclusiva": cabecera con **foto/iniciales del cliente** + nombre sobre gradiente; **stepper de estado animado** (relleno dorado `motion` + pop del círculo actual); hover (elevación) en Detalles del Evento / Estética / Notas; todos los paneles de color con dark. Modales (eliminar) en dark.
+- **Reportes.jsx** (reescrito): +4 métricas derivadas (ticket promedio, eventos 6m, próximos, cerrados); botón Exportar PDF → **modal con checkboxes** (`SECCIONES_PDF`) para elegir secciones; dark mode integral; PDF en paleta púrpura + logo.
+- **GestionGaleria.jsx** (reescrito): **chips de filtro por categoría** + **agrupación visual** por categoría (cabecera con ícono/desc/contador + divisor degradado); dark mode integral.
+- **GestionCatalogo.jsx**: dark mode integral (tabs, tabla, modales, inputs); **input de imagen ahora también en la pestaña Paquetes** (`['...','paquetes']`).
+- **Tooltip de imagen de paquete**:
+  - Configurador paso 2 → nuevo `PaqueteConHover` reutiliza `PreviewImagenLateral`/`useHoverPreview` (preview lateral flotante con `paq.imagen_url`).
+  - Público `TarjetaPaquete.jsx` → tooltip flotante (imagen grande arriba de la card) en `group-hover/preview` si existe `imagen_url`.
+
+## 5. PDFs corporativos (COMPLETADO)
+Paleta púrpura aplicada + **logo oficial** (`addImage` con `new Image()` async) en 4 generadores:
+- `Reportes.jsx` (reporte analítica, con secciones por checkbox)
+- `GestionSolicitudes.jsx` (cotización admin)
+- `Solicitar.jsx` (cotización al solicitar)
+- `cliente/MisSolicitudes.jsx` (cotización del cliente)
+Colores PDF: header/footer/tablas `NAVY=[42,24,56]` aubergine, `GOLD=[201,162,39]`, filas alternas lavanda `[243,238,248]`, `SLATE=[110,100,120]`. Se conservó todo el contenido/estructura previa.
+
+### Mapa de tokens dark para Admin (referencia)
+Fondo base `dark:bg-[#170E20]` · sección `dark:bg-[#1E1329]` · tarjeta/tabla `dark:bg-[#261635]` · elevado/popover `dark:bg-[#311E42]` · borde `dark:border-white/8` · texto `dark:text-white` / secundario `dark:text-slate-300/400` · activo/acento `#C9A227` (gold) y `#A971D6`/`#6B3F7A` (amethyst/plum).
+
+### Nota backend (imagen de paquete)
+El upload de imagen de paquete y el tooltip usan `paquete.imagen_url`. El front ya envía `imagen_base64` al editar (igual que estilos/centros/extras). **Verificar que el backend de paquetes guarde `imagen_base64`→`imagen_url`** (columna + handler) como ya lo hace para los otros catálogos; si no, añadirlo para que la imagen persista.
+
+---
+
+---
+
+# FASE 5 — Pulido visual y corrección de bugs UI
+> Generada: 2026-06-08
+
+## Paleta re-tuneada (más elegante, menos extrema)
+Migración global (sed, 22 archivos incl. index.css):
+- **Claro (beige más intenso)**: canvas `#FDF8F0→#EEE3CF`, secciones `#F6EEDF→#E8DAC2` y `#EFE6D6→#E5D7BD`, admin `#EFE7DA→#E8DCC4`, galería `#F5EDDF→#EEE3CF`. Tarjetas siguen blancas (buen contraste). Navbar light `#FCF9F2→#E7D8BD`.
+- **Oscuro (púrpura más vibrante)**: body `#170E20→#221634`, secciones `#1E1329→#2A1C40`, tarjetas `#261635→#332247`, elevado `#311E42→#3E2B57`, hover `#3D2750→#4B3666`.
+- **Navbar/Footer sincronizados y distintos del fondo**: navbar `bg-[#E7D8BD] dark:bg-[#2E2046]`; footer ahora claro en light (`bg-[#E7D8BD]` con textos `text-[#3a3128]…`) y `dark:bg-[#2E2046]` en oscuro (antes era oscuro en ambos).
+- **Logo dinámico**: clases en index.css → `.logo-adaptive` (invierte a blanco solo en dark, para navbar/footer) y `.logo-on-dark` (siempre blanco, para sidebar admin). `filter: brightness(0) invert(1)`.
+
+## Sitio público
+- **Nav bug**: `PageTransition` ahora es solo-opacidad (sin desplazamiento `y`) + `willChange` → montaje instantáneo sin salto; combinado con ScrollToTop y la eliminación previa de `AnimatePresence mode="wait"`, la ruta cambia al primer clic.
+- **Reseñas** (`Resenias.jsx`): dark mode (fondo, ReviewCards, filtros, badges). Hero/CTA navy se mantienen.
+- **Home** (`Home.jsx`):
+  - **Video** con `ref` + IntersectionObserver: `autoPlay` (muted/loop/playsInline) al entrar en vista, pausa al salir.
+  - **Nueva sección "Historia de la Quinta"** antes del footer: línea de tiempo vertical alternada (2009→2024) con marcadores de ícono dorados, dark mode.
+  - Contornos de tarjetas de valor reforzados (`border-2 border-[#C9A227]/22`).
+
+## Configurador
+- Legibilidad: textos/íconos de tarjetas con `dark:text-slate-100/200` (antes casi invisibles).
+- **Hover dorado** en TODAS las opciones: `hover:border-[#C9A227] + hover:shadow-[0_0_0_3px_rgba(201,162,39,0.16)]`.
+- **Fondos pasos 6/7**: tarjetas de opción ahora con `bg-slate-50 dark:bg-white/[0.05]` (ya no transparentes).
+- **Bug barra de progreso**: nuevo estado visual "disponible" (dorado, clickable) para el siguiente paso válido → desaparece el aspecto de "candado" y permite navegar.
+
+## Chatbot y WhatsApp
+- **WhatsApp**: el botón flotante inferior ahora hace toggle (`handleToggleChat`) → la "X" verde cierra el widget. Cabecera del chat con texto en morado oscuro (`text-[#2A1238]`/`text-[#3a1f52]`).
+- **AsistenteIA**: dark mode de alto contraste (área de chat `dark:bg-[#2A1C40]`, burbujas `dark:bg-[#332247]` con texto `dark:text-slate-100`, input, sugerencias, fallback).
+
+## Admin
+- **Calendario** (`GestionCalendario.jsx`): dark mode; días normales fondo sutil `dark:bg-white/[0.03]`, eventos en amatista `dark:bg-[#A971D6]/12`, bloqueados en rojo `dark:bg-red-500/15`; leyenda, modal y ayuda adaptados.
+- **Mi Perfil** (`PerfilAdmin.jsx`): dark mode (hero, tarjetas, inputs, botones, toast).
+- **Sidebar**: ya en paleta (`#221634`) + logo `.logo-on-dark`.
+
+## Tablas admin (estandarizadas con "Solicitudes")
+- **SolicitudesArchivadas.jsx**: thead gradiente navy→ (dark plum), filas alternadas `dark:bg-[#332247] / dark:bg-white/[0.02]`, hover gold/amatista, badges/paginación/toast dark.
+- **GestionCatalogo.jsx**: mismo thead gradiente; filas alternadas; **fila oculta diferenciada** `bg-red-50/60 dark:bg-red-500/10`. Corregidos 5 bugs de clases fusionadas (`dark:bg-white/5text-…`) heredados de un replace previo.
+
+---
+
+---
+
+# FASE 6 — Fixes quirúrgicos UI
+> Generada: 2026-06-08
+
+## 1. Asistente IA + colisión WhatsApp
+- **Nuevo store** `store/useUIStore.js` (Zustand): `asistenteAbierto` compartido.
+- `AsistenteIA.jsx`: botón flotante (cerrado) rediseñado → gradiente `from-[#C9A227] via-[#A971D6] to-[#6B3F7A]` + `.animate-glow-gold` (keyframe nuevo en index.css). `useEffect` sincroniza `abierto`→store.
+- `FloatingActionButtons.jsx`: lee `asistenteAbierto`; cuando es `true` el contenedor se desplaza/oculta (`opacity-0 translate-x-28 pointer-events-none`) y cierra el chat de WhatsApp → no colisionan.
+
+## 2. Logo dark:invert
+- `Navbar.jsx`: logo con `dark:invert dark:brightness-150` (Tailwind) en vez de la clase custom. (Footer mantiene `.logo-adaptive`; sidebar `.logo-on-dark`.)
+
+## 3. Carrusel CTA + rediseño Historia (`Home.jsx`)
+- **Carrusel automático** bajo el título "inolvidable": fade con `AnimatePresence` cada 3.5s, placeholders `/assets/quinta/carrusel-{1..4}.jpg` (fallback degradado + ícono `Camera` si 404), dots clickables. Estado `carIdx`.
+- **Historia rediseñada**: fondo `bg-[#FBF7EF] dark:bg-[#1B1230]` (distinto del footer en ambos modos). Cada item = grid `[1fr_auto_1fr]`: **imagen placeholder** (`/assets/quinta/historia-{i}.jpg`, fallback degradado) + **flecha conectora** animada (`ArrowRight`/`ArrowLeft` apuntando a la tarjeta) + **tarjeta de fecha dorada centrada** (`bg-amber-100 dark:bg-amber-900/20`). **Scroll highlight**: `IntersectionObserver` setea `activoHist`; la fecha activa se ilumina (ring dorado, scale, `bg-amber-100`).
+
+## 4. Sidebar admin (`AdminLayout.jsx`)
+- Claro: `bg-[#473A28]` (taupe oscuro elegante, ya no morado; contrasta con dashboard crema). Oscuro: `bg-[#2E2046]` (púrpura más luminoso que `#221634` → mejor visibilidad de iconos). Texto blanco/gold se mantiene legible. Punto inactivo de submenú `bg-white/35`.
+
+## 5. Dark mode vistas cliente
+- `cliente/MiPerfil.jsx` y `cliente/MisSolicitudes.jsx`: dark mode integral (fondo `dark:bg-[#221634]`, tarjetas `dark:bg-[#332247]`, hero amatista, inputs `dark:bg-white/5`, listas de solicitudes, timeline de estado, badges, botones, toast, observaciones).
+
+---
+
+---
+
+# FASE 7 — z-index, checkout dark, logo glow, paquetes
+> Generada: 2026-06-08
+
+## 1. Dark mode checkout (`Solicitar.jsx`)
+Las 3 vistas (modal login requerido, **resumen "Enviar Solicitud"**, **ticket "¡Solicitud enviada!"**) ahora con dark mode: fondo `dark:bg-[#221634]`, tarjetas `dark:bg-[#332247]`, **caja de comentario** (`textarea` `dark:bg-white/5`), InfoRows, total, notas (amber/red), botones (navy→amatista), ticket N.° cotización con gradiente amatista. Se usaron los tokens del proyecto en vez de `purple-900` literal para cohesión.
+
+## 2. Asistente IA global + z-index
+- `AsistenteIA.jsx` ahora lee el contexto del configurador **desde el store** (`paqueteSeleccionado`/`num_invitados`) → funciona en cualquier página.
+- Renderizado **globalmente** en `App.jsx` → `PublicLayout` (se quitó de `Configurador.jsx`).
+- Botón y panel movidos a **bottom-left** con **`z-[60]`** (sobre el footer y todo el contenido). WhatsApp queda bottom-right → **sin colisión**.
+- `FloatingActionButtons.jsx`: revertida la lógica de ocultar-por-asistente (ya no necesaria); contenedor a `z-[60]`.
+
+## 3. Logo "ARGB backlight" (sin invert)
+- **Eliminados** los filtros `brightness(0) invert(1)` (`.logo-adaptive`/`.logo-on-dark`) que rompían el logo (cuadro blanco) en dark.
+- Nuevo componente **`components/shared/LogoQuinta.jsx`**: wrapper `relative` + `<span absolute blur-xl opacity-75 animate-pulse>` con gradiente:
+  - claro → `from-purple-900 via-amber-700 to-purple-800`
+  - oscuro → `dark:from-purple-400 dark:via-fuchsia-300 dark:to-amber-300`
+  - + `<img relative z-10>` (logo original sin alterar).
+- Usado en **Navbar, Footer y AdminLayout (sidebar)**.
+
+## 4. Rediseño TarjetaPaquete + tooltip
+- **`TarjetaPaquete.jsx`** reescrito a **layout horizontal** (`flex-col-reverse md:flex-row`): izquierda = badge/título/descr/precio/servicios/botones; derecha = **imagen representativa** (`object-cover` `md:rounded-r-3xl`, fallback degradado con `color_principal` si no hay `imagen_url`). **Eliminada** la superposición/tooltip flotante anterior. Franja de acento con el color del paquete.
+- `Paquetes.jsx`: grid a `grid-cols-1 lg:grid-cols-2` para acomodar las tarjetas anchas.
+- **Configurador paso 2**: el tooltip de imagen al hover ya existe (`PaqueteConHover` + `PreviewImagenLateral`, usa `paq.imagen_url`). *(Nota: muestra la imagen cuando el backend persista `imagen_url` del paquete; mientras tanto, ícono de respaldo.)*
+
+---
+
 *Este archivo sirve como contexto base para futuras sesiones de desarrollo. No eliminar.*

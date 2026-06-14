@@ -4,6 +4,7 @@ import { useAuthStore } from '../store/useAuthStore';
 import { useConfiguradorStore } from '../store/useConfiguradorStore';
 import api from '../services/api';
 import { crearSolicitudRequest } from '../services/solicitudes.service';
+import logoQuinta from '../assets/FotosQuintaInes/LogosQuinta/logo quinta ines.png';
 
 const INCLUSIONES_PAQUETES = {
   'Bronce': ['Uso exclusivo de instalaciones (jardines, glorieta, puente, pileta)', 'Decoración básica de mesas y sillas', 'Vajilla y cristalería estándar', 'Servicio de cocina profesional', 'Audio y sonido básico', 'Parqueadero vigilado'],
@@ -20,15 +21,21 @@ const generarPDF = async (datos, soloDevolverBase64 = false) => {
   const doc = new jsPDF({ unit: 'mm', format: 'a4' });
   const pW  = doc.internal.pageSize.getWidth();
 
-  const NAVY   = [13,  33, 55];   
-  const GOLD   = [183, 149, 11];  
-  const CREAM  = [245, 240, 232]; 
-  const SLATE  = [100, 116, 139]; 
+  const NAVY   = [42, 24, 56];    // aubergine corporativo
+  const GOLD   = [201, 162, 39];
+  const CREAM  = [243, 238, 248]; // lavanda muy clara
+  const SLATE  = [110, 100, 120];
 
   doc.setFillColor(...NAVY);
   doc.rect(0, 0, pW, 52, 'F');
   doc.setFillColor(...GOLD);
   doc.rect(0, 50, pW, 3, 'F');
+
+  // Logotipo oficial
+  try {
+    const logo = await new Promise((res) => { const im = new Image(); im.crossOrigin = 'anonymous'; im.onload = () => res(im); im.onerror = () => res(null); im.src = logoQuinta; });
+    if (logo) doc.addImage(logo, 'PNG', 14, 9, 28, 28);
+  } catch { /* sin logo */ }
 
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(24);
@@ -388,25 +395,25 @@ export default function Solicitar() {
 
   if (modalVisible && !isAuthenticated) {
     return (
-      <main className="min-h-screen bg-[#F5F0E8] flex items-center justify-center px-4">
-        <div className="w-full max-w-md bg-white rounded-2xl shadow-xl overflow-hidden">
+      <main className="min-h-screen bg-[#F5F0E8] dark:bg-[#221634] flex items-center justify-center px-4">
+        <div className="w-full max-w-md bg-white dark:bg-[#332247] rounded-2xl shadow-xl overflow-hidden">
           <div className="h-1.5 bg-gradient-to-r from-[#0D2137] via-[#1A6BAC] to-[#B7950B]" />
 
           <div className="p-8 text-center">
-            <div className="w-16 h-16 bg-[#0D2137]/10 rounded-full flex items-center justify-center mx-auto mb-5">
+            <div className="w-16 h-16 bg-[#0D2137]/10 dark:bg-[#A971D6]/18 rounded-full flex items-center justify-center mx-auto mb-5">
               <span className="text-3xl">🔐</span>
             </div>
-            <h2 className="font-display text-2xl font-bold text-[#0D2137] mb-2">
+            <h2 className="font-display text-2xl font-bold text-[#0D2137] dark:text-white mb-2">
               Inicia sesión para continuar
             </h2>
-            <p className="text-slate-500 text-sm leading-relaxed mb-6">
+            <p className="text-slate-500 dark:text-slate-400 dark:text-slate-500 text-sm leading-relaxed mb-6">
               Tu configuración de evento está guardada.<br />
               Necesitas una cuenta para enviar la solicitud y recibir tu cotización formal.
             </p>
 
             {store.paqueteSeleccionado && (
-              <div className="bg-[#F5F0E8] rounded-xl p-4 mb-6 text-left">
-                <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Tu configuración</p>
+              <div className="bg-[#F5F0E8] dark:bg-[#221634] rounded-xl p-4 mb-6 text-left">
+                <p className="text-xs font-bold text-slate-500 dark:text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">Tu configuración</p>
                 <div className="space-y-1">
                   <InfoRow label="Paquete"     valor={store.paqueteSeleccionado.paquete_nombre} />
                   <InfoRow label="Invitados"   valor={`${store.num_invitados} personas`} />
@@ -418,19 +425,19 @@ export default function Solicitar() {
             <div className="flex flex-col gap-3">
               <button
                 onClick={handleIrLogin}
-                className="w-full py-3.5 bg-[#0D2137] text-white font-bold rounded-xl hover:bg-[#1A6BAC] transition-colors focus:outline-none focus:ring-2 focus:ring-[#1A6BAC] focus:ring-offset-2"
+                className="w-full py-3.5 bg-[#0D2137] dark:bg-gradient-to-r dark:from-[#6B3F7A] dark:to-[#A971D6] text-white font-bold rounded-xl hover:bg-[#1A6BAC] dark:hover:brightness-110 transition-colors focus:outline-none focus:ring-2 focus:ring-[#1A6BAC] focus:ring-offset-2"
               >
                 Iniciar sesión
               </button>
               <Link
                 to="/register"
-                className="w-full py-3.5 border-2 border-[#0D2137] text-[#0D2137] font-bold rounded-xl hover:bg-[#0D2137]/5 transition-colors text-center text-sm"
+                className="w-full py-3.5 border-2 border-[#0D2137] dark:border-[#A971D6] text-[#0D2137] dark:text-white font-bold rounded-xl hover:bg-[#0D2137]/5 dark:hover:bg-[#A971D6]/15 transition-colors text-center text-sm"
               >
                 Crear cuenta gratis
               </Link>
               <button
                 onClick={() => navigate('/configurador')}
-                className="text-xs text-slate-400 hover:text-slate-600 underline"
+                className="text-xs text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:text-slate-300 underline"
               >
                 ← Volver al configurador
               </button>
@@ -443,29 +450,29 @@ export default function Solicitar() {
 
   if (enviado) {
     return (
-      <main className="min-h-screen bg-[#F5F0E8] flex items-center justify-center px-4">
-        <div className="w-full max-w-lg bg-white rounded-2xl shadow-xl overflow-hidden">
+      <main className="min-h-screen bg-[#F5F0E8] dark:bg-[#221634] flex items-center justify-center px-4">
+        <div className="w-full max-w-lg bg-white dark:bg-[#332247] rounded-2xl shadow-xl overflow-hidden">
           <div className="h-1.5 bg-gradient-to-r from-[#0D2137] via-[#1A6BAC] to-[#B7950B]" />
 
           <div className="p-8 text-center">
-            <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-5">
+            <div className="w-20 h-20 bg-green-100 dark:bg-green-500/15 rounded-full flex items-center justify-center mx-auto mb-5">
               <span className="text-5xl">🎊</span>
             </div>
-            <h2 className="font-display text-2xl font-bold text-[#0D2137] mb-2">
+            <h2 className="font-display text-2xl font-bold text-[#0D2137] dark:text-white mb-2">
               ¡Solicitud enviada!
             </h2>
-            <p className="text-slate-500 text-sm leading-relaxed mb-4">
+            <p className="text-slate-500 dark:text-slate-400 dark:text-slate-500 text-sm leading-relaxed mb-4">
               Hola, <strong>{user?.nombre_completo}</strong>. Hemos recibido tu solicitud y te
               contactaremos en las próximas <strong>24 horas hábiles</strong>.
             </p>
 
-            <div className="inline-block bg-[#0D2137] rounded-xl px-6 py-3 mb-6">
+            <div className="inline-block bg-[#0D2137] dark:bg-gradient-to-r dark:from-[#6B3F7A] dark:to-[#A971D6] rounded-xl px-6 py-3 mb-6">
               <p className="text-white/60 text-xs uppercase tracking-wider">N.° de cotización</p>
               <p className="text-[#B7950B] font-bold text-lg font-mono">{numSolicitud}</p>
             </div>
 
-            <div className="bg-[#F5F0E8] rounded-xl p-4 mb-6 text-left">
-              <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Resumen</p>
+            <div className="bg-[#F5F0E8] dark:bg-[#221634] rounded-xl p-4 mb-6 text-left">
+              <p className="text-xs font-bold text-slate-500 dark:text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-3">Resumen</p>
               <div className="space-y-1.5">
                 <InfoRow label="Paquete"    valor={store.paqueteSeleccionado?.paquete_nombre ?? '—'} />
                 <InfoRow label="Invitados"  valor={`${store.num_invitados} personas`} />
@@ -473,7 +480,7 @@ export default function Solicitar() {
                 {store.estiloSeleccionado && (
                   <InfoRow label="Decoración" valor={store.estiloSeleccionado.nombre} />
                 )}
-                <div className="border-t border-slate-200 pt-2 mt-2">
+                <div className="border-t border-slate-200 dark:border-white/12 pt-2 mt-2">
                   <InfoRow label="Total estimado" valor={`$${(store.precioServidor?.total ?? store.precio_estimado).toFixed(2)}`} dorado />
                 </div>
               </div>
@@ -490,7 +497,7 @@ export default function Solicitar() {
               </button>
               <Link
                 to="/paquetes"
-                className="text-sm text-[#1A6BAC] hover:underline font-medium"
+                className="text-sm text-[#1A6BAC] dark:text-[#A971D6] hover:underline font-medium"
               >
                 Ver otros paquetes
               </Link>
@@ -502,21 +509,21 @@ export default function Solicitar() {
   }
 
   return (
-    <main className="min-h-screen bg-[#F5F0E8] pt-24 pb-16">
+    <main className="min-h-screen bg-[#F5F0E8] dark:bg-[#221634] pt-24 pb-16">
       <div className="max-w-2xl mx-auto px-4">
 
         <div className="text-center mb-8">
-          <h1 className="font-display text-4xl font-bold text-[#0D2137]">Enviar Solicitud</h1>
-          <p className="text-slate-500 text-sm mt-2">
+          <h1 className="font-display text-4xl font-bold text-[#0D2137] dark:text-white">Enviar Solicitud</h1>
+          <p className="text-slate-500 dark:text-slate-400 dark:text-slate-500 text-sm mt-2">
             Revisa los detalles y envía tu solicitud de cotización formal.
           </p>
         </div>
 
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden mb-5">
+        <div className="bg-white dark:bg-[#332247] rounded-2xl shadow-sm border border-slate-100 dark:border-white/8 overflow-hidden mb-5">
           <div className="h-1 bg-gradient-to-r from-[#0D2137] via-[#1A6BAC] to-[#B7950B]" />
 
           <div className="p-6">
-            <h2 className="font-display text-xl font-semibold text-[#0D2137] mb-4">
+            <h2 className="font-display text-xl font-semibold text-[#0D2137] dark:text-white mb-4">
               Resumen de tu evento
             </h2>
 
@@ -529,8 +536,8 @@ export default function Solicitar() {
               {store.estiloSeleccionado   && <InfoRow label="Decoración"   valor={store.estiloSeleccionado.nombre} />}
               {store.centroMesaSeleccionado && <InfoRow label="Centro mesa" valor={store.centroMesaSeleccionado.nombre} />}
 
-              <div className="flex justify-between items-center py-2 border-b border-slate-100">
-                <span className="text-slate-500 font-medium">Colores</span>
+              <div className="flex justify-between items-center py-2 border-b border-slate-100 dark:border-white/8">
+                <span className="text-slate-500 dark:text-slate-400 dark:text-slate-500 font-medium">Colores</span>
                 <div className="flex gap-2 items-center">
                   <ColorDot hex={store.color_primario}   />
                   <ColorDot hex={store.color_secundario} />
@@ -538,11 +545,11 @@ export default function Solicitar() {
               </div>
 
               {store.servicios.length > 0 && (
-                <div className="py-2 border-b border-slate-100">
-                  <span className="text-slate-500 font-medium">Extras</span>
+                <div className="py-2 border-b border-slate-100 dark:border-white/8">
+                  <span className="text-slate-500 dark:text-slate-400 dark:text-slate-500 font-medium">Extras</span>
                   <div className="mt-1 space-y-1">
                     {store.servicios.map((s) => (
-                      <div key={s.adicional_id} className="flex justify-between text-xs text-slate-600">
+                      <div key={s.adicional_id} className="flex justify-between text-xs text-slate-600 dark:text-slate-300">
                         <span>{s.nombre} ×{s.cantidad}</span>
                         <span>${(s.precio_snapshot * s.cantidad).toFixed(2)}</span>
                       </div>
@@ -552,7 +559,7 @@ export default function Solicitar() {
               )}
 
               <div className="flex justify-between items-center pt-3">
-                <span className="font-bold text-[#0D2137]">TOTAL ESTIMADO</span>
+                <span className="font-bold text-[#0D2137] dark:text-white">TOTAL ESTIMADO</span>
                 <span className="text-2xl font-bold text-[#B7950B]">
                   ${(store.precioServidor?.total ?? store.precio_estimado).toFixed(2)}
                 </span>
@@ -562,31 +569,31 @@ export default function Solicitar() {
         </div>
         
         {/* 🚀 CAJA DE COMENTARIOS PARA EL CLIENTE */}
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden mb-5">
+        <div className="bg-white dark:bg-[#332247] rounded-2xl shadow-sm border border-slate-100 dark:border-white/8 overflow-hidden mb-5">
           <div className="p-6">
-            <label className="block font-display text-lg font-semibold text-[#0D2137] mb-2">
+            <label className="block font-display text-lg font-semibold text-[#0D2137] dark:text-white mb-2">
               ¿Algún comentario adicional para nuestro equipo?
             </label>
-            <p className="text-xs text-slate-500 mb-3">
+            <p className="text-xs text-slate-500 dark:text-slate-400 dark:text-slate-500 mb-3">
               Ej: "Por favor llámenme por la tarde", "Tengo alergia a los mariscos", etc.
             </p>
             <textarea
               value={comentarioCliente}
               onChange={(e) => setComentarioCliente(e.target.value)}
               rows="3"
-              className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl text-sm focus:outline-none focus:border-[#B7950B] resize-none transition-colors"
+              className="w-full px-4 py-3 border-2 border-slate-200 dark:border-white/12 dark:bg-white/5 dark:text-white rounded-xl text-sm focus:outline-none focus:border-[#B7950B] resize-none transition-colors"
               placeholder="Escribe tu mensaje aquí (opcional)..."
             />
           </div>
         </div>
 
-        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6 text-sm text-amber-800">
+        <div className="bg-amber-50 dark:bg-amber-500/12 border border-amber-200 dark:border-amber-500/25 rounded-xl p-4 mb-6 text-sm text-amber-800 dark:text-amber-300">
           <strong>⚠ Nota:</strong> El precio es estimado. La cotización definitiva se enviará
           a <strong>{user?.correo}</strong> tras la revisión de nuestro equipo.
         </div>
 
         {error && (
-          <div role="alert" className="mb-4 p-3.5 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700">
+          <div role="alert" className="mb-4 p-3.5 bg-red-50 dark:bg-red-500/12 border border-red-200 dark:border-red-500/25 rounded-xl text-sm text-red-700 dark:text-red-300">
             ⚠ {error}
           </div>
         )}
@@ -611,7 +618,7 @@ export default function Solicitar() {
 
           <button
             onClick={() => navigate('/configurador')}
-            className="text-sm text-slate-400 hover:text-slate-600 underline text-center"
+            className="text-sm text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:text-slate-300 underline text-center"
           >
             ← Volver al configurador
           </button>
@@ -623,9 +630,9 @@ export default function Solicitar() {
 
 function InfoRow({ label, valor, dorado = false }) {
   return (
-    <div className="flex justify-between items-start py-1.5 border-b border-slate-100 last:border-0">
-      <span className="text-slate-500 font-medium text-sm">{label}</span>
-      <span className={`font-semibold text-sm text-right max-w-[55%] ${dorado ? 'text-[#B7950B] text-base' : 'text-[#0D2137]'}`}>
+    <div className="flex justify-between items-start py-1.5 border-b border-slate-100 dark:border-white/8 last:border-0">
+      <span className="text-slate-500 dark:text-slate-400 dark:text-slate-500 font-medium text-sm">{label}</span>
+      <span className={`font-semibold text-sm text-right max-w-[55%] ${dorado ? 'text-[#B7950B] text-base' : 'text-[#0D2137] dark:text-white'}`}>
         {valor}
       </span>
     </div>

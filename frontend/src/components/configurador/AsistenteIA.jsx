@@ -1,5 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import api from '../../services/api';
+import { useUIStore } from '../../store/useUIStore';
+import { useConfiguradorStore } from '../../store/useConfiguradorStore';
 
 // =============================================================================
 //  COMPONENTE — AsistenteIA
@@ -35,7 +37,7 @@ const renderMarkdown = (texto) => {
       // Si es negrita **texto**
       if (parte.startsWith('**') && parte.endsWith('**')) {
         return (
-          <strong key={j} className="font-semibold text-[#0D2137]">
+          <strong key={j} className="font-semibold text-[#0D2137] dark:text-white">
             {parte.slice(2, -2)}
           </strong>
         );
@@ -75,7 +77,7 @@ const renderMarkdown = (texto) => {
     }
 
     if (/^[-=]{3,}$/.test(linea.trim())) {
-      return <hr key={i} className="border-slate-200 my-2" />;
+      return <hr key={i} className="border-slate-200 dark:border-white/12 my-2" />;
     }
 
     return (
@@ -98,6 +100,21 @@ export default function AsistenteIA({ paqueteActual = null, numInvitados = 100, 
 
   const contenedorRef = useRef(null);
   const inputRef      = useRef(null);
+  const setAsistenteAbierto = useUIStore((s) => s.setAsistenteAbierto);
+
+  // Contexto del configurador desde el store (permite usar el asistente
+  // globalmente en cualquier página pública, no solo en el Configurador).
+  const paqStore = useConfiguradorStore((s) => s.paqueteSeleccionado);
+  const invStore = useConfiguradorStore((s) => s.num_invitados);
+  paqueteActual = paqueteActual ?? paqStore ?? null;
+  numInvitados  = (numInvitados && numInvitados > 100) ? numInvitados : (invStore ?? 100);
+
+  // Sincroniza el estado abierto con el store global para que el botón de
+  // WhatsApp se aparte y no colisione con el chat del Asistente.
+  useEffect(() => {
+    setAsistenteAbierto(abierto);
+    return () => setAsistenteAbierto(false);
+  }, [abierto, setAsistenteAbierto]);
 
   // Scroll automático al último mensaje
   useEffect(() => {
@@ -189,13 +206,13 @@ export default function AsistenteIA({ paqueteActual = null, numInvitados = 100, 
     return (
       <button
         onClick={() => setAbierto(true)}
-        className="fixed bottom-6 right-6 z-50 flex items-center gap-3 px-5 py-3.5 bg-[#0D2137] text-white rounded-full shadow-2xl hover:bg-[#1A6BAC] transition-all duration-300 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-[#B7950B] focus:ring-offset-2 group"
+        className="animate-glow-gold fixed bottom-6 right-6 z-[60] flex items-center gap-3 px-6 py-4 bg-gradient-to-r from-[#C9A227] via-[#A971D6] to-[#6B3F7A] text-white rounded-full shadow-2xl transition-transform duration-300 hover:scale-110 focus:outline-none focus:ring-2 focus:ring-[#C9A227] focus:ring-offset-2 group"
         aria-label="Abrir asistente de IA"
       >
-        <span className="text-xl group-hover:animate-spin-slow">✨</span>
-        <span className="font-semibold text-sm hidden sm:block">Asistente IA</span>
+        <span className="text-xl group-hover:rotate-12 transition-transform inline-block">✨</span>
+        <span className="font-bold text-sm hidden sm:block tracking-wide">Asistente IA</span>
         {/* Indicador de disponible */}
-        <span className="w-2 h-2 bg-[#B7950B] rounded-full animate-pulse" aria-hidden="true" />
+        <span className="w-2.5 h-2.5 bg-white rounded-full animate-pulse ring-2 ring-white/40" aria-hidden="true" />
       </button>
     );
   }
@@ -205,7 +222,7 @@ export default function AsistenteIA({ paqueteActual = null, numInvitados = 100, 
   // ═══════════════════════════════════════════════════════════════
   return (
     <div
-      className="fixed bottom-6 right-6 z-50 w-[360px] sm:w-[420px] flex flex-col rounded-2xl shadow-2xl overflow-hidden"
+      className="fixed bottom-6 right-6 z-[60] w-[calc(100vw-3rem)] sm:w-[420px] flex flex-col rounded-2xl shadow-2xl overflow-hidden"
       style={{ maxHeight: 'calc(100vh - 80px)', height: '560px' }}
       role="dialog"
       aria-label="Asistente de Eventos con IA"
@@ -255,7 +272,7 @@ export default function AsistenteIA({ paqueteActual = null, numInvitados = 100, 
       {/* ── Área de mensajes ────────────────────────────────────────────── */}
       <div
         ref={contenedorRef}
-        className="flex-1 overflow-y-auto bg-[#F5F0E8] p-4 space-y-4"
+        className="flex-1 overflow-y-auto bg-[#F5F0E8] dark:bg-[#2A1C40] p-4 space-y-4"
         aria-live="polite"
         aria-label="Conversación con el asistente"
       >
@@ -266,10 +283,10 @@ export default function AsistenteIA({ paqueteActual = null, numInvitados = 100, 
             <div className="w-14 h-14 mx-auto mb-3 bg-[#0D2137] rounded-full flex items-center justify-center text-2xl shadow-lg">
               ✨
             </div>
-            <p className="font-bold text-[#0D2137] text-sm mb-1">
+            <p className="font-bold text-[#0D2137] dark:text-white text-sm mb-1">
               ¡Hola! Soy el Asistente de la Quinta Inés María
             </p>
-            <p className="text-slate-500 text-xs leading-relaxed mb-5 px-2">
+            <p className="text-slate-500 dark:text-slate-300 text-xs leading-relaxed mb-5 px-2">
               Cuéntame sobre tu evento y te ayudaré a elegir el paquete perfecto.
             </p>
 
@@ -283,7 +300,7 @@ export default function AsistenteIA({ paqueteActual = null, numInvitados = 100, 
                   key={i}
                   onClick={() => enviarMensaje(s)}
                   disabled={loading}
-                  className="w-full text-left text-xs px-3 py-2.5 bg-white rounded-xl border border-slate-200 text-slate-600 hover:border-[#B7950B] hover:text-[#0D2137] transition-all duration-200 hover:shadow-sm disabled:opacity-40 focus:outline-none focus:ring-2 focus:ring-[#B7950B]"
+                  className="w-full text-left text-xs px-3 py-2.5 bg-white dark:bg-[#332247] rounded-xl border border-slate-200 dark:border-white/12 text-slate-600 hover:border-[#B7950B] hover:text-[#0D2137] dark:text-white transition-all duration-200 hover:shadow-sm disabled:opacity-40 focus:outline-none focus:ring-2 focus:ring-[#B7950B]"
                 >
                   {s}
                 </button>
@@ -308,16 +325,16 @@ export default function AsistenteIA({ paqueteActual = null, numInvitados = 100, 
             <div
               className={`max-w-[82%] rounded-2xl px-4 py-3 shadow-sm ${
                 msg.role === 'user'
-                  ? 'bg-[#0D2137] text-white rounded-br-sm'
+                  ? 'bg-[#0D2137] dark:bg-gradient-to-br dark:from-[#6B3F7A] dark:to-[#A971D6] text-white rounded-br-sm'
                   : msg.fallback
-                  ? 'bg-amber-50 border border-amber-200 rounded-bl-sm'
-                  : 'bg-white border border-slate-100 rounded-bl-sm'
+                  ? 'bg-amber-50 dark:bg-amber-500/15 border border-amber-200 dark:border-amber-500/30 rounded-bl-sm'
+                  : 'bg-white dark:bg-[#332247] border border-slate-100 dark:border-white/10 rounded-bl-sm'
               }`}
             >
               {msg.role === 'user' ? (
                 <p className="text-sm leading-relaxed">{msg.texto}</p>
               ) : (
-                <div className="space-y-1.5 text-slate-700">
+                <div className="space-y-1.5 text-slate-700 dark:text-slate-100">
                   {msg.fallback && (
                     <p className="text-xs font-medium text-amber-600 mb-2 flex items-center gap-1">
                       <span>⚠</span> Modo sin conexión
@@ -343,7 +360,7 @@ export default function AsistenteIA({ paqueteActual = null, numInvitados = 100, 
             <div className="w-7 h-7 rounded-full bg-[#0D2137] flex items-center justify-center text-sm shrink-0 mr-2 mt-1 shadow">
               ✨
             </div>
-            <div className="bg-white border border-slate-100 rounded-2xl rounded-bl-sm px-4 py-3 shadow-sm max-w-[82%]">
+            <div className="bg-white dark:bg-[#332247] border border-slate-100 dark:border-white/10 rounded-2xl rounded-bl-sm px-4 py-3 shadow-sm max-w-[82%]">
               <div className="flex items-center gap-2">
                 <div className="flex gap-1">
                   {[0, 1, 2].map((n) => (
@@ -363,17 +380,17 @@ export default function AsistenteIA({ paqueteActual = null, numInvitados = 100, 
       </div>
 
       {/* ── Área de input ───────────────────────────────────────────────── */}
-      <div className="bg-white border-t border-slate-100 p-3 shrink-0">
+      <div className="bg-white dark:bg-[#332247] border-t border-slate-100 dark:border-white/8 p-3 shrink-0">
         {/* Contexto del configurador actual (si hay uno) */}
         {paqueteActual && (
-          <div className="flex items-center gap-2 bg-[#0D2137]/5 rounded-lg px-3 py-1.5 mb-2.5">
+          <div className="flex items-center gap-2 bg-[#0D2137]/5 dark:bg-[#A971D6]/12 rounded-lg px-3 py-1.5 mb-2.5">
             <span
               className="w-3 h-3 rounded-full shrink-0"
               style={{ backgroundColor: paqueteActual.color_principal ?? '#0D2137' }}
               aria-hidden="true"
             />
             <p className="text-xs text-slate-500 truncate">
-              Configurando: <strong className="text-[#0D2137]">{paqueteActual.paquete_nombre}</strong>
+              Configurando: <strong className="text-[#0D2137] dark:text-white">{paqueteActual.paquete_nombre}</strong>
               {' · '}{numInvitados} personas
             </p>
           </div>
@@ -389,7 +406,7 @@ export default function AsistenteIA({ paqueteActual = null, numInvitados = 100, 
             disabled={loading}
             rows={1}
             maxLength={500}
-            className="flex-1 resize-none px-3.5 py-2.5 border-2 border-slate-200 rounded-xl text-sm focus:outline-none focus:border-[#1A6BAC] focus:ring-2 focus:ring-[#1A6BAC]/20 disabled:opacity-50 disabled:bg-slate-50 transition-colors"
+            className="flex-1 resize-none px-3.5 py-2.5 border-2 border-slate-200 dark:border-white/12 dark:bg-white/5 dark:text-white dark:placeholder:text-slate-400 rounded-xl text-sm focus:outline-none focus:border-[#1A6BAC] focus:ring-2 focus:ring-[#1A6BAC]/20 disabled:opacity-50 disabled:bg-slate-50 transition-colors"
             aria-label="Escribe tu consulta al asistente"
             style={{ minHeight: '44px', maxHeight: '100px' }}
             onInput={(e) => {

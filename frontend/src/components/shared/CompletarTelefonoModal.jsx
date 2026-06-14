@@ -39,7 +39,7 @@ export default function CompletarTelefonoModal() {
         initial={{ opacity: 0, scale: 0.92, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         transition={{ type: 'spring', stiffness: 290, damping: 24 }}
-        className="bg-white dark:bg-[#0C1829] rounded-3xl shadow-2xl dark:shadow-black/60 max-w-md w-full p-8 border border-slate-100 dark:border-white/8"
+        className="bg-white dark:bg-[#332247] rounded-3xl shadow-2xl dark:shadow-black/60 max-w-md w-full p-8 border border-slate-100 dark:border-white/8"
         role="dialog"
         aria-modal="true"
         aria-labelledby="tel-modal-title"

@@ -238,10 +238,10 @@ export default function Configurador() {
     }
   };
 
-  if (loadingCat) return <main className="min-h-screen pt-24 flex items-center justify-center"><div className="animate-spin w-10 h-10 border-4 border-[#0D2137] border-t-transparent rounded-full" /></main>;
+  if (loadingCat) return <main className="min-h-screen pt-24 flex items-center justify-center bg-[#EEE3CF] dark:bg-[#221634]"><div className="spinner" /></main>;
 
   return (
-    <main className="min-h-screen pt-28 pb-16 bg-[#FDF8F0] relative">
+    <main className="min-h-screen pt-28 pb-16 bg-[#EEE3CF] dark:bg-[#221634] relative transition-colors duration-300">
 
       {/* ── ANIMACIÓN DE TRANSICIÓN DE EVENTO ── */}
       <AnimatePresence>
@@ -332,12 +332,12 @@ export default function Configurador() {
 
       {/* ── MODAL ALERTA MÁGICA ── */}
       {alertaMagica && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-[#0D2137]/60 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl text-center animate-in zoom-in-95">
-            <div className="w-16 h-16 bg-[#B7950B]/10 text-[#B7950B] rounded-full flex items-center justify-center text-3xl mx-auto mb-4">✨</div>
-            <h2 className="text-2xl font-bold text-[#0D2137] mb-2 font-display">{alertaMagica.titulo}</h2>
-            <p className="text-slate-600 mb-6 leading-relaxed text-sm">{alertaMagica.mensaje}</p>
-            <button onClick={() => setAlertaMagica(null)} className="w-full py-3.5 bg-[#0D2137] text-white font-bold rounded-xl hover:bg-[#1A6BAC] shadow-md">Aceptar</button>
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-[#221634]/70 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-white dark:bg-[#332247] border border-transparent dark:border-white/8 rounded-3xl p-8 max-w-md w-full shadow-2xl text-center animate-in zoom-in-95">
+            <div className="w-16 h-16 bg-[#B7950B]/10 dark:bg-[#C9A227]/15 text-[#B7950B] dark:text-[#C9A227] rounded-full flex items-center justify-center text-3xl mx-auto mb-4">✨</div>
+            <h2 className="text-2xl font-bold text-[#0D2137] dark:text-white mb-2 font-display">{alertaMagica.titulo}</h2>
+            <p className="text-slate-600 dark:text-slate-300 mb-6 leading-relaxed text-sm">{alertaMagica.mensaje}</p>
+            <button onClick={() => setAlertaMagica(null)} className="w-full btn-primary">Aceptar</button>
           </div>
         </div>
       )}
@@ -345,14 +345,14 @@ export default function Configurador() {
       <div className="max-w-4xl mx-auto px-4 sm:px-6">
 
         <div className="text-center pt-8 mb-8">
-          <h1 className="font-display text-4xl font-bold text-[#0D2137]">Configura tu Evento</h1>
-          <p className="mt-2 text-slate-500 text-sm">Personaliza cada detalle. <span className="text-[#B7950B] font-medium">✨ Consulta al Asistente IA.</span></p>
+          <h1 className="font-display text-4xl font-bold text-[#0D2137] dark:text-white">Configura tu Evento</h1>
+          <p className="mt-2 text-slate-500 dark:text-slate-400 text-sm">Personaliza cada detalle. <span className="text-[#B7950B] dark:text-[#C9A227] font-medium">✨ Consulta al Asistente IA.</span></p>
         </div>
 
         {/* ── BARRA DE PROGRESO ── */}
         <nav aria-label="Progreso" className="mb-8">
-          <div className="relative h-1.5 bg-slate-200 rounded-full mb-5">
-            <div className="absolute h-full bg-[#0D2137] rounded-full transition-all duration-500" style={{ width: `${((store.paso_actual - 1) / 7) * 100}%` }} />
+          <div className="relative h-1.5 bg-slate-200 dark:bg-white/10 rounded-full mb-5">
+            <div className="absolute h-full bg-gradient-to-r from-[#0D2137] to-[#1A6BAC] dark:from-[#6B3F7A] dark:to-[#A971D6] rounded-full transition-all duration-500" style={{ width: `${((store.paso_actual - 1) / 7) * 100}%` }} />
           </div>
           <ol className="hidden sm:flex justify-between">
             {PASOS.map((p) => {
@@ -365,27 +365,37 @@ export default function Configurador() {
                     onClick={() => clickable ? saltarAPaso(p.num) : null}
                     disabled={!clickable}
                     className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold border-2 transition-all ${
-                      actual ? 'bg-white border-[#0D2137] text-[#0D2137] scale-110 shadow-sm'
-                      : completado ? 'bg-[#0D2137] border-[#0D2137] text-white cursor-pointer hover:shadow-lg'
-                      : 'bg-white border-slate-300 text-slate-400 cursor-not-allowed'
+                      actual ? 'bg-white dark:bg-[#332247] border-[#0D2137] dark:border-[#A971D6] text-[#0D2137] dark:text-[#C9A227] scale-110 shadow-sm'
+                      : completado ? 'bg-[#0D2137] dark:bg-gradient-to-br dark:from-[#6B3F7A] dark:to-[#A971D6] border-[#0D2137] dark:border-transparent text-white cursor-pointer hover:shadow-lg'
+                      : clickable ? 'bg-[#C9A227]/10 dark:bg-[#C9A227]/15 border-[#C9A227] text-[#9A7D0A] dark:text-[#C9A227] cursor-pointer hover:shadow-[0_0_0_4px_rgba(201,162,39,0.18)] hover:scale-105'
+                      : 'bg-white dark:bg-white/5 border-slate-300 dark:border-white/12 text-slate-400 dark:text-slate-500 cursor-not-allowed'
                     }`}
                   >
                     {completado ? '✓' : p.num}
                   </button>
-                  <span className={`text-[9px] font-medium text-center mt-1 ${actual ? 'text-[#0D2137] font-bold' : 'text-slate-400'}`}>{p.label}</span>
+                  <span className={`text-[9px] font-medium text-center mt-1 ${actual ? 'text-[#0D2137] dark:text-[#C9A227] font-bold' : 'text-slate-400 dark:text-slate-500'}`}>{p.label}</span>
                 </li>
               );
             })}
           </ol>
         </nav>
 
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 sm:p-8 min-h-[340px]">
-          {errorMsg && <div role="alert" className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm">⚠ {errorMsg}</div>}
+        <div className="bg-white dark:bg-[#332247] rounded-2xl shadow-sm border border-slate-100 dark:border-white/8 p-6 sm:p-8 min-h-[340px] overflow-hidden">
+          {errorMsg && <div role="alert" className="mb-4 p-3 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 rounded-xl text-red-700 dark:text-red-400 text-sm">⚠ {errorMsg}</div>}
+
+          <AnimatePresence mode="wait">
+          <motion.div
+            key={store.paso_actual}
+            initial={{ opacity: 0, x: 28 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -28 }}
+            transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+          >
 
           {/* ── PASO 1: TIPO DE EVENTO ── */}
           {store.paso_actual === 1 && (
             <section className="animate-in fade-in slide-in-from-bottom-4 duration-300">
-              <h2 className="font-display text-2xl text-[#0D2137] mb-6">¿Qué tipo de evento vas a celebrar?</h2>
+              <h2 className="font-display text-2xl text-[#0D2137] dark:text-white mb-6">¿Qué tipo de evento vas a celebrar?</h2>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 {(catalogos?.tipos_evento ?? []).map((tipo) => (
                   <motion.button
@@ -395,14 +405,14 @@ export default function Configurador() {
                     onClick={() => store.setTipoEvento(tipo)}
                     className={`rounded-xl border-2 p-5 text-center transition-all flex flex-col items-center justify-center gap-2 ${
                       store.tipo_evento_id === tipo.tipo_id
-                        ? 'border-[#0D2137] bg-[#0D2137]/5 shadow-md'
-                        : 'border-slate-200 hover:border-[#0D2137]/40 hover:shadow-sm'
+                        ? 'border-[#0D2137] dark:border-[#A971D6] bg-[#0D2137]/5 dark:bg-[#A971D6]/12 shadow-md'
+                        : 'bg-slate-50 dark:bg-white/[0.05] border-slate-200 dark:border-white/10 hover:border-[#C9A227] dark:hover:border-[#C9A227] hover:shadow-[0_0_0_3px_rgba(201,162,39,0.16)]'
                     }`}
                   >
-                    <span className={`${store.tipo_evento_id === tipo.tipo_id ? 'text-[#0D2137]' : 'text-slate-500'} transition-colors`}>
+                    <span className={`${store.tipo_evento_id === tipo.tipo_id ? 'text-[#0D2137] dark:text-[#C9A227]' : 'text-slate-600 dark:text-slate-200'} transition-colors`}>
                       <LucideIcon name={tipo.tipo_icono} size={36} />
                     </span>
-                    <span className="text-xs font-semibold text-slate-700">{tipo.tipo_nombre}</span>
+                    <span className="text-xs font-semibold text-slate-700 dark:text-slate-100">{tipo.tipo_nombre}</span>
                   </motion.button>
                 ))}
               </div>
@@ -412,23 +422,15 @@ export default function Configurador() {
           {/* ── PASO 2: PAQUETE ── */}
           {store.paso_actual === 2 && (
             <section className="animate-in fade-in slide-in-from-bottom-4 duration-300">
-              <h2 className="font-display text-2xl text-[#0D2137] mb-6">Selecciona o cambia tu paquete</h2>
+              <h2 className="font-display text-2xl text-[#0D2137] dark:text-white mb-6">Selecciona o cambia tu paquete</h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
                 {(catalogos?.paquetes ?? []).map((paq) => (
-                  <motion.button
+                  <PaqueteConHover
                     key={paq.paquete_id}
-                    whileHover={{ scale: 1.02, y: -3 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={() => store.setPaquete(paq)}
-                    className={`relative rounded-xl border-2 p-4 text-left transition-all overflow-hidden ${store.paquete_id === paq.paquete_id ? 'border-[#0D2137] bg-[#0D2137]/5 shadow-md' : 'border-slate-200 hover:border-slate-300 hover:shadow-sm'}`}
-                  >
-                    <div className="absolute top-0 left-0 bottom-0 w-2 rounded-l-lg" style={{ backgroundColor: paq.color_principal || '#B7950B' }} />
-                    <div className="pl-3">
-                      <p className="font-bold text-[#0D2137] text-sm">{paq.paquete_nombre}</p>
-                      <p className="text-[#B7950B] font-bold text-xl mt-1">${parseFloat(paq.precio_persona).toFixed(2)}</p>
-                      <p className="text-slate-400 text-[10px] uppercase mt-0.5">Desde {paq.minimo_invitados} pax</p>
-                    </div>
-                  </motion.button>
+                    paq={paq}
+                    seleccionado={store.paquete_id === paq.paquete_id}
+                    onSelect={() => store.setPaquete(paq)}
+                  />
                 ))}
               </div>
             </section>
@@ -437,14 +439,14 @@ export default function Configurador() {
           {/* ── PASO 3: INVITADOS CON SLIDER ── */}
           {store.paso_actual === 3 && (
             <section className="animate-in fade-in slide-in-from-bottom-4 duration-300">
-              <h2 className="font-display text-2xl text-[#0D2137] mb-8">¿Cuántos invitados asistirán?</h2>
+              <h2 className="font-display text-2xl text-[#0D2137] dark:text-white mb-8">¿Cuántos invitados asistirán?</h2>
               <SliderInvitados value={store.num_invitados} onChange={(v) => store.setNumInvitados(v)} />
               <div className="mt-6 flex justify-center gap-8 text-sm font-bold text-slate-600">
-                <div className="flex items-center gap-2 bg-slate-100 px-4 py-2 rounded-xl">
+                <div className="flex items-center gap-2 bg-slate-100 dark:bg-white/8 px-4 py-2 rounded-xl">
                   <span className="text-lg">🪑</span>
                   <span>{store.num_mesas} mesas</span>
                 </div>
-                <div className="flex items-center gap-2 bg-slate-100 px-4 py-2 rounded-xl">
+                <div className="flex items-center gap-2 bg-slate-100 dark:bg-white/8 px-4 py-2 rounded-xl">
                   <span className="text-lg">🤵</span>
                   <span>{store.num_meseros} meseros</span>
                 </div>
@@ -456,7 +458,7 @@ export default function Configurador() {
           {/* ── PASO 4: CALENDARIO PERSONALIZADO ── */}
           {store.paso_actual === 4 && (
             <section className="animate-in fade-in slide-in-from-bottom-4 duration-300">
-              <h2 className="font-display text-2xl text-[#0D2137] mb-6">¿Qué día será tu evento?</h2>
+              <h2 className="font-display text-2xl text-[#0D2137] dark:text-white mb-6">¿Qué día será tu evento?</h2>
               <CalendarioCustom
                 fechaSeleccionada={store.fecha_evento}
                 fechasOcupadas={fechasOcupadas}
@@ -470,7 +472,7 @@ export default function Configurador() {
           {/* ── PASO 5: COLORES ── */}
           {store.paso_actual === 5 && (
             <section className="animate-in fade-in slide-in-from-bottom-4 duration-300">
-              <h2 className="font-display text-2xl text-[#0D2137] mb-6">Elige tu paleta de colores</h2>
+              <h2 className="font-display text-2xl text-[#0D2137] dark:text-white mb-6">Elige tu paleta de colores</h2>
               <div className="flex flex-col lg:flex-row gap-8 items-start">
                 <div className="flex-1 space-y-6">
                   <ColorSelector label="Color principal" valor={store.color_primario} onChange={(hex) => store.setColores(hex, store.color_secundario)} />
@@ -521,11 +523,11 @@ export default function Configurador() {
           {/* ── PASO 6: DECORACIÓN CON HOVER IMAGEN ── */}
           {store.paso_actual === 6 && (
             <section className="animate-in fade-in slide-in-from-bottom-4 duration-300">
-              <h2 className="font-display text-2xl text-[#0D2137] mb-6">Estilo de decoración</h2>
+              <h2 className="font-display text-2xl text-[#0D2137] dark:text-white mb-6">Estilo de decoración</h2>
               
               <button
                 onClick={() => store.setEstiloDecoracion(null)}
-                className={`mb-4 w-full rounded-xl border-2 p-3 text-center text-sm font-bold transition-all ${store.estilo_deco_id === null ? 'border-[#0D2137] bg-[#0D2137]/5 text-[#0D2137]' : 'border-slate-200 text-slate-500 hover:border-slate-300'}`}
+                className={`mb-4 w-full rounded-xl border-2 p-3 text-center text-sm font-bold transition-all ${store.estilo_deco_id === null ? 'border-[#0D2137] dark:border-[#A971D6] bg-[#0D2137]/5 dark:bg-[#A971D6]/12 text-[#0D2137] dark:text-[#C9A227]' : 'bg-slate-50 dark:bg-white/[0.05] border-slate-200 dark:border-white/10 text-slate-500 dark:text-slate-300 hover:border-[#C9A227] dark:hover:border-[#C9A227] hover:shadow-[0_0_0_3px_rgba(201,162,39,0.16)]'}`}
               >
                 ✖ Decoración estándar (Incluida en el paquete)
               </button>
@@ -542,11 +544,11 @@ export default function Configurador() {
                 ))}
               </div>
 
-              <h3 className="font-display text-xl text-[#0D2137] mb-4 mt-8">Centro de mesa</h3>
+              <h3 className="font-display text-xl text-[#0D2137] dark:text-white mb-4 mt-8">Centro de mesa</h3>
               
               <button
                 onClick={() => store.setCentroMesa(null)}
-                className={`mb-4 w-full rounded-xl border-2 p-3 text-center text-sm font-bold transition-all ${store.centro_mesa_id === null ? 'border-[#0D2137] bg-[#0D2137]/5 text-[#0D2137]' : 'border-slate-200 text-slate-500 hover:border-slate-300'}`}
+                className={`mb-4 w-full rounded-xl border-2 p-3 text-center text-sm font-bold transition-all ${store.centro_mesa_id === null ? 'border-[#0D2137] dark:border-[#A971D6] bg-[#0D2137]/5 dark:bg-[#A971D6]/12 text-[#0D2137] dark:text-[#C9A227]' : 'bg-slate-50 dark:bg-white/[0.05] border-slate-200 dark:border-white/10 text-slate-500 dark:text-slate-300 hover:border-[#C9A227] dark:hover:border-[#C9A227] hover:shadow-[0_0_0_3px_rgba(201,162,39,0.16)]'}`}
               >
                 ✖ Centro estándar (Sin costo extra)
               </button>
@@ -569,7 +571,7 @@ export default function Configurador() {
           {/* ── PASO 7: EXTRAS CON HOVER ── */}
           {store.paso_actual === 7 && (
             <section className="animate-in fade-in slide-in-from-bottom-4 duration-300">
-              <h2 className="font-display text-2xl text-[#0D2137] mb-6">Servicios adicionales</h2>
+              <h2 className="font-display text-2xl text-[#0D2137] dark:text-white mb-6">Servicios adicionales</h2>
               {agruparPorCategoria(catalogos?.servicios_adicionales ?? []).map(([cat, items]) => (
                 <div key={cat} className="mb-6">
                   <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3 pl-1">{cat}</h3>
@@ -595,7 +597,7 @@ export default function Configurador() {
           {/* ── PASO 8: RESUMEN TIPO CHECKOUT ── */}
           {store.paso_actual === 8 && (
             <section className="animate-in fade-in slide-in-from-bottom-4 duration-300">
-              <h2 className="font-display text-2xl text-[#0D2137] mb-6 text-center">🎉 Resumen de tu evento</h2>
+              <h2 className="font-display text-2xl text-[#0D2137] dark:text-white mb-6 text-center">🎉 Resumen de tu evento</h2>
               <ResumenCheckout store={store} />
               <button
                 onClick={async () => {
@@ -610,19 +612,24 @@ export default function Configurador() {
               </button>
             </section>
           )}
+
+          </motion.div>
+          </AnimatePresence>
         </div>
 
         {/* ── BOTONES ANTERIOR / SIGUIENTE ── */}
         <div className="flex items-center justify-between mt-6">
-          <button onClick={handlePrev} disabled={store.paso_actual === 1} className="px-6 py-3 rounded-xl border-2 border-slate-200 font-bold text-sm text-slate-600 disabled:opacity-30 hover:bg-white transition-colors">← Anterior</button>
-          <span className="text-xs text-slate-400 font-medium hidden sm:block">{guardando ? '⏳ Guardando…' : `Paso ${store.paso_actual} de 8`}</span>
+          <button onClick={handlePrev} disabled={store.paso_actual === 1} className="px-6 py-3 rounded-xl border-2 border-slate-200 dark:border-white/12 font-bold text-sm text-slate-600 dark:text-slate-300 disabled:opacity-30 hover:bg-white dark:hover:bg-white/8 transition-colors">← Anterior</button>
+          <span className="text-xs text-slate-400 dark:text-slate-500 font-medium hidden sm:block">{guardando ? '⏳ Guardando…' : `Paso ${store.paso_actual} de 8`}</span>
           {store.paso_actual < 8 && (
-            <button onClick={handleNext} disabled={!pasoValido() || guardando} className="px-6 py-3 rounded-xl bg-[#0D2137] text-white font-bold text-sm disabled:opacity-40 hover:bg-[#1A6BAC] transition-all shadow-md">
+            <button onClick={handleNext} disabled={!pasoValido() || guardando} className="px-6 py-3 rounded-xl bg-[#0D2137] dark:bg-gradient-to-r dark:from-[#6B3F7A] dark:to-[#A971D6] text-white font-bold text-sm disabled:opacity-40 hover:bg-[#1A6BAC] dark:hover:brightness-110 transition-all shadow-md">
               {guardando ? 'Guardando…' : 'Siguiente →'}
             </button>
           )}
         </div>
       </div>
+
+      {/* Asistente IA — sólo en Configurar Evento */}
       <AsistenteIA paqueteActual={store.paqueteSeleccionado} numInvitados={store.num_invitados} />
     </main>
   );
@@ -655,7 +662,7 @@ function SliderInvitados({ value, onChange }) {
 
       {/* Slider */}
       <div className="relative">
-        <div className="w-full h-3 bg-slate-200 rounded-full overflow-hidden">
+        <div className="w-full h-3 bg-slate-200 dark:bg-white/10 rounded-full overflow-hidden">
           <div className="h-full bg-gradient-to-r from-[#0D2137] to-[#1A6BAC] rounded-full transition-all" style={{ width: `${pct}%` }} />
         </div>
         <input
@@ -689,7 +696,7 @@ function SliderInvitados({ value, onChange }) {
       <div className="mt-5 flex items-center justify-center gap-3">
         <button
           onClick={() => onChange(Math.max(MIN, value - 1))}
-          className="w-10 h-10 rounded-full border-2 border-slate-200 font-bold text-slate-600 hover:bg-slate-100 transition-colors"
+          className="w-10 h-10 rounded-full border-2 border-slate-200 dark:border-white/12 font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/8 transition-colors"
         >−</button>
         <input
           type="number"
@@ -697,7 +704,7 @@ function SliderInvitados({ value, onChange }) {
           max={MAX}
           value={value}
           onChange={(e) => onChange(Math.max(MIN, Math.min(MAX, parseInt(e.target.value) || MIN)))}
-          className="w-24 text-center text-2xl font-bold text-[#0D2137] border-2 border-slate-200 rounded-xl py-2 focus:border-[#B7950B] focus:outline-none"
+          className="w-24 text-center text-2xl font-bold text-[#0D2137] dark:text-white bg-transparent border-2 border-slate-200 dark:border-white/12 rounded-xl py-2 focus:border-[#B7950B] focus:outline-none"
           aria-label="Número exacto de invitados"
         />
         <button
@@ -739,11 +746,11 @@ function CalendarioCustom({ fechaSeleccionada, fechasOcupadas, iconoEvento, onSe
     <div className="max-w-sm mx-auto">
       {/* Cabecera mes */}
       <div className="flex items-center justify-between mb-4">
-        <button onClick={anteriorMes} className="p-2 rounded-xl hover:bg-slate-100 transition-colors" aria-label="Mes anterior">
+        <button onClick={anteriorMes} className="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-white/8 transition-colors text-slate-600 dark:text-slate-300" aria-label="Mes anterior">
           <ChevronLeft size={20} className="text-slate-600" />
         </button>
-        <h3 className="font-display font-bold text-[#0D2137] text-lg">{MESES[month]} {year}</h3>
-        <button onClick={siguienteMes} className="p-2 rounded-xl hover:bg-slate-100 transition-colors" aria-label="Mes siguiente">
+        <h3 className="font-display font-bold text-[#0D2137] dark:text-white text-lg">{MESES[month]} {year}</h3>
+        <button onClick={siguienteMes} className="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-white/8 transition-colors text-slate-600 dark:text-slate-300" aria-label="Mes siguiente">
           <ChevronRight size={20} className="text-slate-600" />
         </button>
       </div>
@@ -786,7 +793,7 @@ function CalendarioCustom({ fechaSeleccionada, fechasOcupadas, iconoEvento, onSe
                   ? 'text-slate-300 cursor-not-allowed'
                   : esHoy
                   ? 'bg-[#B7950B]/10 text-[#B7950B] font-bold ring-2 ring-[#B7950B]/30'
-                  : 'hover:bg-[#0D2137]/5 text-slate-700'
+                  : 'hover:bg-[#0D2137]/5 dark:hover:bg-white/8 text-slate-700 dark:text-slate-300'
               }`}
             >
               {esOcupado ? (
@@ -815,9 +822,9 @@ function CalendarioCustom({ fechaSeleccionada, fechasOcupadas, iconoEvento, onSe
         <motion.div
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mt-4 p-3 bg-[#0D2137]/5 border border-[#0D2137]/10 rounded-xl text-center"
+          className="mt-4 p-3 bg-[#0D2137]/5 dark:bg-[#A971D6]/10 border border-[#0D2137]/10 dark:border-[#A971D6]/20 rounded-xl text-center"
         >
-          <div className="flex items-center justify-center gap-2 text-[#0D2137] font-bold text-sm">
+          <div className="flex items-center justify-center gap-2 text-[#0D2137] dark:text-[#C9A227] font-bold text-sm">
             <Calendar size={16} />
             Fecha seleccionada: {new Date(fechaSeleccionada + 'T12:00:00').toLocaleDateString('es-EC', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
           </div>
@@ -833,7 +840,7 @@ function CalendarioCustom({ fechaSeleccionada, fechasOcupadas, iconoEvento, onSe
 function ColorSelector({ label, valor, onChange }) {
   return (
     <div>
-      <label className="block text-sm font-bold text-slate-700 mb-3 flex items-center gap-2">
+      <label className="block text-sm font-bold text-slate-700 dark:text-slate-200 mb-3 flex items-center gap-2">
         <Palette size={16} className="text-slate-400" />
         {label}
         {valor && <span className="ml-2 text-xs font-medium text-slate-400">— {COLORES_PALETA.find(c => c.hex === valor)?.nombre || valor}</span>}
@@ -948,11 +955,11 @@ function PreviewImagenLateral({ visible, anchorRef, imagenUrl, titulo, descripci
         exit={{ opacity: 0, x: pos.lado === 'right' ? -16 : 16 }}
         transition={{ type: 'spring', stiffness: 320, damping: 26 }}
         style={{ top: pos.top, left: pos.left, width: PREVIEW_ANCHO }}
-        className="fixed z-[100] rounded-2xl overflow-hidden shadow-2xl border border-slate-200 bg-white pointer-events-none"
+        className="fixed z-[100] rounded-2xl overflow-hidden shadow-2xl border border-slate-200 dark:border-white/10 bg-white dark:bg-[#3E2B57] pointer-events-none"
       >
         {imagenUrl ? (
           <>
-            <div className="bg-slate-100 flex items-center justify-center" style={{ minHeight: PREVIEW_IMG_ALTO }}>
+            <div className="bg-slate-100 dark:bg-[#2A1C40] flex items-center justify-center" style={{ minHeight: PREVIEW_IMG_ALTO }}>
               <img
                 src={imagenUrl}
                 alt={titulo}
@@ -960,9 +967,9 @@ function PreviewImagenLateral({ visible, anchorRef, imagenUrl, titulo, descripci
                 style={{ maxHeight: PREVIEW_IMG_ALTO }}
               />
             </div>
-            <div className="px-3 py-2.5 border-t border-slate-100 bg-white">
-              <p className="font-bold text-sm text-[#0D2137] leading-snug">{titulo}</p>
-              {descripcion && <p className="text-xs text-slate-500 mt-0.5 line-clamp-2">{descripcion}</p>}
+            <div className="px-3 py-2.5 border-t border-slate-100 dark:border-white/8 bg-white dark:bg-[#3E2B57]">
+              <p className="font-bold text-sm text-[#0D2137] dark:text-slate-100 leading-snug">{titulo}</p>
+              {descripcion && <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-2">{descripcion}</p>}
               {pie}
             </div>
           </>
@@ -1000,14 +1007,14 @@ function TarjetaConHover({ item, seleccionado, onSelect, precio }) {
         onMouseEnter={iniciar}
         onMouseLeave={cancelar}
         onClick={onSelect}
-        className={`w-full rounded-xl border-2 p-4 text-left flex gap-3 transition-all ${seleccionado ? 'border-[#0D2137] bg-[#0D2137]/5 shadow-sm' : 'border-slate-200 hover:border-slate-300 hover:shadow-sm'}`}
+        className={`w-full rounded-xl border-2 p-4 text-left flex gap-3 transition-all ${seleccionado ? 'border-[#0D2137] dark:border-[#A971D6] bg-[#0D2137]/5 dark:bg-[#A971D6]/12 shadow-sm' : 'bg-slate-50 dark:bg-white/[0.05] border-slate-200 dark:border-white/10 hover:border-[#C9A227] dark:hover:border-[#C9A227] hover:shadow-[0_0_0_3px_rgba(201,162,39,0.16)] hover:shadow-sm'}`}
       >
-        <div className="shrink-0 text-[#0D2137] mt-1">
+        <div className="shrink-0 text-[#0D2137] dark:text-[#C9A227] mt-1">
           <LucideIcon name={item.icono} size={22} />
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex justify-between items-start gap-2">
-            <p className="font-bold text-[#0D2137] text-sm truncate">{item.nombre}</p>
+            <p className="font-bold text-[#0D2137] dark:text-slate-100 text-sm truncate">{item.nombre}</p>
             {precio && <span className="text-xs font-bold bg-amber-100 text-amber-800 px-2 py-0.5 rounded-md shrink-0">{precio}</span>}
           </div>
           <p className="text-slate-500 text-xs mt-1 line-clamp-2">{item.descripcion}</p>
@@ -1028,6 +1035,45 @@ function TarjetaConHover({ item, seleccionado, onSelect, precio }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// COMPONENTE: PaqueteConHover (paso 2 — tooltip flotante con imagen del paquete)
+// ═══════════════════════════════════════════════════════════════════════════════
+function PaqueteConHover({ paq, seleccionado, onSelect }) {
+  const cardRef = useRef(null);
+  const { visible, iniciar, cancelar } = useHoverPreview();
+  const imagenUrl = paq.imagen_url ? `${BACKEND_URL}${paq.imagen_url}` : null;
+
+  return (
+    <div ref={cardRef} className="relative">
+      <motion.button
+        whileHover={{ scale: 1.02, y: -3 }}
+        whileTap={{ scale: 0.98 }}
+        onMouseEnter={iniciar}
+        onMouseLeave={cancelar}
+        onClick={onSelect}
+        className={`relative w-full rounded-xl border-2 p-4 text-left transition-all overflow-hidden ${seleccionado ? 'border-[#0D2137] dark:border-[#A971D6] bg-[#0D2137]/5 dark:bg-[#A971D6]/12 shadow-md' : 'bg-slate-50 dark:bg-white/[0.05] border-slate-200 dark:border-white/10 hover:border-[#C9A227] dark:hover:border-[#C9A227] hover:shadow-[0_0_0_3px_rgba(201,162,39,0.16)] hover:shadow-sm'}`}
+      >
+        <div className="absolute top-0 left-0 bottom-0 w-2 rounded-l-lg" style={{ backgroundColor: paq.color_principal || '#B7950B' }} />
+        <div className="pl-3">
+          <p className="font-bold text-[#0D2137] dark:text-slate-100 text-sm">{paq.paquete_nombre}</p>
+          <p className="text-[#B7950B] dark:text-[#C9A227] font-bold text-xl mt-1">${parseFloat(paq.precio_persona).toFixed(2)}</p>
+          <p className="text-slate-400 dark:text-slate-500 text-[10px] uppercase mt-0.5">Desde {paq.minimo_invitados} pax</p>
+        </div>
+      </motion.button>
+
+      <PreviewImagenLateral
+        visible={visible}
+        anchorRef={cardRef}
+        imagenUrl={imagenUrl}
+        titulo={paq.paquete_nombre}
+        descripcion={paq.descripcion}
+        pie={<p className="mt-1 text-[#B7950B] font-bold text-xs">${parseFloat(paq.precio_persona).toFixed(2)} / persona</p>}
+        fallbackIcon="Package"
+      />
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // COMPONENTE: TarjetaExtraConHover
 // ═══════════════════════════════════════════════════════════════════════════════
 function TarjetaExtraConHover({ item, seleccionado, onToggle }) {
@@ -1041,18 +1087,18 @@ function TarjetaExtraConHover({ item, seleccionado, onToggle }) {
       <div
         onMouseEnter={iniciar}
         onMouseLeave={cancelar}
-        className={`flex items-center justify-between rounded-xl border-2 p-3.5 transition-colors ${seleccionado ? 'border-[#0D2137] bg-[#0D2137]/5' : 'border-slate-200 hover:border-slate-300'}`}
+        className={`flex items-center justify-between rounded-xl border-2 p-3.5 transition-colors ${seleccionado ? 'border-[#0D2137] dark:border-[#A971D6] bg-[#0D2137]/5 dark:bg-[#A971D6]/12' : 'bg-slate-50 dark:bg-white/[0.05] border-slate-200 dark:border-white/10 hover:border-[#C9A227] dark:hover:border-[#C9A227] hover:shadow-[0_0_0_3px_rgba(201,162,39,0.16)]'}`}
       >
         <div className="flex items-center gap-3 flex-1 mr-3">
-          <div className="text-[#0D2137]/70"><LucideIcon name={item.icono} size={20} /></div>
+          <div className="text-[#0D2137]/70 dark:text-[#C9A227]/80"><LucideIcon name={item.icono} size={20} /></div>
           <div>
-            <p className="font-medium text-[#0D2137] text-sm">{item.nombre}</p>
+            <p className="font-medium text-[#0D2137] dark:text-slate-100 text-sm">{item.nombre}</p>
             <p className="text-[#B7950B] text-xs font-bold mt-0.5">{precioTxt}</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
-          {seleccionado && <button onClick={() => onToggle(seleccionado.cantidad - 1)} className="w-8 h-8 rounded-full bg-white border border-slate-300 font-bold hover:bg-slate-100 shadow-sm text-slate-600">−</button>}
-          {seleccionado && <span className="w-6 text-center font-bold text-sm text-[#0D2137]">{seleccionado.cantidad}</span>}
+          {seleccionado && <button onClick={() => onToggle(seleccionado.cantidad - 1)} className="w-8 h-8 rounded-full bg-white dark:bg-white/10 border border-slate-300 dark:border-white/15 font-bold hover:bg-slate-100 dark:hover:bg-white/15 shadow-sm text-slate-600 dark:text-slate-200">−</button>}
+          {seleccionado && <span className="w-6 text-center font-bold text-sm text-[#0D2137] dark:text-slate-100">{seleccionado.cantidad}</span>}
           <button onClick={() => onToggle((seleccionado?.cantidad ?? 0) + 1)} className="w-8 h-8 rounded-full bg-[#0D2137] text-white font-bold hover:bg-[#1A6BAC] shadow-sm">+</button>
         </div>
       </div>
@@ -1097,7 +1143,7 @@ function ResumenCheckout({ store }) {
       </div>
 
       {/* Fila 2: Colores */}
-      <div className="bg-white border-2 border-slate-100 rounded-2xl p-5 shadow-sm">
+      <div className="bg-white dark:bg-[#3E2B57] border-2 border-slate-100 dark:border-white/8 rounded-2xl p-5 shadow-sm">
         <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Paleta de colores</p>
         <div className="flex items-center gap-4">
           {[{hex: store.color_primario, label: 'Principal'}, {hex: store.color_secundario, label: 'Secundario'}].map(({hex, label}) => {
@@ -1107,7 +1153,7 @@ function ResumenCheckout({ store }) {
                 <div className="w-10 h-10 rounded-xl shadow-md border-2 border-white" style={{ backgroundColor: hex }} />
                 <div>
                   <p className="text-xs text-slate-500">{label}</p>
-                  <p className="text-sm font-bold text-[#0D2137]">{nombre}</p>
+                  <p className="text-sm font-bold text-[#0D2137] dark:text-slate-100">{nombre}</p>
                 </div>
               </div>
             );
@@ -1119,28 +1165,28 @@ function ResumenCheckout({ store }) {
       {(store.estiloSeleccionado || store.centroMesaSeleccionado) && (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {store.estiloSeleccionado && (
-            <div className="bg-white border-2 border-slate-100 rounded-2xl p-4 shadow-sm">
+            <div className="bg-white dark:bg-[#3E2B57] border-2 border-slate-100 dark:border-white/8 rounded-2xl p-4 shadow-sm">
               <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Estilo de decoración</p>
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-[#0D2137]/10 rounded-xl flex items-center justify-center text-[#0D2137]">
+                <div className="w-10 h-10 bg-[#0D2137]/10 dark:bg-[#A971D6]/15 rounded-xl flex items-center justify-center text-[#0D2137] dark:text-[#C9A227]">
                   <LucideIcon name={store.estiloSeleccionado.icono} size={22} />
                 </div>
                 <div>
-                  <p className="font-bold text-[#0D2137] text-sm">{store.estiloSeleccionado.nombre}</p>
+                  <p className="font-bold text-[#0D2137] dark:text-slate-100 text-sm">{store.estiloSeleccionado.nombre}</p>
                   <p className="text-xs text-slate-500">{store.estiloSeleccionado.descripcion}</p>
                 </div>
               </div>
             </div>
           )}
           {store.centroMesaSeleccionado && (
-            <div className="bg-white border-2 border-slate-100 rounded-2xl p-4 shadow-sm">
+            <div className="bg-white dark:bg-[#3E2B57] border-2 border-slate-100 dark:border-white/8 rounded-2xl p-4 shadow-sm">
               <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Centro de mesa</p>
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center text-amber-700">
                   <LucideIcon name={store.centroMesaSeleccionado.icono} size={22} />
                 </div>
                 <div>
-                  <p className="font-bold text-[#0D2137] text-sm">{store.centroMesaSeleccionado.nombre}</p>
+                  <p className="font-bold text-[#0D2137] dark:text-slate-100 text-sm">{store.centroMesaSeleccionado.nombre}</p>
                   <p className="text-xs text-[#B7950B] font-bold">+${parseFloat(store.centroMesaSeleccionado.costo_por_mesa).toFixed(2)}/mesa</p>
                 </div>
               </div>
@@ -1151,17 +1197,17 @@ function ResumenCheckout({ store }) {
 
       {/* Fila 4: Extras */}
       {store.servicios.length > 0 && (
-        <div className="bg-white border-2 border-slate-100 rounded-2xl p-5 shadow-sm">
+        <div className="bg-white dark:bg-[#3E2B57] border-2 border-slate-100 dark:border-white/8 rounded-2xl p-5 shadow-sm">
           <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Servicios adicionales</p>
           <div className="space-y-2">
             {store.servicios.map((s) => (
               <div key={s.adicional_id} className="flex items-center justify-between text-sm">
                 <div className="flex items-center gap-2">
                   <div className="w-1.5 h-1.5 rounded-full bg-[#B7950B]" />
-                  <span className="text-slate-700 font-medium">{s.nombre}</span>
+                  <span className="text-slate-700 dark:text-slate-200 font-medium">{s.nombre}</span>
                   <span className="text-slate-400">×{s.cantidad}</span>
                 </div>
-                <span className="font-bold text-[#0D2137]">${(s.precio_snapshot * s.cantidad).toFixed(2)}</span>
+                <span className="font-bold text-[#0D2137] dark:text-slate-100">${(s.precio_snapshot * s.cantidad).toFixed(2)}</span>
               </div>
             ))}
           </div>
@@ -1170,8 +1216,8 @@ function ResumenCheckout({ store }) {
 
       {/* Desglose de precio */}
       {store.precioServidor && (
-        <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-2 text-sm">
-          <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Desglose</p>
+        <div className="bg-slate-50 dark:bg-[#2A1C40] border border-slate-200 dark:border-white/8 rounded-2xl p-4 space-y-2 text-sm">
+          <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Desglose</p>
           <div className="flex justify-between"><span className="text-slate-600">Subtotal paquete</span><span className="font-semibold">${store.precioServidor.subtotal_paquete?.toFixed(2) ?? '—'}</span></div>
           <div className="flex justify-between"><span className="text-slate-600">Centros de mesa</span><span className="font-semibold">${store.precioServidor.subtotal_mesas?.toFixed(2) ?? '0.00'}</span></div>
           <div className="flex justify-between"><span className="text-slate-600">Extras</span><span className="font-semibold">${store.precioServidor.subtotal_adicionales?.toFixed(2) ?? '0.00'}</span></div>
@@ -1201,14 +1247,14 @@ function ResumenCheckout({ store }) {
 
 function TarjetaResumen({ icono, titulo, valor, sub, color }) {
   return (
-    <div className="bg-white border-2 border-slate-100 rounded-2xl p-5 shadow-sm">
+    <div className="bg-white dark:bg-[#3E2B57] border-2 border-slate-100 dark:border-white/8 rounded-2xl p-5 shadow-sm">
       <div className="flex items-start gap-3">
         <div className="w-11 h-11 rounded-xl flex items-center justify-center text-2xl shrink-0" style={{ backgroundColor: `${color}15` }}>
           {icono}
         </div>
         <div className="min-w-0">
           <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">{titulo}</p>
-          <p className="font-bold text-[#0D2137] text-base mt-1 truncate">{valor}</p>
+          <p className="font-bold text-[#0D2137] dark:text-slate-100 text-base mt-1 truncate">{valor}</p>
           <p className="text-xs text-slate-500 mt-0.5">{sub}</p>
         </div>
       </div>
@@ -1219,9 +1265,9 @@ function TarjetaResumen({ icono, titulo, valor, sub, color }) {
 function PrecioEstimado({ store }) {
   if (!store.paqueteSeleccionado) return null;
   return (
-    <div className="mt-8 flex items-center justify-between p-4 bg-[#0D2137]/5 rounded-xl border border-[#0D2137]/10 animate-in fade-in">
-      <span className="text-sm text-slate-600 font-bold uppercase tracking-wider">Precio estimado</span>
-      <span className="text-2xl font-bold text-[#0D2137] font-display">${store.precio_estimado.toFixed(2)}</span>
+    <div className="mt-8 flex items-center justify-between p-4 bg-[#0D2137]/5 dark:bg-[#A971D6]/10 rounded-xl border border-[#0D2137]/10 dark:border-[#A971D6]/20 animate-in fade-in">
+      <span className="text-sm text-slate-600 dark:text-slate-300 font-bold uppercase tracking-wider">Precio estimado</span>
+      <span className="text-2xl font-bold text-[#0D2137] dark:text-white font-display">${store.precio_estimado.toFixed(2)}</span>
     </div>
   );
 }

@@ -7,7 +7,7 @@ import { fetchImagenes, fetchCategorias } from '../services/galeria.service';
 const ImageWithSkeleton = ({ src, alt, onClick, className }) => {
   const [cargado, setCargado] = useState(false);
   return (
-    <div className={`relative w-full h-full rounded-2xl overflow-hidden ${!cargado ? 'animate-pulse bg-slate-200' : ''}`}>
+    <div className={`relative w-full h-full rounded-2xl overflow-hidden ${!cargado ? 'animate-pulse bg-slate-200 dark:bg-white/5' : ''}`}>
       <img
         src={src} alt={alt}
         onLoad={() => setCargado(true)}
@@ -77,14 +77,24 @@ export default function Galeria() {
     cargarDatos();
   }, []);
 
-  // Imágenes de cada sección ordenadas según el dropdown
+  // Imágenes ordenadas dentro de cada sección + las CATEGORÍAS también se
+  // reordenan: con "Más nuevas" la categoría cuya foto más reciente fue subida
+  // por el admin (mayor id de imagen) aparece primero, y su primera foto es la
+  // recién subida. Con "Más antiguas" se invierte.
   const seccionesOrdenadas = useMemo(() => {
-    return secciones.map(sec => ({
+    const conImagenesOrdenadas = secciones.map(sec => ({
       ...sec,
       imagenes: [...sec.imagenes].sort((a, b) =>
         orden === 'desc' ? b.id - a.id : a.id - b.id
       ),
     }));
+
+    const recencia = (sec) =>
+      sec.imagenes.length ? Math.max(...sec.imagenes.map(i => i.id)) : -Infinity;
+
+    return conImagenesOrdenadas.sort((a, b) =>
+      orden === 'desc' ? recencia(b) - recencia(a) : recencia(a) - recencia(b)
+    );
   }, [secciones, orden]);
 
   // Todas las imágenes aplanadas para el lightbox (con orden aplicado)
@@ -129,8 +139,8 @@ export default function Galeria() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#F8F9FA] pt-28">
-        <div className="text-xl font-bold text-[#0D2137] animate-pulse">Cargando memorias inolvidables...</div>
+      <div className="min-h-screen flex items-center justify-center bg-[#EEE3CF] dark:bg-[#221634] pt-28 transition-colors duration-300">
+        <div className="text-xl font-bold text-[#0D2137] dark:text-white animate-pulse">Cargando memorias inolvidables...</div>
       </div>
     );
   }
@@ -138,27 +148,27 @@ export default function Galeria() {
   const ordenLabel = orden === 'desc' ? 'Más nuevas primero' : 'Más antiguas primero';
 
   return (
-    <main className="min-h-screen pt-28 pb-16 bg-[#F8F9FA]">
+    <main className="min-h-screen pt-28 pb-16 bg-[#EEE3CF] dark:bg-[#221634] transition-colors duration-300">
 
       {/* ── Encabezado ── */}
       <section className="text-center px-4 mb-10">
-        <h1 className="font-display text-4xl sm:text-5xl font-bold text-[#0D2137]">
+        <h1 className="font-display text-4xl sm:text-5xl font-bold text-[#0D2137] dark:text-white">
           Nuestra Galería
         </h1>
-        <div className="w-24 h-1 bg-[#B7950B] mx-auto mt-4 rounded-full" />
-        <p className="mt-6 text-slate-600 max-w-xl mx-auto leading-relaxed text-lg">
+        <div className="w-24 h-1 bg-gradient-to-r from-[#B7950B] to-[#C9A227] mx-auto mt-4 rounded-full" />
+        <p className="mt-6 text-slate-600 dark:text-slate-300 max-w-xl mx-auto leading-relaxed text-lg">
           Descubre la magia de cada celebración en la Quinta Inés María.
         </p>
       </section>
 
       {/* ── Botones de Filtro por categoría (sin "Todos") ── */}
-      {secciones.length > 0 && (
+      {seccionesOrdenadas.length > 0 && (
         <div className="flex flex-wrap justify-center gap-3 px-4 mb-8 max-w-5xl mx-auto">
-          {secciones.map((sec) => (
+          {seccionesOrdenadas.map((sec) => (
             <button
               key={sec.id}
               onClick={() => scrollASeccion(sec)}
-              className="px-6 py-2.5 rounded-full text-sm font-semibold transition-all duration-300 shadow-sm bg-white text-slate-600 border border-slate-200 hover:border-[#B7950B] hover:text-[#B7950B] hover:shadow-md"
+              className="px-6 py-2.5 rounded-full text-sm font-semibold transition-all duration-300 shadow-sm bg-white dark:bg-[#332247] text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-white/8 hover:border-[#B7950B] dark:hover:border-[#C9A227] hover:text-[#B7950B] dark:hover:text-[#C9A227] hover:shadow-md hover:-translate-y-0.5"
             >
               {sec.boton}
             </button>
@@ -169,9 +179,9 @@ export default function Galeria() {
       {/* ── Barra de controles: totales + dropdown de orden ── */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-8">
         <div className="flex items-center justify-between">
-          <p className="text-slate-500 text-sm font-medium">
-            <span className="font-bold text-[#0D2137]">{todasLasImagenes.length}</span> fotos en{' '}
-            <span className="font-bold text-[#0D2137]">{secciones.length}</span>{' '}
+          <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">
+            <span className="font-bold text-[#0D2137] dark:text-white">{todasLasImagenes.length}</span> fotos en{' '}
+            <span className="font-bold text-[#0D2137] dark:text-white">{secciones.length}</span>{' '}
             {secciones.length === 1 ? 'categoría' : 'categorías'}
           </p>
 
@@ -179,7 +189,7 @@ export default function Galeria() {
           <div className="relative">
             <button
               onClick={() => setDropdownOpen(v => !v)}
-              className="flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 hover:border-[#B7950B] hover:text-[#B7950B] transition-all shadow-sm"
+              className="flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-[#332247] border border-slate-200 dark:border-white/8 rounded-xl text-sm font-semibold text-slate-700 dark:text-slate-200 hover:border-[#B7950B] dark:hover:border-[#C9A227] hover:text-[#B7950B] dark:hover:text-[#C9A227] transition-all shadow-sm"
               aria-haspopup="listbox"
               aria-expanded={dropdownOpen}
             >
@@ -194,7 +204,7 @@ export default function Galeria() {
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: -6, scale: 0.97 }}
                   transition={{ duration: 0.15 }}
-                  className="absolute right-0 mt-2 w-52 bg-white border border-slate-200 rounded-2xl shadow-xl overflow-hidden z-40"
+                  className="absolute right-0 mt-2 w-52 bg-white dark:bg-[#332247] border border-slate-200 dark:border-white/8 rounded-2xl shadow-xl overflow-hidden z-40"
                   role="listbox"
                 >
                   {[
@@ -207,7 +217,9 @@ export default function Galeria() {
                       aria-selected={orden === value}
                       onClick={() => { setOrden(value); setDropdownOpen(false); }}
                       className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-medium transition-colors text-left ${
-                        orden === value ? 'bg-[#0D2137] text-white' : 'text-slate-700 hover:bg-slate-50'
+                        orden === value
+                          ? 'bg-[#0D2137] dark:bg-gradient-to-r dark:from-[#6B3F7A] dark:to-[#A971D6] text-white'
+                          : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/6'
                       }`}
                     >
                       <Icon size={15} /> {label}
@@ -223,7 +235,7 @@ export default function Galeria() {
       {/* ── Secciones por categoría ── */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-16">
         {secciones.length === 0 ? (
-          <div className="text-center text-slate-500 py-20">
+          <div className="text-center text-slate-500 dark:text-slate-400 py-20">
             <p className="text-5xl mb-4">📷</p>
             <p className="text-lg font-medium">Próximamente estaremos subiendo nuestras mejores fotos.</p>
           </div>
@@ -235,9 +247,9 @@ export default function Galeria() {
               style={{ scrollMarginTop: '110px' }}
             >
               {/* Encabezado de sección */}
-              <div className="mb-8 border-b border-[#B7950B]/20 pb-4">
-                <h2 className="text-3xl font-display font-bold text-[#0D2137]">{seccion.titulo}</h2>
-                <p className="text-slate-500 mt-2 font-medium">{seccion.descripcion}</p>
+              <div className="mb-8 border-b border-[#B7950B]/20 dark:border-[#A971D6]/20 pb-4">
+                <h2 className="text-3xl font-display font-bold text-[#0D2137] dark:text-white">{seccion.titulo}</h2>
+                <p className="text-slate-500 dark:text-slate-400 mt-2 font-medium">{seccion.descripcion}</p>
               </div>
 
               {/* Masonry de imágenes */}
@@ -249,7 +261,7 @@ export default function Galeria() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.4 }}
                     onClick={() => setLightbox(img)}
-                    className="break-inside-avoid group relative overflow-hidden rounded-2xl cursor-pointer shadow-sm hover:shadow-xl transition-all duration-300 border border-slate-100"
+                    className="break-inside-avoid group relative overflow-hidden rounded-2xl cursor-pointer shadow-sm hover:shadow-xl transition-all duration-300 border border-slate-100 dark:border-white/8"
                   >
                     <ImageWithSkeleton
                       src={img.url}

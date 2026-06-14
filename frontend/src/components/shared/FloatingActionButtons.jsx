@@ -33,10 +33,11 @@ export default function FloatingActionButtons() {
   const mensajeWA = 'Hola Quinta Inés María 👋, me gustaría obtener información sobre los eventos y paquetes disponibles.';
   const urlFinal  = whatsappUrl(mensajeWA);
 
-  const handleAbrirChat = () => { setChatAbierto(true); setNotifVisible(false); };
+  const handleAbrirChat  = () => { setChatAbierto(true); setNotifVisible(false); };
+  const handleToggleChat = () => { setChatAbierto((v) => !v); setNotifVisible(false); };
 
   return (
-    <div className={`fixed right-5 z-40 flex flex-col items-end gap-3 ${enConfigurador ? 'bottom-28' : 'bottom-5'}`}>
+    <div className={`fixed right-5 z-[60] flex flex-col items-end gap-3 ${enConfigurador ? 'bottom-28' : 'bottom-5'}`}>
 
       {/* Botón Cotizar Evento */}
       {!enConfigurador && (
@@ -47,11 +48,11 @@ export default function FloatingActionButtons() {
         >
           <Link
             to="/configurador"
-            className="group flex items-center gap-2 pl-4 pr-5 py-3.5 bg-gradient-to-r from-[#0D2137] to-[#1A3A5C] text-white rounded-full shadow-2xl shadow-[#0D2137]/35 hover:shadow-[#0D2137]/50 hover:-translate-y-1 transition-all duration-250 focus:outline-none focus:ring-2 focus:ring-[#C9A227] focus:ring-offset-2"
+            className="animate-glow-gold group flex items-center gap-2 pl-5 pr-6 py-3.5 bg-gradient-to-r from-[#C9A227] via-[#A971D6] to-[#6B3F7A] text-white rounded-full shadow-2xl hover:scale-105 hover:-translate-y-0.5 transition-transform duration-300 focus:outline-none focus:ring-2 focus:ring-[#C9A227] focus:ring-offset-2"
             aria-label="Cotizar o configurar evento"
           >
-            <Sparkles size={19} className="text-[#C9A227] group-hover:rotate-12 transition-transform" />
-            <span className="font-bold text-sm hidden sm:inline">Cotizar evento</span>
+            <Sparkles size={19} className="text-white group-hover:rotate-12 transition-transform" />
+            <span className="font-bold text-sm hidden sm:inline tracking-wide">Cotizar evento</span>
           </Link>
         </motion.div>
       )}
@@ -64,7 +65,7 @@ export default function FloatingActionButtons() {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.82, y: 24 }}
             transition={{ type: 'spring', stiffness: 320, damping: 26 }}
-            className="w-80 bg-white dark:bg-[#0C1829] rounded-3xl overflow-hidden border border-slate-100 dark:border-white/8"
+            className="w-80 bg-white dark:bg-[#332247] rounded-3xl overflow-hidden border border-slate-100 dark:border-white/8"
             style={{ boxShadow: '0 28px 64px rgba(0,0,0,0.22), 0 0 0 1px rgba(0,0,0,0.04)' }}
           >
             {/* Header verde */}
@@ -74,10 +75,10 @@ export default function FloatingActionButtons() {
                   <WhatsAppIcon size={24} className="text-white" />
                 </div>
                 <div>
-                  <p className="font-bold text-white text-sm leading-tight">Quinta Inés María</p>
+                  <p className="font-bold text-[#2A1238] text-sm leading-tight">Quinta Inés María</p>
                   <div className="flex items-center gap-1.5 mt-0.5">
-                    <span className="w-2 h-2 bg-white/80 rounded-full animate-pulse" />
-                    <p className="text-white/88 text-xs font-medium">Responde rápidamente</p>
+                    <span className="w-2 h-2 bg-[#2A1238]/70 rounded-full animate-pulse" />
+                    <p className="text-[#3a1f52] text-xs font-semibold">Responde rápidamente</p>
                   </div>
                 </div>
               </div>
@@ -91,7 +92,7 @@ export default function FloatingActionButtons() {
             </div>
 
             {/* Fondo estilo chat */}
-            <div className="bg-[#E5DDD5] dark:bg-[#0A1520] px-4 py-5"
+            <div className="bg-[#E5DDD5] dark:bg-[#2A1C40] px-4 py-5"
               style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60'%3E%3Cpath fill='%23b2a99a' fill-opacity='0.12' d='M30 0C13.4 0 0 13.4 0 30s13.4 30 30 30 30-13.4 30-30S46.6 0 30 0zm0 55C16.2 55 5 43.8 5 30S16.2 5 30 5s25 11.2 25 25-11.2 25-25 25z'/%3E%3C/svg%3E")` }}
             >
               {[
@@ -109,7 +110,7 @@ export default function FloatingActionButtons() {
                     <WhatsAppIcon size={15} className="text-white" />
                   </div>
                   <div className="max-w-[210px]">
-                    <div className="bg-white dark:bg-[#162030] rounded-2xl rounded-tl-sm px-4 py-3 shadow-sm">
+                    <div className="bg-white dark:bg-[#3E2B57] rounded-2xl rounded-tl-sm px-4 py-3 shadow-sm">
                       <p className="text-[#0D2137] dark:text-white/90 text-sm leading-relaxed"
                         dangerouslySetInnerHTML={{ __html: msg }} />
                       <p className="text-[10px] text-slate-400 text-right mt-1.5">
@@ -123,7 +124,7 @@ export default function FloatingActionButtons() {
             </div>
 
             {/* Botón acción */}
-            <div className="px-4 py-4 bg-white dark:bg-[#0C1829] border-t border-slate-100 dark:border-white/8">
+            <div className="px-4 py-4 bg-white dark:bg-[#332247] border-t border-slate-100 dark:border-white/8">
               <a
                 href={urlFinal} target="_blank" rel="noopener noreferrer"
                 className="w-full flex items-center justify-center gap-2.5 py-3.5 bg-[#25D366] hover:bg-[#20BD5A] text-white font-bold rounded-2xl transition-all shadow-lg shadow-[#25D366]/35 hover:shadow-[#25D366]/50 hover:-translate-y-0.5 text-sm"
@@ -151,11 +152,11 @@ export default function FloatingActionButtons() {
               animate={{ opacity: 1, x: 0, scale: 1 }}
               exit={{ opacity: 0, x: 12, scale: 0.8 }}
               transition={{ ease: [0.22, 1, 0.36, 1] }}
-              className="absolute right-18 top-1/2 -translate-y-1/2 bg-white dark:bg-[#0C1829] rounded-2xl px-3.5 py-2.5 whitespace-nowrap border border-slate-100 dark:border-white/10 flex items-center gap-2 shadow-xl"
+              className="absolute right-18 top-1/2 -translate-y-1/2 bg-white dark:bg-[#332247] rounded-2xl px-3.5 py-2.5 whitespace-nowrap border border-slate-100 dark:border-white/10 flex items-center gap-2 shadow-xl"
             >
               <WhatsAppIcon size={13} className="text-[#25D366] shrink-0" />
               <p className="text-xs font-bold text-[#0D2137] dark:text-white">¿Tienes alguna duda?</p>
-              <div className="absolute -right-1.5 top-1/2 -translate-y-1/2 w-3 h-3 bg-white dark:bg-[#0C1829] rotate-45 border-r border-t border-slate-100 dark:border-white/10" />
+              <div className="absolute -right-1.5 top-1/2 -translate-y-1/2 w-3 h-3 bg-white dark:bg-[#332247] rotate-45 border-r border-t border-slate-100 dark:border-white/10" />
             </motion.div>
           )}
         </AnimatePresence>
@@ -166,7 +167,7 @@ export default function FloatingActionButtons() {
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
             transition={{ delay: 3.4, type: 'spring', stiffness: 520 }}
-            className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center shadow-lg z-10 border-2 border-white dark:border-[#060D18]"
+            className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center shadow-lg z-10 border-2 border-white dark:border-[#221634]"
           >
             1
           </motion.span>
@@ -174,7 +175,7 @@ export default function FloatingActionButtons() {
 
         {/* Botón principal con pulse ring */}
         <motion.button
-          onClick={handleAbrirChat}
+          onClick={handleToggleChat}
           initial={{ opacity: 0, scale: 0.75 }}
           animate={{ opacity: 1, scale: 1 }}
           whileHover={{ scale: 1.1 }}

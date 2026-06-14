@@ -3,71 +3,99 @@
 /* ─── Dark mode variant (clase .dark en <html>) ───────────────────────────── */
 @custom-variant dark (&:where(.dark, .dark *));
 
-/* ─── Variables globales de la Quinta Inés María ───────────────────────────── */
+/* ═══════════════════════════════════════════════════════════════════════════
+   NUEVO ADN VISUAL — Quinta Inés María (Fase 4)
+   · Modo claro  → gama Crema / Beige cálido y elegante
+   · Modo oscuro → gama Aubergine / Violeta profundo (no negro quemado)
+   · Acento puente → Gold #C9A227 (combina con ambos)
+   · Acento extra  → Amethyst #A971D6 (highlights sutiles)
+   ═══════════════════════════════════════════════════════════════════════════ */
 @theme {
-  /* Paleta institucional */
-  --color-qim-navy:    #0D2137;
+  /* ── Marca institucional ── */
+  --color-qim-navy:    #0D2137;   /* tinta institucional (texto en claro) */
   --color-qim-blue:    #1A6BAC;
-  --color-qim-gold:    #C9A227;
-  --color-qim-cream:   #FDF8F0;
-  --color-qim-dark:    #1A1A1A;
-  --color-qim-surface: #F8F5EF;
+  --color-qim-gold:    #C9A227;   /* acento puente */
+  --color-qim-gold-dk: #B7950B;
+  --color-qim-gold-lt: #E8C84A;
 
-  /* Tipografías */
+  /* ── Gama CREMA (modo claro) ── */
+  --color-cream-50:  #FFFDF8;   /* tarjetas elevadas / blanco cálido */
+  --color-cream-100: #EEE3CF;   /* canvas base */
+  --color-cream-200: #E8DAC2;   /* secciones */
+  --color-cream-300: #E5D7BD;   /* secciones alternas / hover */
+  --color-cream-400: #E6D9C3;   /* bordes */
+  --color-cream-500: #D8C7AC;   /* bordes marcados */
+
+  /* ── Gama AUBERGINE / VIOLETA (modo oscuro) ── */
+  --color-plum-950: #150C1E;   /* canvas base más profundo */
+  --color-plum-900: #221634;   /* fondo body */
+  --color-plum-850: #2A1C40;   /* secciones alternas */
+  --color-plum-800: #332247;   /* tarjetas / menús */
+  --color-plum-700: #3E2B57;   /* elevado / popovers */
+  --color-plum-600: #4B3666;   /* hover / bordes */
+  --color-plum-500: #4E3366;   /* bordes marcados */
+
+  /* ── Acento extra Amethyst ── */
+  --color-amethyst:    #A971D6;
+  --color-amethyst-dk: #6B3F7A;
+
+  /* ── Tipografías ── */
   --font-sans:    'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
   --font-display: 'Cormorant Garamond', Georgia, serif;
 }
 
 /* ─── Reset y base ──────────────────────────────────────────────────────────── */
-*, *::before, *::after {
-  box-sizing: border-box;
-}
-
-html {
-  scroll-behavior: smooth;
-}
+*, *::before, *::after { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
 
 body {
-  background-color: #FDF8F0;
-  color: #1A1A1A;
+  background-color: #EEE3CF;
+  color: #2A2622;
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  transition: background-color 0.35s ease, color 0.35s ease;
+  transition: background-color 0.4s ease, color 0.4s ease;
+}
+html.dark body {
+  background-color: #221634;   /* aubergine profundo, NO negro */
+  color: #ECE3F2;              /* lila muy suave */
 }
 
-html.dark body {
-  background-color: #060D18;
-  color: #E2DDD6;
-}
+/* ─── Tokens semánticos de superficie (helpers opcionales) ──────────────────── */
+.surface-base    { background-color: #EEE3CF; }
+.dark .surface-base    { background-color: #221634; }
+.surface-alt     { background-color: #E5D7BD; }
+.dark .surface-alt     { background-color: #2A1C40; }
+.surface-card    { background-color: #FFFFFF; }
+.dark .surface-card    { background-color: #332247; }
+.surface-elevated{ background-color: #FFFDF8; }
+.dark .surface-elevated{ background-color: #3E2B57; }
+.text-ink        { color: #2A2622; }
+.dark .text-ink        { color: #ECE3F2; }
+.text-soft       { color: #6B6258; }
+.dark .text-soft       { color: #B6A8C6; }
+.border-soft     { border-color: #E6D9C3; }
+.dark .border-soft     { border-color: rgba(255,255,255,0.08); }
 
 /* ─── Utilidades custom ─────────────────────────────────────────────────────── */
-.font-display {
-  font-family: var(--font-display);
-}
+.font-display { font-family: var(--font-display); }
+
+/* (El logo ahora usa el componente <LogoQuinta> con resplandor trasero RGB en
+   vez de filtros invert, que rompían la imagen.) */
 
 /* Sombras de tarjeta */
-.card-shadow {
-  box-shadow: 0 2px 20px 0 rgba(13, 33, 55, 0.07);
-}
-.dark .card-shadow {
-  box-shadow: 0 2px 20px 0 rgba(0, 0, 0, 0.35);
-}
-.card-shadow-hover {
-  transition: box-shadow 0.3s ease, transform 0.3s ease;
-}
+.card-shadow       { box-shadow: 0 2px 20px 0 rgba(74, 44, 77, 0.08); }
+.dark .card-shadow { box-shadow: 0 2px 22px 0 rgba(0, 0, 0, 0.45); }
+.card-shadow-hover { transition: box-shadow 0.3s ease, transform 0.3s ease; }
 .card-shadow-hover:hover {
-  box-shadow: 0 16px 48px 0 rgba(13, 33, 55, 0.14);
+  box-shadow: 0 16px 48px 0 rgba(74, 44, 77, 0.16);
   transform: translateY(-4px);
 }
-.dark .card-shadow-hover:hover {
-  box-shadow: 0 16px 48px 0 rgba(0, 0, 0, 0.45);
-}
+.dark .card-shadow-hover:hover { box-shadow: 0 18px 50px 0 rgba(0, 0, 0, 0.55); }
 
 /* Spinner de carga */
 .spinner {
-  width: 2.5rem;
-  height: 2.5rem;
+  width: 2.5rem; height: 2.5rem;
   border: 3px solid rgba(201, 162, 39, 0.15);
   border-top-color: #C9A227;
   border-radius: 50%;
@@ -79,8 +107,7 @@ html.dark body {
 .section-line::after {
   content: '';
   display: block;
-  width: 3.5rem;
-  height: 3px;
+  width: 3.5rem; height: 3px;
   background: linear-gradient(90deg, transparent, #C9A227, transparent);
   margin: 0.75rem auto 0;
   border-radius: 2px;
@@ -88,14 +115,14 @@ html.dark body {
 
 /* ─── Glass Card ─────────────────────────────────────────────────────────────── */
 .glass-card {
-  background: rgba(255, 255, 255, 0.74);
+  background: rgba(255, 253, 248, 0.74);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.32);
+  border: 1px solid rgba(214, 199, 172, 0.45);
 }
 .dark .glass-card {
-  background: rgba(12, 22, 42, 0.78);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(51, 34, 71, 0.82);   /* violeta translúcido (más vibrante) */
+  border: 1px solid rgba(169, 113, 214, 0.20);
 }
 
 /* ─── Gradient Text ─────────────────────────────────────────────────────────── */
@@ -105,8 +132,8 @@ html.dark body {
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
-.gradient-text-blue {
-  background: linear-gradient(135deg, #0D2137 0%, #1A6BAC 50%, #0D2137 100%);
+.gradient-text-plum {
+  background: linear-gradient(135deg, #6B3F7A 0%, #A971D6 55%, #6B3F7A 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -117,84 +144,67 @@ html.dark body {
   width: 100%;
   padding: 0.875rem 1.125rem;
   border-radius: 0.875rem;
-  border: 1.5px solid rgba(203, 213, 225, 0.85);
-  background: rgba(255, 255, 255, 0.62);
+  border: 1.5px solid rgba(214, 199, 172, 0.85);
+  background: rgba(255, 255, 255, 0.7);
   font-size: 0.9375rem;
   font-family: var(--font-sans);
   font-weight: 500;
-  color: #0D2137;
+  color: #2A2622;
   transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
   outline: none;
 }
-.input-field::placeholder {
-  color: rgba(100, 116, 139, 0.6);
-  font-weight: 400;
-}
+.input-field::placeholder { color: rgba(107, 98, 88, 0.55); font-weight: 400; }
 .input-field:focus {
   border-color: #C9A227;
-  box-shadow: 0 0 0 3.5px rgba(201, 162, 39, 0.14);
-  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 0 0 3.5px rgba(201, 162, 39, 0.16);
+  background: rgba(255, 255, 255, 0.97);
 }
-.input-field.error {
-  border-color: #EF4444;
-  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
-}
+.input-field.error { border-color: #EF4444; box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1); }
 .dark .input-field {
-  background: rgba(255, 255, 255, 0.05);
-  border-color: rgba(255, 255, 255, 0.09);
-  color: #E2DDD6;
+  background: rgba(169, 113, 214, 0.06);
+  border-color: rgba(169, 113, 214, 0.18);
+  color: #ECE3F2;
 }
-.dark .input-field::placeholder {
-  color: rgba(148, 163, 184, 0.55);
-}
+.dark .input-field::placeholder { color: rgba(182, 168, 198, 0.55); }
 .dark .input-field:focus {
   border-color: #C9A227;
-  background: rgba(255, 255, 255, 0.08);
-  box-shadow: 0 0 0 3.5px rgba(201, 162, 39, 0.18);
+  background: rgba(169, 113, 214, 0.10);
+  box-shadow: 0 0 0 3.5px rgba(201, 162, 39, 0.20);
 }
 
 /* ─── Botones globales ───────────────────────────────────────────────────────── */
 .btn-primary {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
+  display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
   padding: 0.875rem 1.875rem;
-  background: linear-gradient(145deg, #0D2137 0%, #1A3A5C 100%);
+  background: linear-gradient(145deg, #0D2137 0%, #2A1B3A 100%);
   color: #fff;
-  font-family: var(--font-sans);
-  font-weight: 700;
-  font-size: 0.9375rem;
-  border-radius: 0.875rem;
-  border: none;
-  cursor: pointer;
+  font-family: var(--font-sans); font-weight: 700; font-size: 0.9375rem;
+  border-radius: 0.875rem; border: none; cursor: pointer;
   transition: all 0.25s ease;
-  box-shadow: 0 4px 16px rgba(13, 33, 55, 0.28);
+  box-shadow: 0 4px 16px rgba(13, 33, 55, 0.26);
 }
 .btn-primary:hover:not(:disabled) {
-  background: linear-gradient(145deg, #1A6BAC 0%, #0D2137 100%);
+  background: linear-gradient(145deg, #2A1B3A 0%, #6B3F7A 100%);
   transform: translateY(-2px);
-  box-shadow: 0 8px 28px rgba(13, 33, 55, 0.38);
+  box-shadow: 0 8px 28px rgba(107, 63, 122, 0.42);
 }
-.btn-primary:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
+.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+.dark .btn-primary {
+  background: linear-gradient(145deg, #6B3F7A 0%, #A971D6 100%);
+  box-shadow: 0 4px 16px rgba(169, 113, 214, 0.30);
+}
+.dark .btn-primary:hover:not(:disabled) {
+  background: linear-gradient(145deg, #A971D6 0%, #6B3F7A 100%);
+  box-shadow: 0 8px 30px rgba(169, 113, 214, 0.48);
 }
 
 .btn-gold {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
+  display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
   padding: 0.875rem 1.875rem;
   background: linear-gradient(145deg, #B7950B 0%, #D4AF37 100%);
-  color: #0D2137;
-  font-family: var(--font-sans);
-  font-weight: 700;
-  font-size: 0.9375rem;
-  border-radius: 0.875rem;
-  border: none;
-  cursor: pointer;
+  color: #2A1B0A;
+  font-family: var(--font-sans); font-weight: 700; font-size: 0.9375rem;
+  border-radius: 0.875rem; border: none; cursor: pointer;
   transition: all 0.25s ease;
   box-shadow: 0 4px 16px rgba(183, 149, 11, 0.32);
 }
@@ -205,27 +215,19 @@ html.dark body {
 }
 
 /* ─── Custom Scrollbar ─────────────────────────────────────────────────────── */
-::-webkit-scrollbar          { width: 5px; height: 5px; }
+::-webkit-scrollbar          { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track    { background: transparent; }
-::-webkit-scrollbar-thumb    { background: rgba(201, 162, 39, 0.22); border-radius: 10px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(201, 162, 39, 0.42); }
+::-webkit-scrollbar-thumb    { background: rgba(201, 162, 39, 0.24); border-radius: 10px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(201, 162, 39, 0.44); }
+.dark ::-webkit-scrollbar-thumb { background: rgba(169, 113, 214, 0.28); }
+.dark ::-webkit-scrollbar-thumb:hover { background: rgba(169, 113, 214, 0.48); }
 
 /* ─── Selección de texto ────────────────────────────────────────────────────── */
-::selection {
-  background: rgba(201, 162, 39, 0.22);
-  color: #0D2137;
-}
-.dark ::selection {
-  background: rgba(201, 162, 39, 0.3);
-  color: #F0D060;
-}
+::selection { background: rgba(201, 162, 39, 0.22); color: #2A2622; }
+.dark ::selection { background: rgba(169, 113, 214, 0.32); color: #F4ECFA; }
 
 /* ─── Focus ring global ─────────────────────────────────────────────────────── */
-:focus-visible {
-  outline: 2px solid #C9A227;
-  outline-offset: 2px;
-  border-radius: 4px;
-}
+:focus-visible { outline: 2px solid #C9A227; outline-offset: 2px; border-radius: 4px; }
 
 /* ─── Animación pulse ring (WhatsApp) ──────────────────────────────────────── */
 @keyframes pulse-ring {
@@ -235,34 +237,38 @@ html.dark body {
 }
 .animate-pulse-ring::before {
   content: '';
-  position: absolute;
-  inset: 0;
+  position: absolute; inset: 0;
   border-radius: 50%;
   background: #25D366;
   animation: pulse-ring 2.2s cubic-bezier(0.22, 1, 0.36, 1) infinite;
   z-index: -1;
 }
 
+/* ─── Glow dorado/púrpura (botón Asistente IA) ─────────────────────────────── */
+@keyframes glow-gold {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(201,162,39,0.45), 0 10px 30px rgba(107,63,122,0.45); }
+  50%      { box-shadow: 0 0 0 12px rgba(201,162,39,0), 0 12px 40px rgba(169,113,214,0.6); }
+}
+.animate-glow-gold { animation: glow-gold 2.2s ease-in-out infinite; }
+
 /* ─── Skeleton shimmer ─────────────────────────────────────────────────────── */
 @keyframes shimmer {
   0%   { background-position: -600px 0; }
-  100% { background-position: 600px 0; }
+  100% { background-position:  600px 0; }
 }
 .skeleton {
-  background: linear-gradient(90deg, #f0ebe3 25%, #e8e3dc 50%, #f0ebe3 75%);
+  background: linear-gradient(90deg, #f1e9dc 25%, #e7dcc9 50%, #f1e9dc 75%);
   background-size: 600px 100%;
   animation: shimmer 1.6s ease-in-out infinite;
   border-radius: 0.75rem;
 }
 .dark .skeleton {
-  background: linear-gradient(90deg, #0f1a2a 25%, #162030 50%, #0f1a2a 75%);
+  background: linear-gradient(90deg, #2A1C40 25%, #3E2B57 50%, #2A1C40 75%);
   background-size: 600px 100%;
 }
 
 /* ─── Page transition wrapper ──────────────────────────────────────────────── */
-.page-transition {
-  animation: page-in 0.38s cubic-bezier(0.22, 1, 0.36, 1) both;
-}
+.page-transition { animation: page-in 0.38s cubic-bezier(0.22, 1, 0.36, 1) both; }
 @keyframes page-in {
   from { opacity: 0; transform: translateY(14px); }
   to   { opacity: 1; transform: translateY(0); }
@@ -271,5 +277,5 @@ html.dark body {
 /* ─── Sidebar admin scrollbar ─────────────────────────────────────────────── */
 .custom-scrollbar::-webkit-scrollbar       { width: 4px; }
 .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-.custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
-.custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+.custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 10px; }
+.custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(169,113,214,0.4); }

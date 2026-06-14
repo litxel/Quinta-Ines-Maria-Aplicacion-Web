@@ -132,13 +132,13 @@ export default function MiPerfil() {
   const fotoUrl   = preview || (perfil?.foto_perfil ? `${BACKEND_URL}${perfil.foto_perfil}` : null);
 
   if (loading) return (
-    <main className="min-h-screen pt-28 pb-16 bg-[#FDF8F0] flex items-center justify-center">
+    <main className="min-h-screen pt-28 pb-16 bg-[#EEE3CF] dark:bg-[#221634] flex items-center justify-center">
       <div className="animate-spin w-10 h-10 border-4 border-[#0D2137] border-t-transparent rounded-full" />
     </main>
   );
 
   return (
-    <main className="min-h-screen pt-28 pb-16 bg-[#FDF8F0]">
+    <main className="min-h-screen pt-28 pb-16 bg-[#EEE3CF] dark:bg-[#221634]">
       {/* Toast */}
       <AnimatePresence>
         {toast && (
@@ -147,7 +147,7 @@ export default function MiPerfil() {
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: 60 }}
             className={`fixed top-6 right-6 z-50 flex items-center gap-3 px-5 py-4 rounded-2xl shadow-2xl border ${
-              toast.tipo === 'ok' ? 'bg-green-50 border-green-200 text-green-800' : 'bg-red-50 border-red-200 text-red-800'
+              toast.tipo === 'ok' ? 'bg-green-50 dark:bg-green-500/15 border-green-200 dark:border-green-500/30 text-green-800 dark:text-green-300' : 'bg-red-50 dark:bg-red-500/15 border-red-200 dark:border-red-500/30 text-red-800 dark:text-red-300'
             }`}
           >
             {toast.tipo === 'ok' ? <CheckCircle size={20} /> : <AlertCircle size={20} />}
@@ -159,12 +159,12 @@ export default function MiPerfil() {
       <div className="max-w-3xl mx-auto px-4 sm:px-6">
         {/* Header */}
         <div className="text-center pt-8 mb-10">
-          <h1 className="font-display text-4xl font-bold text-[#0D2137]">Mi Perfil</h1>
-          <p className="mt-2 text-slate-500 text-sm">Administra tu información personal y seguridad</p>
+          <h1 className="font-display text-4xl font-bold text-[#0D2137] dark:text-white">Mi Perfil</h1>
+          <p className="mt-2 text-slate-500 dark:text-slate-400 text-sm">Administra tu información personal y seguridad</p>
         </div>
 
         {/* Avatar + Info card */}
-        <div className="relative bg-gradient-to-br from-[#0D2137] to-[#1A3A5C] rounded-3xl p-8 mb-8 shadow-xl overflow-hidden">
+        <div className="relative bg-gradient-to-br from-[#0D2137] to-[#1A3A5C] dark:from-[#3E2B57] dark:to-[#332247] rounded-3xl p-8 mb-8 shadow-xl overflow-hidden border border-transparent dark:border-white/8">
           <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle at 80% 20%, #B7950B 0%, transparent 60%)' }} />
           <div className="relative flex flex-col sm:flex-row items-center gap-6">
 
@@ -265,30 +265,30 @@ export default function MiPerfil() {
         </div>
 
         {/* Formulario de datos personales */}
-        <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-8 mb-6">
+        <div className="bg-white dark:bg-[#332247] rounded-3xl border border-slate-100 dark:border-white/8 shadow-sm p-8 mb-6">
           <div className="flex items-center gap-3 mb-6">
-            <div className="w-10 h-10 bg-[#0D2137]/10 rounded-2xl flex items-center justify-center">
-              <Edit3 size={20} className="text-[#0D2137]" />
+            <div className="w-10 h-10 bg-[#0D2137]/10 dark:bg-[#A971D6]/18 rounded-2xl flex items-center justify-center">
+              <Edit3 size={20} className="text-[#0D2137] dark:text-[#A971D6]" />
             </div>
             <div>
-              <h3 className="font-bold text-[#0D2137] text-lg">Información Personal</h3>
-              <p className="text-slate-500 text-xs mt-0.5">Actualiza tu nombre y número de teléfono</p>
+              <h3 className="font-bold text-[#0D2137] dark:text-white text-lg">Información Personal</h3>
+              <p className="text-slate-500 dark:text-slate-400 text-xs mt-0.5">Actualiza tu nombre y número de teléfono</p>
             </div>
           </div>
 
           <form onSubmit={handleGuardarPerfil} className="space-y-5">
             {/* Correo (solo lectura) */}
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-1.5">Correo electrónico</label>
-              <div className="flex items-center gap-3 w-full px-4 py-3 border-2 border-slate-100 rounded-xl bg-slate-50 text-slate-500">
+              <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1.5">Correo electrónico</label>
+              <div className="flex items-center gap-3 w-full px-4 py-3 border-2 border-slate-100 dark:border-white/8 rounded-xl bg-slate-50 dark:bg-white/5 text-slate-500 dark:text-slate-400">
                 <Mail size={18} className="text-slate-400" />
                 <span className="text-sm truncate">{perfil?.correo}</span>
-                <span className="ml-auto text-[10px] bg-slate-200 text-slate-500 px-2 py-0.5 rounded-full font-medium whitespace-nowrap">No editable</span>
+                <span className="ml-auto text-[10px] bg-slate-200 dark:bg-white/10 text-slate-500 dark:text-slate-300 px-2 py-0.5 rounded-full font-medium whitespace-nowrap">No editable</span>
               </div>
             </div>
 
             <div>
-              <label htmlFor="nombre_completo" className="block text-sm font-semibold text-slate-700 mb-1.5">Nombre completo</label>
+              <label htmlFor="nombre_completo" className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1.5">Nombre completo</label>
               <div className="relative">
                 <User size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
                 <input
@@ -296,7 +296,7 @@ export default function MiPerfil() {
                   type="text"
                   value={form.nombre_completo}
                   onChange={e => setForm(p => ({ ...p, nombre_completo: e.target.value }))}
-                  className="w-full pl-11 pr-4 py-3 border-2 border-slate-200 rounded-xl focus:border-[#B7950B] focus:outline-none focus:ring-2 focus:ring-[#B7950B]/20 transition-all text-slate-900 text-sm font-medium"
+                  className="w-full pl-11 pr-4 py-3 border-2 border-slate-200 dark:border-white/12 dark:bg-white/5 rounded-xl focus:border-[#B7950B] focus:outline-none focus:ring-2 focus:ring-[#B7950B]/20 transition-all text-slate-900 dark:text-white text-sm font-medium"
                   placeholder="Tu nombre completo"
                   required
                 />
@@ -304,7 +304,7 @@ export default function MiPerfil() {
             </div>
 
             <div>
-              <label htmlFor="telefono" className="block text-sm font-semibold text-slate-700 mb-1.5">Teléfono / WhatsApp</label>
+              <label htmlFor="telefono" className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1.5">Teléfono / WhatsApp</label>
               <div className="relative">
                 <Phone size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
                 <input
@@ -312,7 +312,7 @@ export default function MiPerfil() {
                   type="tel"
                   value={form.telefono}
                   onChange={e => setForm(p => ({ ...p, telefono: e.target.value.replace(/\D/g, '') }))}
-                  className="w-full pl-11 pr-4 py-3 border-2 border-slate-200 rounded-xl focus:border-[#B7950B] focus:outline-none focus:ring-2 focus:ring-[#B7950B]/20 transition-all text-slate-900 text-sm font-medium"
+                  className="w-full pl-11 pr-4 py-3 border-2 border-slate-200 dark:border-white/12 dark:bg-white/5 rounded-xl focus:border-[#B7950B] focus:outline-none focus:ring-2 focus:ring-[#B7950B]/20 transition-all text-slate-900 dark:text-white text-sm font-medium"
                   placeholder="099 123 4567"
                   maxLength={10}
                 />
@@ -322,7 +322,7 @@ export default function MiPerfil() {
             <button
               type="submit"
               disabled={guardando}
-              className="w-full py-3.5 bg-[#0D2137] text-white font-bold rounded-xl hover:bg-[#1A6BAC] shadow-md transition-all hover:-translate-y-0.5 disabled:opacity-50 flex items-center justify-center gap-2"
+              className="w-full py-3.5 bg-[#0D2137] dark:bg-gradient-to-r dark:from-[#6B3F7A] dark:to-[#A971D6] text-white font-bold rounded-xl hover:bg-[#1A6BAC] dark:hover:brightness-110 shadow-md transition-all hover:-translate-y-0.5 disabled:opacity-50 flex items-center justify-center gap-2"
             >
               <Save size={18} />
               {guardando ? 'Guardando...' : 'Guardar cambios'}
@@ -331,19 +331,19 @@ export default function MiPerfil() {
         </div>
 
         {/* Cambiar contraseña */}
-        <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-8">
+        <div className="bg-white dark:bg-[#332247] rounded-3xl border border-slate-100 dark:border-white/8 shadow-sm p-8">
           <div className="flex items-center gap-3 mb-6">
-            <div className="w-10 h-10 bg-red-50 rounded-2xl flex items-center justify-center">
+            <div className="w-10 h-10 bg-red-50 dark:bg-red-500/15 rounded-2xl flex items-center justify-center">
               <Shield size={20} className="text-red-500" />
             </div>
             <div>
-              <h3 className="font-bold text-[#0D2137] text-lg">Cambiar Contraseña</h3>
-              <p className="text-slate-500 text-xs mt-0.5">Por seguridad, ingresa tu contraseña actual primero</p>
+              <h3 className="font-bold text-[#0D2137] dark:text-white text-lg">Cambiar Contraseña</h3>
+              <p className="text-slate-500 dark:text-slate-400 text-xs mt-0.5">Por seguridad, ingresa tu contraseña actual primero</p>
             </div>
           </div>
 
           {claveError && (
-            <div className="mb-5 flex items-center gap-2 p-4 bg-red-50 border border-red-200 rounded-xl">
+            <div className="mb-5 flex items-center gap-2 p-4 bg-red-50 dark:bg-red-500/12 border border-red-200 dark:border-red-500/25 rounded-xl">
               <AlertCircle size={16} className="text-red-500 shrink-0" />
               <p className="text-sm text-red-700 font-medium">{claveError}</p>
             </div>
@@ -352,7 +352,7 @@ export default function MiPerfil() {
           <form onSubmit={handleCambiarClave} className="space-y-4">
             {[['password_actual', 'Contraseña actual', 'actual'], ['password_nueva', 'Nueva contraseña', 'nueva'], ['confirmar', 'Confirmar nueva contraseña', 'confirmar']].map(([key, label, showKey]) => (
               <div key={key}>
-                <label htmlFor={key} className="block text-sm font-semibold text-slate-700 mb-1.5">{label}</label>
+                <label htmlFor={key} className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-1.5">{label}</label>
                 <div className="relative">
                   <Lock size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
                   <input
@@ -360,7 +360,7 @@ export default function MiPerfil() {
                     type={showPass[showKey] ? 'text' : 'password'}
                     value={clave[key]}
                     onChange={e => { setClave(p => ({ ...p, [key]: e.target.value })); setClaveError(''); }}
-                    className="w-full pl-11 pr-12 py-3 border-2 border-slate-200 rounded-xl focus:border-red-400 focus:outline-none focus:ring-2 focus:ring-red-200 transition-all text-slate-900 text-sm font-medium"
+                    className="w-full pl-11 pr-12 py-3 border-2 border-slate-200 dark:border-white/12 dark:bg-white/5 rounded-xl focus:border-red-400 focus:outline-none focus:ring-2 focus:ring-red-200 transition-all text-slate-900 dark:text-white text-sm font-medium"
                     placeholder={label}
                     autoComplete="new-password"
                   />

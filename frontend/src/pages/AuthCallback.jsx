@@ -67,7 +67,7 @@ export default function AuthCallback() {
   }, []);
 
   return (
-    <main className="min-h-screen bg-[#FDF8F0] flex items-center justify-center">
+    <main className="min-h-screen bg-[#EEE3CF] flex items-center justify-center">
       <div className="text-center">
         {error ? (
           <div className="bg-red-50 border border-red-200 rounded-2xl p-8 max-w-sm">

@@ -43,14 +43,14 @@ const eliminarImagenAnterior = (urlRelativa) => {
 // ============================================================================
 const obtenerPaquetesPublicos = async () => {
   const { rows } = await pool.query(
-    `SELECT p.paquete_id, p.paquete_nombre, p.paquete_codigo, p.descripcion, p.precio_persona, p.minimo_invitados, p.color_principal, p.orden_display, COALESCE(json_agg(json_build_object('servicio_id', ps.servicio_id, 'servicio_nombre', ps.nombre_servicio, 'servicio_descripcion', ps.descripcion) ORDER BY ps.orden_display ASC, ps.servicio_id ASC) FILTER (WHERE ps.servicio_id IS NOT NULL), '[]') AS servicios FROM eqim_catalogo.paquetes p LEFT JOIN eqim_catalogo.paquete_servicios ps ON ps.paquete_id = p.paquete_id WHERE p.activo = true GROUP BY p.paquete_id ORDER BY p.orden_display ASC`
+    `SELECT p.paquete_id, p.paquete_nombre, p.paquete_codigo, p.descripcion, p.precio_persona, p.minimo_invitados, p.color_principal, p.imagen_url, p.orden_display, COALESCE(json_agg(json_build_object('servicio_id', ps.servicio_id, 'servicio_nombre', ps.nombre_servicio, 'servicio_descripcion', ps.descripcion) ORDER BY ps.orden_display ASC, ps.servicio_id ASC) FILTER (WHERE ps.servicio_id IS NOT NULL), '[]') AS servicios FROM eqim_catalogo.paquetes p LEFT JOIN eqim_catalogo.paquete_servicios ps ON ps.paquete_id = p.paquete_id WHERE p.activo = true GROUP BY p.paquete_id ORDER BY p.orden_display ASC`
   );
   return rows;
 };
 
 const obtenerPaquetePorCodigo = async (codigo) => {
   const { rows } = await pool.query(
-    `SELECT p.paquete_id, p.paquete_nombre, p.paquete_codigo, p.descripcion, p.precio_persona, p.minimo_invitados, p.color_principal, p.orden_display, COALESCE(json_agg(json_build_object('servicio_id', ps.servicio_id, 'servicio_nombre', ps.nombre_servicio, 'servicio_descripcion', ps.descripcion) ORDER BY ps.orden_display ASC, ps.servicio_id ASC) FILTER (WHERE ps.servicio_id IS NOT NULL), '[]') AS servicios FROM eqim_catalogo.paquetes p LEFT JOIN eqim_catalogo.paquete_servicios ps ON ps.paquete_id = p.paquete_id WHERE p.paquete_codigo = $1 AND p.activo = true GROUP BY p.paquete_id`,
+    `SELECT p.paquete_id, p.paquete_nombre, p.paquete_codigo, p.descripcion, p.precio_persona, p.minimo_invitados, p.color_principal, p.imagen_url, p.orden_display, COALESCE(json_agg(json_build_object('servicio_id', ps.servicio_id, 'servicio_nombre', ps.nombre_servicio, 'servicio_descripcion', ps.descripcion) ORDER BY ps.orden_display ASC, ps.servicio_id ASC) FILTER (WHERE ps.servicio_id IS NOT NULL), '[]') AS servicios FROM eqim_catalogo.paquetes p LEFT JOIN eqim_catalogo.paquete_servicios ps ON ps.paquete_id = p.paquete_id WHERE p.paquete_codigo = $1 AND p.activo = true GROUP BY p.paquete_id`,
     [codigo.toUpperCase()]
   );
   if (rows.length === 0) { const err = new Error(`Paquete no encontrado.`); err.statusCode = 404; throw err; }
@@ -59,17 +59,18 @@ const obtenerPaquetePorCodigo = async (codigo) => {
 
 const obtenerTodosPaquetesAdmin = async () => {
   const { rows } = await pool.query(
-    `SELECT p.paquete_id, p.paquete_nombre, p.paquete_codigo, p.descripcion, p.precio_persona, p.minimo_invitados, p.color_principal, p.orden_display, p.activo, COALESCE(json_agg(json_build_object('servicio_id', ps.servicio_id, 'servicio_nombre', ps.nombre_servicio, 'servicio_descripcion', ps.descripcion) ORDER BY ps.orden_display ASC, ps.servicio_id ASC) FILTER (WHERE ps.servicio_id IS NOT NULL), '[]') AS servicios FROM eqim_catalogo.paquetes p LEFT JOIN eqim_catalogo.paquete_servicios ps ON ps.paquete_id = p.paquete_id GROUP BY p.paquete_id ORDER BY p.orden_display ASC`
+    `SELECT p.paquete_id, p.paquete_nombre, p.paquete_codigo, p.descripcion, p.precio_persona, p.minimo_invitados, p.color_principal, p.imagen_url, p.orden_display, p.activo, COALESCE(json_agg(json_build_object('servicio_id', ps.servicio_id, 'servicio_nombre', ps.nombre_servicio, 'servicio_descripcion', ps.descripcion) ORDER BY ps.orden_display ASC, ps.servicio_id ASC) FILTER (WHERE ps.servicio_id IS NOT NULL), '[]') AS servicios FROM eqim_catalogo.paquetes p LEFT JOIN eqim_catalogo.paquete_servicios ps ON ps.paquete_id = p.paquete_id GROUP BY p.paquete_id ORDER BY p.orden_display ASC`
   );
   return rows;
 };
 
-const crearPaquete = async ({ paquete_nombre, paquete_codigo, descripcion, precio_persona, minimo_invitados = 100, color_principal = '#B7950B', orden_display = 99 }) => {
+const crearPaquete = async ({ paquete_nombre, paquete_codigo, descripcion, precio_persona, minimo_invitados = 100, color_principal = '#B7950B', orden_display = 99, imagen_base64 }) => {
   const existe = await pool.query('SELECT paquete_id FROM eqim_catalogo.paquetes WHERE paquete_codigo = $1', [paquete_codigo.toUpperCase()]);
   if (existe.rows.length > 0) { const err = new Error(`Ya existe un paquete con el código '${paquete_codigo}'.`); err.statusCode = 409; throw err; }
+  const imagen_url = imagen_base64 ? guardarImagenBase64(imagen_base64, 'paquetes') : null;
   const { rows } = await pool.query(
-    `INSERT INTO eqim_catalogo.paquetes (paquete_nombre, paquete_codigo, descripcion, precio_persona, minimo_invitados, color_principal, orden_display) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
-    [paquete_nombre.trim(), paquete_codigo.toUpperCase(), descripcion, precio_persona, minimo_invitados, color_principal, orden_display]
+    `INSERT INTO eqim_catalogo.paquetes (paquete_nombre, paquete_codigo, descripcion, precio_persona, minimo_invitados, color_principal, orden_display, imagen_url) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
+    [paquete_nombre.trim(), paquete_codigo.toUpperCase(), descripcion, precio_persona, minimo_invitados, color_principal, orden_display, imagen_url]
   );
   return rows[0];
 };
@@ -77,10 +78,18 @@ const crearPaquete = async ({ paquete_nombre, paquete_codigo, descripcion, preci
 const actualizarPaquete = async (paqueteId, datos) => {
   const actual = await pool.query('SELECT * FROM eqim_catalogo.paquetes WHERE paquete_id = $1', [paqueteId]);
   if (actual.rows.length === 0) { const err = new Error(`Paquete no encontrado.`); err.statusCode = 404; throw err; }
-  const { paquete_nombre, descripcion, precio_persona, minimo_invitados, color_principal, orden_display, activo } = datos;
+  const { paquete_nombre, descripcion, precio_persona, minimo_invitados, color_principal, orden_display, activo, imagen_base64 } = datos;
+
+  // Si se manda nueva imagen, guardar y eliminar la anterior
+  let imagen_url_nueva = undefined;
+  if (imagen_base64) {
+    if (actual.rows[0]?.imagen_url) eliminarImagenAnterior(actual.rows[0].imagen_url);
+    imagen_url_nueva = guardarImagenBase64(imagen_base64, 'paquetes');
+  }
+
   const { rows } = await pool.query(
-    `UPDATE eqim_catalogo.paquetes SET paquete_nombre = COALESCE($1, paquete_nombre), descripcion = COALESCE($2, descripcion), precio_persona = COALESCE($3, precio_persona), minimo_invitados = COALESCE($4, minimo_invitados), color_principal = COALESCE($5, color_principal), orden_display = COALESCE($6, orden_display), activo = COALESCE($7, activo) WHERE paquete_id = $8 RETURNING *`,
-    [paquete_nombre ?? null, descripcion ?? null, precio_persona ?? null, minimo_invitados ?? null, color_principal ?? null, orden_display ?? null, activo ?? null, paqueteId]
+    `UPDATE eqim_catalogo.paquetes SET paquete_nombre = COALESCE($1, paquete_nombre), descripcion = COALESCE($2, descripcion), precio_persona = COALESCE($3, precio_persona), minimo_invitados = COALESCE($4, minimo_invitados), color_principal = COALESCE($5, color_principal), orden_display = COALESCE($6, orden_display), activo = COALESCE($7, activo), imagen_url = COALESCE($8, imagen_url) WHERE paquete_id = $9 RETURNING *`,
+    [paquete_nombre ?? null, descripcion ?? null, precio_persona ?? null, minimo_invitados ?? null, color_principal ?? null, orden_display ?? null, activo ?? null, imagen_url_nueva ?? null, paqueteId]
   );
   return { anterior: actual.rows[0], actualizado: rows[0] };
 };

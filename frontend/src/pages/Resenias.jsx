@@ -130,17 +130,17 @@ function ReviewCard({ review }) {
   const displayText = isLong && !expanded ? review.texto.slice(0, 200) + '…' : review.texto;
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 flex flex-col hover:shadow-md hover:-translate-y-1 transition-all duration-300">
+    <div className="bg-white dark:bg-[#332247] rounded-2xl border border-slate-100 dark:border-white/8 shadow-sm p-6 flex flex-col hover:shadow-md hover:-translate-y-1 transition-all duration-300">
       {/* Cita decorativa */}
-      <Quote size={24} className="text-[#B7950B]/30 mb-3" strokeWidth={1.5} />
+      <Quote size={24} className="text-[#B7950B]/30 dark:text-[#C9A227]/40 mb-3" strokeWidth={1.5} />
 
       {/* Texto */}
-      <p className="text-slate-600 text-sm leading-relaxed flex-1">
+      <p className="text-slate-600 dark:text-slate-300 text-sm leading-relaxed flex-1">
         {displayText}
         {isLong && (
           <button
             onClick={() => setExpanded(!expanded)}
-            className="ml-1 text-[#1A6BAC] font-medium text-xs hover:underline"
+            className="ml-1 text-[#1A6BAC] dark:text-[#A971D6] font-medium text-xs hover:underline"
           >
             {expanded ? 'Ver menos' : 'Ver más'}
           </button>
@@ -148,7 +148,7 @@ function ReviewCard({ review }) {
       </p>
 
       {/* Footer de la card */}
-      <div className="mt-4 pt-4 border-t border-slate-100 flex items-center gap-3">
+      <div className="mt-4 pt-4 border-t border-slate-100 dark:border-white/8 flex items-center gap-3">
         {/* Avatar */}
         <div
           className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm shrink-0 shadow-sm"
@@ -159,17 +159,17 @@ function ReviewCard({ review }) {
 
         {/* Info */}
         <div className="flex-1 min-w-0">
-          <p className="font-bold text-[#0D2137] text-sm truncate">{review.nombre}</p>
+          <p className="font-bold text-[#0D2137] dark:text-white text-sm truncate">{review.nombre}</p>
           <div className="flex items-center gap-2 mt-0.5">
             <StarRating rating={review.calificacion} />
-            <span className="text-slate-400 text-xs">{review.fecha}</span>
+            <span className="text-slate-400 dark:text-slate-500 text-xs">{review.fecha}</span>
           </div>
         </div>
 
         {/* Fuente */}
         <div className="shrink-0">
           {review.fuente === 'google' ? (
-            <div className="w-7 h-7 rounded-full bg-white border border-slate-200 shadow-sm flex items-center justify-center">
+            <div className="w-7 h-7 rounded-full bg-white dark:bg-white/10 border border-slate-200 dark:border-white/15 shadow-sm flex items-center justify-center">
               {/* Google G icon */}
               <svg width="14" height="14" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                 <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
@@ -203,7 +203,7 @@ export default function Resenias() {
   const promedioGoogle = (REVIEWS_GOOGLE.reduce((s, r) => s + r.calificacion, 0) / REVIEWS_GOOGLE.length).toFixed(1);
 
   return (
-    <main className="min-h-screen bg-[#FDF8F0] pt-28 pb-20">
+    <main className="min-h-screen bg-[#EEE3CF] dark:bg-[#221634] pt-28 pb-20 transition-colors duration-300">
 
       {/* ── HERO SECTION ─────────────────────────────────────────────────── */}
       <section className="relative overflow-hidden bg-gradient-to-br from-[#0D2137] via-[#1A3A5C] to-[#0D2137] py-20 px-4 mb-12">
@@ -263,8 +263,8 @@ export default function Resenias() {
               onClick={() => setFiltro(f.key)}
               className={`flex items-center gap-2 px-5 py-2.5 rounded-full font-bold text-sm transition-all duration-200 border-2 ${
                 filtro === f.key
-                  ? 'bg-[#0D2137] text-white border-[#0D2137] shadow-lg shadow-[#0D2137]/20'
-                  : 'bg-white text-slate-600 border-slate-200 hover:border-[#B7950B] hover:text-[#0D2137]'
+                  ? 'bg-[#0D2137] dark:bg-gradient-to-r dark:from-[#6B3F7A] dark:to-[#A971D6] text-white border-[#0D2137] dark:border-transparent shadow-lg shadow-[#0D2137]/20'
+                  : 'bg-white dark:bg-[#332247] text-slate-600 dark:text-slate-300 border-slate-200 dark:border-white/12 hover:border-[#B7950B] dark:hover:border-[#C9A227] hover:text-[#0D2137] dark:hover:text-white'
               }`}
             >
               {f.key === 'google' && (
@@ -282,7 +282,7 @@ export default function Resenias() {
               )}
               {f.key === 'todos' && <Star size={14} fill="currentColor" />}
               {f.label}
-              <span className={`text-xs px-2 py-0.5 rounded-full font-bold ${filtro === f.key ? 'bg-white/20' : 'bg-slate-100 text-slate-500'}`}>
+              <span className={`text-xs px-2 py-0.5 rounded-full font-bold ${filtro === f.key ? 'bg-white/20' : 'bg-slate-100 dark:bg-white/10 text-slate-500 dark:text-slate-300'}`}>
                 {f.count}
               </span>
             </button>

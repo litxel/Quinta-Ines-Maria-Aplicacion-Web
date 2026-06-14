@@ -1,11 +1,14 @@
 import { useState, useEffect } from 'react';
 import { NavLink, Link, Outlet, useNavigate, useLocation } from 'react-router-dom';
+import { AnimatePresence, motion } from 'framer-motion';
 import { useAuthStore } from '../../store/useAuthStore';
-import logoQuinta from '../../assets/FotosQuintaInes/LogosQuinta/logo quinta ines.png';
+import { useDarkMode } from '../../hooks/useDarkMode';
+import LogoQuinta from '../shared/LogoQuinta';
 import {
   LayoutDashboard, ClipboardList, Calendar, Package,
   Image as ImageIcon, LogOut, ChevronDown, Menu,
   Settings, ChevronLeft, Users, BarChart2, UserCircle, Archive,
+  Sun, Moon,
 } from 'lucide-react';
 
 const MENU_GROUPS = [
@@ -50,6 +53,7 @@ export default function AdminLayout() {
 
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [openGroups,  setOpenGroups]  = useState({});
+  const { isDark, toggle: toggleDark } = useDarkMode();
 
   useEffect(() => {
     const idx = MENU_GROUPS.findIndex((g) =>
@@ -65,11 +69,14 @@ export default function AdminLayout() {
   };
 
   return (
-    <div className="flex min-h-screen bg-[#F4F6F8] dark:bg-[#060D18] font-sans overflow-hidden transition-colors duration-300">
+    <div className="flex min-h-screen bg-[#E8DCC4] dark:bg-[#221634] font-sans overflow-hidden transition-colors duration-300">
 
-      {/* ── SIDEBAR ── */}
+      {/* ── SIDEBAR ──
+         Claro: beige oscuro/taupe elegante (contrasta con el dashboard crema).
+         Oscuro: púrpura más luminoso que el fondo general (#221634) para mejor
+         visibilidad de los iconos. */}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 bg-[#060D18] text-white flex flex-col shadow-2xl transition-all duration-300 ease-in-out ${
+        className={`fixed inset-y-0 left-0 z-50 bg-[#473A28] dark:bg-[#2E2046] text-white flex flex-col shadow-2xl transition-all duration-300 ease-in-out ${
           isCollapsed ? 'w-[72px]' : 'w-[272px]'
         }`}
       >
@@ -84,9 +91,9 @@ export default function AdminLayout() {
         {/* Header sidebar */}
         <div className={`border-b border-white/8 transition-all duration-300 ${isCollapsed ? 'px-4 py-5' : 'p-5'}`}>
           <Link to="/" className={`flex items-center group ${isCollapsed ? 'justify-center' : 'gap-3'}`} title="Quinta Inés María">
-            <img
-              src={logoQuinta} alt="Quinta Inés María"
-              className={`object-contain drop-shadow-lg group-hover:scale-105 transition-transform ${isCollapsed ? 'h-9 w-9' : 'h-13 w-auto max-w-[170px]'}`}
+            <LogoQuinta
+              glowClassName="-inset-3"
+              imgClassName={`object-contain drop-shadow-lg group-hover:scale-105 transition-transform ${isCollapsed ? 'h-9 w-9' : 'h-13 w-auto max-w-[170px]'}`}
             />
           </Link>
           {!isCollapsed && (
@@ -178,7 +185,7 @@ export default function AdminLayout() {
                         {({ isActive }) => (
                           <>
                             <span className={`absolute left-0 w-1.5 h-1.5 rounded-full transition-all duration-300 ${
-                              isActive ? 'bg-[#C9A227] scale-100' : 'bg-slate-700 scale-50'
+                              isActive ? 'bg-[#C9A227] scale-100' : 'bg-white/35 scale-50'
                             }`} />
                             {item.icon}
                             <span className="truncate">{item.label}</span>
@@ -235,7 +242,7 @@ export default function AdminLayout() {
       <main className={`flex-1 flex flex-col transition-all duration-300 ease-in-out ${isCollapsed ? 'ml-[72px]' : 'ml-[272px]'}`}>
 
         {/* Topbar */}
-        <header className="h-16 bg-white/85 dark:bg-[#060D18]/85 backdrop-blur-md border-b border-slate-200 dark:border-white/8 flex items-center justify-between px-6 sticky top-0 z-40 shadow-sm transition-colors duration-300">
+        <header className="h-16 bg-white/85 dark:bg-[#221634]/85 backdrop-blur-md border-b border-slate-200 dark:border-white/8 flex items-center justify-between px-6 sticky top-0 z-40 shadow-sm transition-colors duration-300">
           <div className="flex items-center gap-3">
             <button
               onClick={() => setIsCollapsed(!isCollapsed)}
@@ -257,6 +264,27 @@ export default function AdminLayout() {
               <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
               Sistema en línea
             </div>
+
+            {/* Toggle Dark Mode */}
+            <button
+              onClick={toggleDark}
+              aria-label={isDark ? 'Activar modo claro' : 'Activar modo oscuro'}
+              title={isDark ? 'Modo claro' : 'Modo oscuro'}
+              className="w-9 h-9 rounded-full flex items-center justify-center text-slate-500 dark:text-[#C9A227] bg-slate-100 dark:bg-white/8 hover:bg-slate-200 dark:hover:bg-white/14 transition-all"
+            >
+              <AnimatePresence mode="wait" initial={false}>
+                {isDark ? (
+                  <motion.span key="sun" initial={{ rotate: -90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: 90, opacity: 0 }} transition={{ duration: 0.2 }}>
+                    <Sun size={17} />
+                  </motion.span>
+                ) : (
+                  <motion.span key="moon" initial={{ rotate: 90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: -90, opacity: 0 }} transition={{ duration: 0.2 }}>
+                    <Moon size={17} />
+                  </motion.span>
+                )}
+              </AnimatePresence>
+            </button>
+
             <Link
               to="/"
               className="text-xs font-bold text-white bg-[#0D2137] dark:bg-[#C9A227] dark:text-[#0D2137] px-4 py-2 rounded-lg hover:bg-[#1A6BAC] dark:hover:opacity-90 shadow-md transition-all"

@@ -51,7 +51,7 @@ export default function WelcomeModal() {
             transition={{ type: 'spring', stiffness: 290, damping: 24 }}
             className="fixed inset-0 z-[201] flex items-center justify-center p-4 pointer-events-none"
           >
-            <div className="pointer-events-auto bg-white dark:bg-[#0C1829] rounded-3xl shadow-2xl dark:shadow-black/60 max-w-sm w-full overflow-hidden border border-slate-100 dark:border-white/8">
+            <div className="pointer-events-auto bg-white dark:bg-[#332247] rounded-3xl shadow-2xl dark:shadow-black/60 max-w-sm w-full overflow-hidden border border-slate-100 dark:border-white/8">
 
               {/* Header */}
               <div className="relative bg-gradient-to-br from-[#0D2137] via-[#1A3A5C] to-[#0D2137] pt-12 pb-16 px-8 text-center overflow-hidden">
@@ -95,7 +95,7 @@ export default function WelcomeModal() {
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
                     transition={{ delay: 0.38, type: 'spring' }}
-                    className={`absolute -bottom-1 -right-1 w-7 h-7 rounded-full flex items-center justify-center text-xs border-2 border-white dark:border-[#0C1829] shadow-lg font-bold ${esAdmin ? 'bg-gradient-to-br from-[#C9A227] to-[#B7950B] text-white' : 'bg-green-500 text-white'}`}
+                    className={`absolute -bottom-1 -right-1 w-7 h-7 rounded-full flex items-center justify-center text-xs border-2 border-white dark:border-[#332247] shadow-lg font-bold ${esAdmin ? 'bg-gradient-to-br from-[#C9A227] to-[#B7950B] text-white' : 'bg-green-500 text-white'}`}
                   >
                     {esAdmin ? '⚡' : '✓'}
                   </motion.div>

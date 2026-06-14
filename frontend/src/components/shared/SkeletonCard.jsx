@@ -2,7 +2,7 @@
 export default function SkeletonCard({ variant = 'package' }) {
   if (variant === 'package') {
     return (
-      <div className="bg-white dark:bg-[#0C1829] rounded-3xl overflow-hidden border border-slate-100 dark:border-white/8 flex flex-col card-shadow">
+      <div className="bg-white dark:bg-[#332247] rounded-3xl overflow-hidden border border-slate-100 dark:border-white/8 flex flex-col card-shadow">
         <div className="skeleton h-52 rounded-none" />
         <div className="p-7 flex-1 space-y-3">
           <div className="skeleton h-4 w-3/4 rounded-xl" />
@@ -27,7 +27,7 @@ export default function SkeletonCard({ variant = 'package' }) {
 
   if (variant === 'row') {
     return (
-      <div className="bg-white dark:bg-[#0C1829] rounded-2xl p-5 border border-slate-100 dark:border-white/8 flex items-center gap-4 card-shadow">
+      <div className="bg-white dark:bg-[#332247] rounded-2xl p-5 border border-slate-100 dark:border-white/8 flex items-center gap-4 card-shadow">
         <div className="skeleton w-12 h-12 rounded-xl shrink-0" />
         <div className="flex-1 space-y-2">
           <div className="skeleton h-3.5 w-2/3 rounded-lg" />
@@ -39,7 +39,7 @@ export default function SkeletonCard({ variant = 'package' }) {
   }
 
   return (
-    <div className="bg-white dark:bg-[#0C1829] rounded-2xl p-6 border border-slate-100 dark:border-white/8 space-y-3 card-shadow">
+    <div className="bg-white dark:bg-[#332247] rounded-2xl p-6 border border-slate-100 dark:border-white/8 space-y-3 card-shadow">
       <div className="skeleton h-4 w-3/4 rounded-xl" />
       <div className="skeleton h-3 w-full rounded-xl" />
       <div className="skeleton h-3 w-5/6 rounded-xl" />

@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, MapPin, Leaf, UtensilsCrossed, PartyPopper, ArrowRight, Play } from 'lucide-react';
+import { Sparkles, MapPin, Leaf, UtensilsCrossed, PartyPopper, ArrowRight, ArrowLeft, Play, Sprout, Flower2, ChefHat, Star, Globe, Camera } from 'lucide-react';
 import ScrollReveal, { StaggerReveal, staggerItem } from '../components/shared/ScrollReveal';
 
 import bg1 from '../assets/FotosQuintaInes/EntradaQuinta/entrada 1 quinta ines.jpg';
@@ -26,8 +26,29 @@ const STATS = [
   { value: '100%', label: 'Atención personalizada'     },
 ];
 
+// ─── Línea de tiempo "Historia de la Quinta" ────────────────────────────────────
+const HISTORIA = [
+  { year: '2009', icon: Sprout,  title: 'Un sueño familiar', desc: 'Nace la Quinta Inés María en el corazón de Chambo, con la ilusión de compartir el calor del campo ecuatoriano.' },
+  { year: '2014', icon: Flower2, title: 'Jardines y glorieta', desc: 'Inauguramos los jardines, la glorieta, el puente y la pileta, creando el escenario perfecto para celebrar.' },
+  { year: '2018', icon: ChefHat, title: 'Catering propio', desc: 'Sumamos chef ejecutivo y equipo culinario propio, con menús de hasta 5 tiempos para cada evento.' },
+  { year: '2021', icon: Star,    title: '+300 celebraciones', desc: 'Superamos los 300 eventos realizados y ampliamos nuestras instalaciones para recibir a más familias.' },
+  { year: '2024', icon: Globe,   title: 'Quinta digital', desc: 'Lanzamos EventPlanner, nuestra plataforma para configurar y cotizar tu evento en línea en minutos.' },
+];
+
+// Carrusel de la sección CTA (placeholders — reemplazar por imágenes reales)
+const CARRUSEL = [
+  '/assets/quinta/carrusel-1.jpg',
+  '/assets/quinta/carrusel-2.jpg',
+  '/assets/quinta/carrusel-3.jpg',
+  '/assets/quinta/carrusel-4.jpg',
+];
+
 export default function Home() {
   const [indiceActual, setIndiceActual] = useState(0);
+  const [carIdx, setCarIdx]   = useState(0);
+  const [activoHist, setActivoHist] = useState(0);
+  const videoRef = useRef(null);
+  const histRefs = useRef([]);
 
   useEffect(() => {
     const intervalo = setInterval(
@@ -35,6 +56,41 @@ export default function Home() {
       4500
     );
     return () => clearInterval(intervalo);
+  }, []);
+
+  // Carrusel automático de la sección CTA
+  useEffect(() => {
+    const t = setInterval(() => setCarIdx((p) => (p + 1) % CARRUSEL.length), 3500);
+    return () => clearInterval(t);
+  }, []);
+
+  // Resalta la fecha activa de la Historia a medida que se hace scroll
+  useEffect(() => {
+    const obs = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((e) => {
+          if (e.isIntersecting) setActivoHist(Number(e.target.dataset.idx));
+        });
+      },
+      { threshold: 0.55, rootMargin: '-10% 0px -30% 0px' }
+    );
+    histRefs.current.forEach((el) => el && obs.observe(el));
+    return () => obs.disconnect();
+  }, []);
+
+  // Autoplay del video promocional al entrar en la vista (IntersectionObserver)
+  useEffect(() => {
+    const v = videoRef.current;
+    if (!v) return;
+    const obs = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) v.play().catch(() => {});
+        else v.pause();
+      },
+      { threshold: 0.45 }
+    );
+    obs.observe(v);
+    return () => obs.disconnect();
   }, []);
 
   return (
@@ -56,9 +112,9 @@ export default function Home() {
         </AnimatePresence>
 
         {/* Overlay cinematográfico */}
-        <div className="absolute inset-0 bg-gradient-to-b from-[#0D2137]/72 via-[#0D2137]/48 to-[#060D18]/90" />
+        <div className="absolute inset-0 bg-gradient-to-b from-[#0D2137]/72 via-[#0D2137]/48 to-[#221634]/90" />
         {/* Viñeta lateral */}
-        <div className="absolute inset-0 bg-gradient-to-r from-[#060D18]/30 via-transparent to-[#060D18]/30" />
+        <div className="absolute inset-0 bg-gradient-to-r from-[#221634]/30 via-transparent to-[#221634]/30" />
 
         <div className="relative z-10 max-w-4xl mx-auto pt-32 pb-24">
           {/* Chip de ubicación */}
@@ -168,7 +224,7 @@ export default function Home() {
       </section>
 
       {/* ── PROPUESTA DE VALOR ── */}
-      <section className="py-28 px-4 bg-white dark:bg-[#060D18] transition-colors" aria-labelledby="propuesta-titulo">
+      <section className="py-28 px-4 bg-white dark:bg-[#221634] transition-colors" aria-labelledby="propuesta-titulo">
         <div className="max-w-6xl mx-auto">
           <ScrollReveal className="text-center mb-16">
             <p className="text-xs font-bold uppercase tracking-widest text-[#C9A227] mb-3">Por qué elegirnos</p>
@@ -183,7 +239,7 @@ export default function Home() {
               <motion.article
                 key={item.title}
                 variants={staggerItem}
-                className="group h-full p-9 rounded-3xl bg-gradient-to-br from-[#FCF9F2] to-white dark:from-white/4 dark:to-white/2 border border-[#C9A227]/12 dark:border-white/6 shadow-sm hover:shadow-xl dark:hover:shadow-black/30 hover:border-[#C9A227]/28 transition-all duration-300 hover:-translate-y-2 text-center"
+                className="group h-full p-9 rounded-3xl bg-gradient-to-br from-[#FBF7EF] to-white dark:from-white/[0.06] dark:to-white/[0.02] border-2 border-[#C9A227]/22 dark:border-white/10 shadow-sm hover:shadow-xl dark:hover:shadow-black/30 hover:border-[#C9A227]/28 transition-all duration-300 hover:-translate-y-2 text-center"
               >
                 <div className="w-16 h-16 mx-auto mb-6 rounded-2xl bg-[#0D2137]/5 dark:bg-white/6 flex items-center justify-center group-hover:bg-[#C9A227]/14 transition-colors duration-300">
                   <item.icon size={30} className="text-[#0D2137] dark:text-white/80 group-hover:text-[#C9A227] transition-colors duration-300" />
@@ -197,11 +253,11 @@ export default function Home() {
       </section>
 
       {/* ── UBICACIÓN Y MISIÓN ── */}
-      <section className="py-28 px-4 bg-[#F8F5EF] dark:bg-[#080F1C] transition-colors" aria-labelledby="info-titulo">
+      <section className="py-28 px-4 bg-[#E5D7BD] dark:bg-[#2A1C40] transition-colors" aria-labelledby="info-titulo">
         <div className="max-w-7xl mx-auto">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
             <ScrollReveal direction="left">
-              <div className="bg-white dark:bg-[#0C1829] p-10 rounded-3xl shadow-xl dark:shadow-black/30 border border-slate-100 dark:border-white/8 text-center flex flex-col items-center">
+              <div className="bg-white dark:bg-[#332247] p-10 rounded-3xl shadow-xl dark:shadow-black/30 border border-slate-100 dark:border-white/8 text-center flex flex-col items-center">
                 <h3 className="font-display text-2xl font-bold text-[#0D2137] dark:text-white mb-3 flex items-center gap-2 justify-center">
                   <MapPin size={22} className="text-[#C9A227]" /> Cómo llegar
                 </h3>
@@ -236,7 +292,7 @@ export default function Home() {
                   { title: 'Visión', text: 'Consolidarnos como la quinta de eventos líder en Chambo y Chimborazo, reconocida por la calidad humana, excelencia operativa y momentos de felicidad auténtica.' },
                 ].map((block, i) => (
                   <ScrollReveal key={block.title} delay={i * 0.12}>
-                    <div className="relative p-6 pl-12 bg-white dark:bg-[#0C1829] border border-slate-100 dark:border-white/8 rounded-2xl shadow-sm hover:shadow-md dark:hover:shadow-black/20 transition-all">
+                    <div className="relative p-6 pl-12 bg-white dark:bg-[#332247] border border-slate-100 dark:border-white/8 rounded-2xl shadow-sm hover:shadow-md dark:hover:shadow-black/20 transition-all">
                       <img src={imgMisionVision} alt="" className="absolute top-5 left-3 h-10 w-auto opacity-70" aria-hidden />
                       <h4 className="font-bold text-lg text-[#0D2137] dark:text-white mb-2">{block.title}</h4>
                       <p className="text-slate-600 dark:text-slate-400 text-sm leading-relaxed">{block.text}</p>
@@ -250,7 +306,7 @@ export default function Home() {
       </section>
 
       {/* ── VIDEO ── */}
-      <section className="py-28 px-4 bg-white dark:bg-[#060D18] transition-colors" aria-labelledby="video-titulo">
+      <section className="py-28 px-4 bg-white dark:bg-[#221634] transition-colors" aria-labelledby="video-titulo">
         <div className="max-w-6xl mx-auto">
           <ScrollReveal className="text-center mb-14">
             <p className="text-xs font-bold uppercase tracking-widest text-[#C9A227] mb-3">Nuestra quinta</p>
@@ -264,7 +320,16 @@ export default function Home() {
 
           <ScrollReveal delay={0.15}>
             <div className="relative aspect-video bg-[#0D2137] rounded-3xl overflow-hidden shadow-2xl ring-1 ring-slate-200 dark:ring-white/8 group">
-              <video controls className="w-full h-full object-cover" poster={bg6}>
+              <video
+                ref={videoRef}
+                controls
+                muted
+                loop
+                playsInline
+                preload="metadata"
+                className="w-full h-full object-cover"
+                poster={bg6}
+              >
                 <source src={vidPromocional} type="video/mp4" />
               </video>
               <div className="absolute top-4 left-4 flex items-center gap-2 px-3 py-1.5 bg-black/55 backdrop-blur rounded-full text-white text-xs font-semibold pointer-events-none">
@@ -286,7 +351,7 @@ export default function Home() {
 
       {/* ── CTA FINAL ── */}
       <section className="py-32 px-4 relative overflow-hidden" aria-labelledby="cta-titulo">
-        <div className="absolute inset-0 bg-gradient-to-br from-[#060D18] via-[#0D2137] to-[#060D18]" />
+        <div className="absolute inset-0 bg-gradient-to-br from-[#221634] via-[#0D2137] to-[#221634]" />
         <div className="absolute inset-0" style={{ backgroundImage: 'radial-gradient(ellipse at 30% 50%, rgba(201,162,39,0.14) 0%, transparent 60%), radial-gradient(ellipse at 70% 50%, rgba(26,106,172,0.1) 0%, transparent 60%)' }} />
         {/* Grid de puntos decorativo */}
         <div className="absolute inset-0 opacity-[0.04]" style={{ backgroundImage: 'radial-gradient(circle, #C9A227 1px, transparent 1px)', backgroundSize: '32px 32px' }} />
@@ -298,6 +363,37 @@ export default function Home() {
             <br />
             <span className="gradient-text">inolvidable</span>
           </h2>
+
+          {/* Carrusel automático */}
+          <div className="relative mt-10 mx-auto max-w-3xl aspect-[16/7] rounded-3xl overflow-hidden shadow-2xl ring-1 ring-white/15 bg-gradient-to-br from-[#2E2046] to-[#6B3F7A]/50">
+            <div className="absolute inset-0 flex items-center justify-center text-white/25 pointer-events-none">
+              <Camera size={44} />
+            </div>
+            <AnimatePresence mode="wait">
+              <motion.img
+                key={carIdx}
+                src={CARRUSEL[carIdx]}
+                alt={`Quinta Inés María — momento ${carIdx + 1}`}
+                initial={{ opacity: 0, scale: 1.06 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.9, ease: 'easeInOut' }}
+                className="absolute inset-0 w-full h-full object-cover"
+                onError={(e) => { e.currentTarget.style.visibility = 'hidden'; }}
+              />
+            </AnimatePresence>
+            <div className="absolute inset-0 bg-gradient-to-t from-[#170E20]/40 to-transparent pointer-events-none" />
+            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5 z-10">
+              {CARRUSEL.map((_, i) => (
+                <button
+                  key={i}
+                  onClick={() => setCarIdx(i)}
+                  aria-label={`Ver imagen ${i + 1}`}
+                  className={`rounded-full transition-all duration-300 ${i === carIdx ? 'w-6 h-1.5 bg-[#C9A227]' : 'w-1.5 h-1.5 bg-white/40 hover:bg-white/70'}`}
+                />
+              ))}
+            </div>
+          </div>
           <p className="mt-6 text-white/65 text-lg leading-relaxed max-w-xl mx-auto">
             Usa el configurador interactivo, elige tu paquete y recibe tu cotización al instante.
           </p>
@@ -316,6 +412,73 @@ export default function Home() {
             </Link>
           </div>
         </ScrollReveal>
+      </section>
+
+      {/* ── HISTORIA DE LA QUINTA (línea de tiempo) ──
+         Fondo distinto del footer en ambos modos (footer: beige #E7D8BD / púrpura #2E2046). */}
+      <section className="py-28 px-4 bg-[#FBF7EF] dark:bg-[#1B1230] transition-colors" aria-labelledby="historia-titulo">
+        <div className="max-w-5xl mx-auto">
+          <ScrollReveal className="text-center mb-16">
+            <p className="text-xs font-bold uppercase tracking-widest text-[#C9A227] mb-3">Nuestros recuerdos</p>
+            <h2 id="historia-titulo" className="font-display text-5xl sm:text-6xl font-bold text-[#0D2137] dark:text-white">
+              Historia de la Quinta
+            </h2>
+            <div className="w-24 h-1 bg-gradient-to-r from-transparent via-[#C9A227] to-transparent mx-auto mt-6 rounded-full" />
+            <p className="mt-5 text-slate-600 dark:text-slate-400 max-w-xl mx-auto text-lg">
+              Un recorrido por los momentos que nos convirtieron en el hogar de tus celebraciones.
+            </p>
+          </ScrollReveal>
+
+          <div className="space-y-12">
+            {HISTORIA.map((h, i) => {
+              const left = i % 2 === 0;
+              const activo = activoHist === i;
+              return (
+                <ScrollReveal key={h.year} direction={left ? 'left' : 'right'}>
+                  <div
+                    ref={(el) => (histRefs.current[i] = el)}
+                    data-idx={i}
+                    className="grid md:grid-cols-[1fr_auto_1fr] gap-5 md:gap-4 items-center"
+                  >
+                    {/* Imagen (placeholder con fallback degradado) */}
+                    <div className={`relative aspect-[4/3] rounded-3xl overflow-hidden shadow-lg border-4 transition-all duration-500 bg-gradient-to-br from-[#E7D8BD] to-[#C9A227]/30 dark:from-[#2E2046] dark:to-[#6B3F7A]/40 ${left ? 'md:order-1' : 'md:order-3'} ${activo ? 'border-[#C9A227] scale-[1.03] shadow-2xl' : 'border-white dark:border-white/10 opacity-95'}`}>
+                      <div className="absolute inset-0 flex items-center justify-center text-[#0D2137]/25 dark:text-white/25 pointer-events-none">
+                        <Camera size={38} />
+                      </div>
+                      <img
+                        src={`/assets/quinta/historia-${i + 1}.jpg`}
+                        alt={h.title}
+                        className="absolute inset-0 w-full h-full object-cover"
+                        onError={(e) => { e.currentTarget.style.visibility = 'hidden'; }}
+                      />
+                    </div>
+
+                    {/* Flecha conectora (apunta hacia la tarjeta) */}
+                    <div className="hidden md:flex md:order-2 items-center justify-center text-[#C9A227]">
+                      <motion.span animate={activo ? { x: [0, left ? 6 : -6, 0] } : {}} transition={{ repeat: Infinity, duration: 1.4 }}>
+                        {left ? <ArrowRight size={34} strokeWidth={2.5} /> : <ArrowLeft size={34} strokeWidth={2.5} />}
+                      </motion.span>
+                    </div>
+
+                    {/* Tarjeta de fecha (dorada, texto centrado) */}
+                    <div className={`${left ? 'md:order-3' : 'md:order-1'}`}>
+                      <div className={`text-center rounded-3xl p-7 border-2 transition-all duration-500 ${activo
+                        ? 'bg-amber-100 dark:bg-amber-900/30 border-[#C9A227] shadow-xl ring-2 ring-[#C9A227]/40 scale-[1.02]'
+                        : 'bg-amber-100/60 dark:bg-amber-900/20 border-[#C9A227]/30'}`}>
+                        <div className="w-14 h-14 mx-auto mb-3 rounded-2xl bg-gradient-to-br from-[#B7950B] to-[#C9A227] flex items-center justify-center text-white shadow-md">
+                          <h.icon size={24} />
+                        </div>
+                        <span className="font-display text-4xl font-bold text-[#B7950B] dark:text-[#E8C84A] leading-none">{h.year}</span>
+                        <h3 className="font-bold text-[#0D2137] dark:text-white text-xl mt-2 mb-2">{h.title}</h3>
+                        <p className="text-slate-600 dark:text-slate-300 text-sm leading-relaxed">{h.desc}</p>
+                      </div>
+                    </div>
+                  </div>
+                </ScrollReveal>
+              );
+            })}
+          </div>
+        </div>
       </section>
     </main>
   );

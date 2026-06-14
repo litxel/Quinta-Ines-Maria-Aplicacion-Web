@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import api from '../../services/api';
 import { getMisSolicitudes } from '../../services/solicitudes.service';
 import BadgeEstado from '../../components/shared/BadgeEstado';
+import logoQuinta from '../../assets/FotosQuintaInes/LogosQuinta/logo quinta ines.png';
 
 // Mensajes de estado
 const MENSAJES_ESTADO = {
@@ -69,11 +70,15 @@ export default function MisSolicitudes() {
 
       const doc = new jsPDF({ unit: 'mm', format: 'a4' });
       const pW  = doc.internal.pageSize.getWidth();
-      const NAVY = [13, 33, 55]; const GOLD = [183, 149, 11]; const SLATE = [100, 116, 139];
+      const NAVY = [42, 24, 56]; const GOLD = [201, 162, 39]; const SLATE = [110, 100, 120];
 
       // Header
       doc.setFillColor(...NAVY); doc.rect(0, 0, pW, 52, 'F');
       doc.setFillColor(...GOLD); doc.rect(0, 50, pW, 3, 'F');
+      try {
+        const logo = await new Promise((res) => { const im = new Image(); im.crossOrigin = 'anonymous'; im.onload = () => res(im); im.onerror = () => res(null); im.src = logoQuinta; });
+        if (logo) doc.addImage(logo, 'PNG', 14, 9, 28, 28);
+      } catch { /* sin logo */ }
       doc.setFont('helvetica', 'bold'); doc.setFontSize(22); doc.setTextColor(...GOLD); doc.text('QUINTA INÉS MARÍA', pW / 2, 20, { align: 'center' });
       doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(255, 255, 255); doc.text('BED  ·  CATERING  ·  EVENTOS  ·  CANTÓN CHAMBO', pW / 2, 28, { align: 'center' });
       doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(...GOLD); doc.text(`COTIZACIÓN N.° ${sol.numero_cotizacion}`, 20, 42);
@@ -83,7 +88,7 @@ export default function MisSolicitudes() {
 
       // Datos Cliente
       let y = 63;
-      doc.setFillColor(245, 240, 232); doc.roundedRect(14, y - 5, pW - 28, 28, 3, 3, 'F');
+      doc.setFillColor(243, 238, 248); doc.roundedRect(14, y - 5, pW - 28, 28, 3, 3, 'F');
       doc.setFont('helvetica', 'bold'); doc.setFontSize(8); doc.setTextColor(...NAVY); doc.text('DATOS DEL CLIENTE', 20, y + 1);
       doc.setFont('helvetica', 'normal'); doc.setFontSize(10); doc.setTextColor(30, 30, 30); doc.text(sol.cliente_nombre.toUpperCase(), 20, y + 8);
       doc.setFontSize(9); doc.setTextColor(...SLATE); doc.text(`Correo: ${sol.cliente_correo}`, 20, y + 14); doc.text(`Teléfono: ${sol.cliente_telefono || 'No especificado'}`, 20, y + 19);
@@ -160,12 +165,12 @@ export default function MisSolicitudes() {
   // ── Loading skeleton ───────────────────────────────────────────────────────
   if (loading) {
     return (
-      <main className="min-h-screen bg-[#F5F0E8] pt-24 pb-16">
+      <main className="min-h-screen bg-[#F5F0E8] dark:bg-[#221634] pt-24 pb-16">
         <div className="max-w-3xl mx-auto px-4">
-          <div className="h-8 w-56 bg-slate-200 rounded-lg animate-pulse mb-6" />
+          <div className="h-8 w-56 bg-slate-200 dark:bg-white/10 rounded-lg animate-pulse mb-6" />
           <div className="space-y-4">
             {[1, 2, 3].map((n) => (
-              <div key={n} className="h-32 bg-white rounded-2xl animate-pulse" />
+              <div key={n} className="h-32 bg-white dark:bg-[#332247] rounded-2xl animate-pulse" />
             ))}
           </div>
         </div>
@@ -174,40 +179,40 @@ export default function MisSolicitudes() {
   }
 
   return (
-    <main className="min-h-screen bg-[#F5F0E8] pt-24 pb-16">
+    <main className="min-h-screen bg-[#F5F0E8] dark:bg-[#221634] pt-24 pb-16">
       <div className="max-w-3xl mx-auto px-4">
 
         {/* ── Cabecera ─────────────────────────────────────────────────────── */}
         <div className="mb-7">
-          <h1 className="font-display text-3xl font-bold text-[#0D2137]">
+          <h1 className="font-display text-3xl font-bold text-[#0D2137] dark:text-white">
             Mis Solicitudes
           </h1>
-          <p className="text-slate-500 text-sm mt-1">
+          <p className="text-slate-500 dark:text-slate-400 dark:text-slate-500 text-sm mt-1">
             Aquí puedes ver el estado de todos tus eventos cotizados.
           </p>
         </div>
 
         {/* ── Error ────────────────────────────────────────────────────────── */}
         {error && (
-          <div role="alert" className="mb-5 p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm">
+          <div role="alert" className="mb-5 p-4 bg-red-50 dark:bg-red-500/12 border border-red-200 dark:border-red-500/25 rounded-xl text-red-700 dark:text-red-300 text-sm">
             ⚠ {error}
           </div>
         )}
 
         {/* ── Sin solicitudes ───────────────────────────────────────────────── */}
         {!error && solicitudes.length === 0 && (
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-12 text-center">
+          <div className="bg-white dark:bg-[#332247] rounded-2xl shadow-sm border border-slate-100 dark:border-white/8 p-12 text-center">
             <p className="text-5xl mb-4">📋</p>
-            <h2 className="font-display text-xl font-bold text-[#0D2137] mb-2">
+            <h2 className="font-display text-xl font-bold text-[#0D2137] dark:text-white mb-2">
               Aún no tienes solicitudes
             </h2>
-            <p className="text-slate-500 text-sm mb-6 leading-relaxed">
+            <p className="text-slate-500 dark:text-slate-400 dark:text-slate-500 text-sm mb-6 leading-relaxed">
               Usa el configurador para personalizar tu evento y enviar una
               solicitud de cotización. ¡Es gratis!
             </p>
             <Link
               to="/configurador"
-              className="inline-block px-7 py-3 bg-[#0D2137] text-white font-bold rounded-xl hover:bg-[#1A6BAC] transition-colors text-sm"
+              className="inline-block px-7 py-3 bg-[#0D2137] dark:bg-gradient-to-r dark:from-[#6B3F7A] dark:to-[#A971D6] text-white font-bold rounded-xl hover:bg-[#1A6BAC] dark:hover:brightness-110 transition-colors text-sm"
             >
               Ir al configurador →
             </Link>
@@ -219,7 +224,7 @@ export default function MisSolicitudes() {
           {solicitudes.map((s) => (
             <article
               key={s.solicitud_id}
-              className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden"
+              className="bg-white dark:bg-[#332247] rounded-2xl border border-slate-100 dark:border-white/8 shadow-sm overflow-hidden"
             >
               {/* Barra superior de color según estado */}
               <BarraEstado color={s.estado_color} />
@@ -230,20 +235,20 @@ export default function MisSolicitudes() {
                   {/* Información principal */}
                   <div className="min-w-0 flex-1">
                     {/* Número de cotización */}
-                    <p className="font-mono text-xs text-[#B7950B] font-bold mb-1">
+                    <p className="font-mono text-xs text-[#B7950B] dark:text-[#C9A227] font-bold mb-1">
                       {s.numero_cotizacion}
                     </p>
 
                     {/* Paquete + evento */}
-                    <h2 className="font-display font-bold text-[#0D2137] text-lg leading-tight">
+                    <h2 className="font-display font-bold text-[#0D2137] dark:text-white text-lg leading-tight">
                       {s.paquete_nombre ?? 'Paquete no especificado'}
                     </h2>
-                    <p className="text-slate-400 text-sm mt-0.5">
+                    <p className="text-slate-400 dark:text-slate-500 text-sm mt-0.5">
                       {s.tipo_nombre ?? '—'} · {s.num_invitados} invitados
                     </p>
 
                     {/* Mensaje del estado */}
-                    <p className="text-slate-500 text-xs mt-2 leading-relaxed">
+                    <p className="text-slate-500 dark:text-slate-400 dark:text-slate-500 text-xs mt-2 leading-relaxed">
                       {MENSAJES_ESTADO[s.estado_codigo] ?? ''}
                     </p>
                   </div>
@@ -254,10 +259,10 @@ export default function MisSolicitudes() {
                       estadoColor={s.estado_color}
                       estadoNombre={s.estado_nombre}
                     />
-                    <p className="font-bold text-[#0D2137] text-xl">
+                    <p className="font-bold text-[#0D2137] dark:text-white text-xl">
                       ${parseFloat(s.precio_estimado).toFixed(2)}
                     </p>
-                    <p className="text-xs text-slate-400">Total estimado</p>
+                    <p className="text-xs text-slate-400 dark:text-slate-500">Total estimado</p>
                   </div>
                 </div>
 
@@ -265,11 +270,11 @@ export default function MisSolicitudes() {
                 <TimelineEstado estadoCodigo={s.estado_codigo} />
 
                 {/* ── Footer: fechas y BOTONES DE ACCIÓN ────────────────────── */}
-                <div className="mt-4 pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-4 text-xs text-slate-400">
+                <div className="mt-4 pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-4 text-xs text-slate-400 dark:text-slate-500">
                   <div className="flex flex-col gap-1">
                     <span>
                       Solicitada el{' '}
-                      <strong className="text-slate-600">
+                      <strong className="text-slate-600 dark:text-slate-300">
                         {new Date(s.creado_en).toLocaleDateString('es-EC', { day: '2-digit', month: 'long', year: 'numeric' })}
                       </strong>
                     </span>
@@ -280,7 +285,7 @@ export default function MisSolicitudes() {
                     <button 
                       onClick={() => handleDescargarPDF(s.solicitud_id)}
                       disabled={descargando === s.solicitud_id}
-                      className="px-4 py-2 bg-blue-50 text-[#1A6BAC] border border-blue-200 font-bold rounded-lg hover:bg-[#1A6BAC] hover:text-white transition-all disabled:opacity-50"
+                      className="px-4 py-2 bg-blue-50 dark:bg-blue-500/15 text-[#1A6BAC] dark:text-blue-300 border border-blue-200 dark:border-blue-500/25 font-bold rounded-lg hover:bg-[#1A6BAC] hover:text-white transition-all disabled:opacity-50"
                     >
                       {descargando === s.solicitud_id ? 'Generando PDF...' : '📄 Descargar Proforma'}
                     </button>
@@ -289,7 +294,7 @@ export default function MisSolicitudes() {
                       <button 
                         onClick={() => handleCancelar(s.solicitud_id)}
                         disabled={cancelando === s.solicitud_id}
-                        className="px-4 py-2 bg-red-50 text-red-600 border border-red-200 font-bold rounded-lg hover:bg-red-600 hover:text-white transition-all disabled:opacity-50"
+                        className="px-4 py-2 bg-red-50 dark:bg-red-500/15 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-500/25 font-bold rounded-lg hover:bg-red-600 hover:text-white transition-all disabled:opacity-50"
                       >
                         {cancelando === s.solicitud_id ? 'Cancelando...' : '✖ Cancelar'}
                       </button>
@@ -299,11 +304,11 @@ export default function MisSolicitudes() {
 
                 {/* Observaciones del admin (si existen) */}
                 {s.observaciones && (
-                  <div className="mt-3 p-3 bg-blue-50 border border-blue-100 rounded-xl">
-                    <p className="text-xs font-semibold text-blue-700 mb-1">
+                  <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-500/12 border border-blue-100 dark:border-blue-500/25 rounded-xl">
+                    <p className="text-xs font-semibold text-blue-700 dark:text-blue-300 mb-1">
                       📝 Mensaje de nuestro equipo:
                     </p>
-                    <p className="text-xs text-blue-600 leading-relaxed">
+                    <p className="text-xs text-blue-600 dark:text-blue-400 leading-relaxed">
                       {s.observaciones}
                     </p>
                   </div>
@@ -318,7 +323,7 @@ export default function MisSolicitudes() {
           <div className="mt-8 text-center">
             <Link
               to="/configurador"
-              className="inline-block px-7 py-3 border-2 border-[#0D2137] text-[#0D2137] font-bold rounded-xl hover:bg-[#0D2137] hover:text-white transition-colors text-sm"
+              className="inline-block px-7 py-3 border-2 border-[#0D2137] dark:border-[#A971D6] text-[#0D2137] dark:text-white font-bold rounded-xl hover:bg-[#0D2137] dark:hover:bg-[#A971D6] hover:text-white transition-colors text-sm"
             >
               + Crear nueva solicitud
             </Link>
@@ -370,22 +375,22 @@ function TimelineEstado({ estadoCodigo }) {
             <div className="flex flex-col items-center">
               <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold border-2 transition-all ${
                 esActual
-                  ? 'bg-[#0D2137] border-[#0D2137] text-white scale-110'
+                  ? 'bg-[#0D2137] dark:bg-[#A971D6] border-[#0D2137] dark:border-[#A971D6] text-white scale-110'
                   : completado
                   ? 'bg-[#B7950B] border-[#B7950B] text-white'
-                  : 'bg-white border-slate-300 text-slate-300'
+                  : 'bg-white dark:bg-white/8 border-slate-300 dark:border-white/15 text-slate-300 dark:text-slate-500'
               }`}>
                 {completado ? '✓' : i + 1}
               </div>
               <span className={`text-[9px] mt-1 text-center whitespace-nowrap ${
-                esActual ? 'text-[#0D2137] font-bold' : completado ? 'text-[#B7950B]' : 'text-slate-300'
+                esActual ? 'text-[#0D2137] dark:text-[#C9A227] font-bold' : completado ? 'text-[#B7950B] dark:text-[#C9A227]' : 'text-slate-300 dark:text-slate-600'
               }`}>
                 {labels[i]}
               </span>
             </div>
             {i < PASOS_TIMELINE.length - 1 && (
               <div className={`flex-1 h-0.5 mb-4 transition-colors ${
-                i < indiceActual ? 'bg-[#B7950B]' : 'bg-slate-200'
+                i < indiceActual ? 'bg-[#B7950B]' : 'bg-slate-200 dark:bg-white/10'
               }`} />
             )}
           </div>

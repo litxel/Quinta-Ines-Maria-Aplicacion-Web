@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Home, ChevronRight, Star, Heart, Mail, Phone, MapPin } from 'lucide-react';
-import logoQuinta from '../../assets/FotosQuintaInes/LogosQuinta/logo quinta ines.png';
+import LogoQuinta from '../shared/LogoQuinta';
 
 const LINKS = [
   { to: '/',            label: 'Inicio'         },
@@ -17,7 +17,7 @@ export default function Footer() {
   const [hoveredLink, setHoveredLink] = useState(null);
 
   return (
-    <footer className="bg-[#060D18] text-white relative overflow-hidden border-t border-white/5">
+    <footer className="bg-[#E7D8BD] dark:bg-[#2E2046] text-[#3a3128] dark:text-white relative overflow-hidden border-t border-[#0D2137]/10 dark:border-white/5 transition-colors duration-300">
 
       {/* Decoraciones de fondo */}
       <div className="absolute inset-0 pointer-events-none" aria-hidden>
@@ -44,25 +44,19 @@ export default function Footer() {
               animate={{ y: [0, -7, 0] }}
               transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
             >
-              <motion.div
-                className="absolute inset-0 rounded-full blur-2xl"
-                style={{ backgroundColor: '#C9A227' }}
-                animate={{ opacity: [0.12, 0.3, 0.12], scale: [0.88, 1.08, 0.88] }}
-                transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
-              />
-              <img src={logoQuinta} alt="Logo Quinta Inés María" className="relative h-28 w-auto drop-shadow-2xl" />
+              <LogoQuinta imgClassName="h-28 w-auto drop-shadow-2xl" glowClassName="-inset-8" />
             </motion.div>
 
             <div className="text-center lg:text-left">
               <h2 className="font-display text-2xl font-bold leading-tight gradient-text">
                 Quinta Inés María
               </h2>
-              <p className="text-[10px] text-white/35 font-bold uppercase tracking-[0.28em] mt-1">
+              <p className="text-[10px] text-[#7a6f60] dark:text-white/35 font-bold uppercase tracking-[0.28em] mt-1">
                 BED · Catering · Eventos
               </p>
             </div>
 
-            <p className="text-white/45 leading-relaxed text-xs max-w-[220px] text-center lg:text-left">
+            <p className="text-[#6b6053] dark:text-white/45 leading-relaxed text-xs max-w-[220px] text-center lg:text-left">
               Creamos eventos únicos e irrepetibles con el calor del campo ecuatoriano.
             </p>
 
@@ -77,7 +71,7 @@ export default function Footer() {
                   <Star size={13} fill="#C9A227" stroke="none" />
                 </motion.div>
               ))}
-              <span className="text-white/35 text-xs ml-1 font-medium">5.0</span>
+              <span className="text-[#7a6f60] dark:text-white/35 text-xs ml-1 font-medium">5.0</span>
             </div>
           </div>
 
@@ -94,7 +88,7 @@ export default function Footer() {
                     to={link.to}
                     onMouseEnter={() => setHoveredLink(link.to)}
                     onMouseLeave={() => setHoveredLink(null)}
-                    className="group flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium text-white/55 hover:text-white hover:bg-white/5 transition-all duration-200"
+                    className="group flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium text-[#5a4f43] dark:text-white/55 hover:text-[#0D2137] dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5 transition-all duration-200"
                   >
                     <motion.div animate={{ x: hoveredLink === link.to ? 5 : 0 }} transition={{ duration: 0.15 }}>
                       <ChevronRight size={13} className="text-[#C9A227] opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -118,15 +112,15 @@ export default function Footer() {
                   <MapPin size={13} className="text-[#C9A227]" />
                 </div>
                 <div>
-                  <p className="text-white/75 text-sm font-semibold">Chambo, Chimborazo</p>
-                  <p className="text-white/38 text-xs mt-0.5">Ecuador</p>
+                  <p className="text-[#3a3128] dark:text-white/75 text-sm font-semibold">Chambo, Chimborazo</p>
+                  <p className="text-[#7a6f60] dark:text-white/38 text-xs mt-0.5">Ecuador</p>
                 </div>
               </li>
               <li className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-xl bg-[#C9A227]/10 border border-[#C9A227]/15 flex items-center justify-center shrink-0">
                   <Phone size={13} className="text-[#C9A227]" />
                 </div>
-                <a href="tel:+593985488891" className="text-white/75 text-sm font-semibold hover:text-[#C9A227] transition-colors">
+                <a href="tel:+593985488891" className="text-[#3a3128] dark:text-white/75 text-sm font-semibold hover:text-[#C9A227] transition-colors">
                   +593 98 548 8891
                 </a>
               </li>
@@ -134,7 +128,7 @@ export default function Footer() {
                 <div className="w-8 h-8 rounded-xl bg-[#C9A227]/10 border border-[#C9A227]/15 flex items-center justify-center shrink-0 mt-0.5">
                   <Mail size={13} className="text-[#C9A227]" />
                 </div>
-                <a href="mailto:hosteriainesmariabedyeventos@gmail.com" className="text-white/50 text-xs hover:text-white/85 transition-colors leading-relaxed break-all font-medium">
+                <a href="mailto:hosteriainesmariabedyeventos@gmail.com" className="text-[#5a4f43] dark:text-white/50 text-xs hover:text-white/85 transition-colors leading-relaxed break-all font-medium">
                   hosteriainesmariabedyeventos@gmail.com
                 </a>
               </li>
@@ -186,10 +180,10 @@ export default function Footer() {
 
         {/* Copyright */}
         <div className="mt-14 pt-6 border-t border-white/8 flex flex-col md:flex-row justify-between items-center gap-3">
-          <p className="text-white/28 text-xs font-medium">
+          <p className="text-[#8a7e6d] dark:text-white/28 text-xs font-medium">
             &copy; {anioActual} Quinta Inés María · Todos los derechos reservados.
           </p>
-          <p className="text-white/18 text-xs font-medium">
+          <p className="text-[#9a8e7c] dark:text-white/18 text-xs font-medium">
             Desarrollado por Gerardo Barreno · ESPOCH
           </p>
         </div>
