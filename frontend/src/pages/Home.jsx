@@ -12,6 +12,19 @@ import imgMisionVision from '../assets/FotosQuintaInes/LogosQuinta/mision.JPG';
 import imgQrDirections from '../assets/FotosQuintaInes/LogosQuinta/QRINVITACIONCOMOLLEGAR.jpg';
 import vidPromocional  from '../assets/FotosQuintaInes/VideosQuinta/WhatsAppVideo2024-06-04at2.43.50PM.mp4';
 
+// Imágenes del carrusel de la sección CTA (importadas para que Vite las empaquete)
+import car1 from '../assets/FotosQuintaInes/AreasVerdesQuinta/pileta.png';
+import car2 from '../assets/FotosQuintaInes/ArtistasQuinta/grupo chaparros quinta ines.jpg';
+import car3 from '../assets/FotosQuintaInes/BodasQuinta/619844066_122149389806698194_3567595811387650194_n.jpg.jpeg';
+import car4 from '../assets/FotosQuintaInes/DecoracionesQuinta/622871883_122149388912698194_588578243096562400_n.jpg.jpeg';
+
+// Imágenes de la línea de tiempo "Historia de la Quinta" (en orden 2015→2026)
+import hist1 from '../assets/FotosQuintaInes/PersonasQuinta/gente 16 quinta ines.jpg';
+import hist2 from '../assets/FotosQuintaInes/AreasVerdesQuinta/puente.jpg.jpeg';
+import hist3 from '../assets/FotosQuintaInes/PersonasQuinta/gente 10 quinta ines.jpg';
+import hist4 from '../assets/FotosQuintaInes/EQUIM/fondoEQUIM.png';
+import hist5 from '../assets/FotosQuintaInes/DecoracionesQuinta/mesa principal.jpg.jpeg';
+
 const IMAGENES_FONDO = [bg1, bg3, bg5, bg6];
 
 const VALORES = [
@@ -21,27 +34,22 @@ const VALORES = [
 ];
 
 const STATS = [
-  { value: '15+',  label: 'Años de experiencia'       },
-  { value: '500+', label: 'Eventos realizados'         },
+  { value: '6+',  label: 'Años de experiencia'       },
+  { value: '300+', label: 'Eventos realizados'         },
   { value: '100%', label: 'Atención personalizada'     },
 ];
 
 // ─── Línea de tiempo "Historia de la Quinta" ────────────────────────────────────
 const HISTORIA = [
-  { year: '2009', icon: Sprout,  title: 'Un sueño familiar', desc: 'Nace la Quinta Inés María en el corazón de Chambo, con la ilusión de compartir el calor del campo ecuatoriano.' },
-  { year: '2014', icon: Flower2, title: 'Jardines y glorieta', desc: 'Inauguramos los jardines, la glorieta, el puente y la pileta, creando el escenario perfecto para celebrar.' },
-  { year: '2018', icon: ChefHat, title: 'Catering propio', desc: 'Sumamos chef ejecutivo y equipo culinario propio, con menús de hasta 5 tiempos para cada evento.' },
-  { year: '2021', icon: Star,    title: '+300 celebraciones', desc: 'Superamos los 300 eventos realizados y ampliamos nuestras instalaciones para recibir a más familias.' },
-  { year: '2024', icon: Globe,   title: 'Quinta digital', desc: 'Lanzamos EventPlanner, nuestra plataforma para configurar y cotizar tu evento en línea en minutos.' },
+  { year: '2015', icon: Sprout,  img: hist1, title: 'Un sueño familiar', desc: 'Nace la Quinta Inés María en el corazón de Chambo, con la ilusión de compartir el calor del campo ecuatoriano.' },
+  { year: '2018', icon: Flower2, img: hist2, title: 'Jardines y glorieta', desc: 'Inauguramos los jardines, la glorieta, el puente y la pileta, creando el escenario perfecto para celebrar.' },
+  { year: '2020', icon: ChefHat, img: hist5, title: 'Catering propio', desc: 'Sumamos chef ejecutivo y equipo culinario propio, con menús de hasta 5 tiempos para cada evento.' },
+  { year: '2025', icon: Star,    img: hist3, title: '+200 celebraciones', desc: 'Superamos los 300 eventos realizados y ampliamos nuestras instalaciones para recibir a más familias.' },
+  { year: '2026', icon: Globe,   img: hist4, title: 'Quinta digital', desc: 'Lanzamos EventPlanner, nuestra plataforma para configurar y cotizar tu evento en línea en minutos.' },
 ];
 
-// Carrusel de la sección CTA (placeholders — reemplazar por imágenes reales)
-const CARRUSEL = [
-  '/assets/quinta/carrusel-1.jpg',
-  '/assets/quinta/carrusel-2.jpg',
-  '/assets/quinta/carrusel-3.jpg',
-  '/assets/quinta/carrusel-4.jpg',
-];
+// Carrusel de la sección CTA (imágenes reales importadas)
+const CARRUSEL = [car1, car2, car3, car4];
 
 export default function Home() {
   const [indiceActual, setIndiceActual] = useState(0);
@@ -351,8 +359,14 @@ export default function Home() {
 
       {/* ── CTA FINAL ── */}
       <section className="py-32 px-4 relative overflow-hidden" aria-labelledby="cta-titulo">
-        <div className="absolute inset-0 bg-gradient-to-br from-[#221634] via-[#0D2137] to-[#221634]" />
-        <div className="absolute inset-0" style={{ backgroundImage: 'radial-gradient(ellipse at 30% 50%, rgba(201,162,39,0.14) 0%, transparent 60%), radial-gradient(ellipse at 70% 50%, rgba(26,106,172,0.1) 0%, transparent 60%)' }} />
+        <div className="absolute inset-0 bg-gradient-to-br from-[#1B1030] via-[#2A1838] to-[#0D2137]" />
+        {/* Aurora ARGB animada (púrpura · fucsia · ámbar) */}
+        <motion.div aria-hidden className="absolute -top-24 -left-16 w-[26rem] h-[26rem] rounded-full bg-[#A971D6]/30 blur-[120px]"
+          animate={{ x: [0, 50, 0], y: [0, 30, 0] }} transition={{ duration: 16, repeat: Infinity, ease: 'easeInOut' }} />
+        <motion.div aria-hidden className="absolute -bottom-28 -right-10 w-[30rem] h-[30rem] rounded-full bg-[#C9A227]/22 blur-[130px]"
+          animate={{ x: [0, -45, 0], y: [0, -25, 0] }} transition={{ duration: 18, repeat: Infinity, ease: 'easeInOut' }} />
+        <motion.div aria-hidden className="absolute top-1/3 left-1/2 -translate-x-1/2 w-80 h-80 rounded-full bg-[#E0559E]/20 blur-[120px]"
+          animate={{ scale: [1, 1.18, 1], opacity: [0.6, 0.9, 0.6] }} transition={{ duration: 11, repeat: Infinity, ease: 'easeInOut' }} />
         {/* Grid de puntos decorativo */}
         <div className="absolute inset-0 opacity-[0.04]" style={{ backgroundImage: 'radial-gradient(circle, #C9A227 1px, transparent 1px)', backgroundSize: '32px 32px' }} />
 
@@ -365,24 +379,36 @@ export default function Home() {
           </h2>
 
           {/* Carrusel automático */}
-          <div className="relative mt-10 mx-auto max-w-3xl aspect-[16/7] rounded-3xl overflow-hidden shadow-2xl ring-1 ring-white/15 bg-gradient-to-br from-[#2E2046] to-[#6B3F7A]/50">
-            <div className="absolute inset-0 flex items-center justify-center text-white/25 pointer-events-none">
-              <Camera size={44} />
-            </div>
-            <AnimatePresence mode="wait">
-              <motion.img
+          <div className="relative mt-10 mx-auto max-w-3xl aspect-[16/9] rounded-3xl overflow-hidden shadow-2xl ring-1 ring-[#C9A227]/25 bg-[#140A1E]">
+            <AnimatePresence>
+              <motion.div
                 key={carIdx}
-                src={CARRUSEL[carIdx]}
-                alt={`Quinta Inés María — momento ${carIdx + 1}`}
-                initial={{ opacity: 0, scale: 1.06 }}
+                initial={{ opacity: 0, scale: 1.08 }}
                 animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.9, ease: 'easeInOut' }}
-                className="absolute inset-0 w-full h-full object-cover"
-                onError={(e) => { e.currentTarget.style.visibility = 'hidden'; }}
-              />
+                exit={{ opacity: 0, scale: 1.02 }}
+                transition={{ duration: 1.1, ease: [0.22, 1, 0.36, 1] }}
+                className="absolute inset-0"
+              >
+                {/* Fondo difuminado: rellena el marco sin recortar la foto */}
+                <div
+                  className="absolute inset-0 bg-cover bg-center blur-2xl scale-110 opacity-55"
+                  style={{ backgroundImage: `url("${CARRUSEL[carIdx]}")` }}
+                  aria-hidden="true"
+                />
+                {/* Imagen COMPLETA (sin recorte) y a buen tamaño */}
+                <img
+                  src={CARRUSEL[carIdx]}
+                  alt={`Quinta Inés María — momento ${carIdx + 1}`}
+                  className="absolute inset-0 w-full h-full object-contain drop-shadow-2xl"
+                />
+              </motion.div>
             </AnimatePresence>
-            <div className="absolute inset-0 bg-gradient-to-t from-[#170E20]/40 to-transparent pointer-events-none" />
+
+            {/* Velo inferior + borde interior sutil */}
+            <div className="absolute inset-0 bg-gradient-to-t from-[#140A1E]/55 via-transparent to-transparent pointer-events-none" />
+            <div className="absolute inset-0 rounded-3xl ring-1 ring-inset ring-white/10 pointer-events-none" />
+
+            {/* Indicadores */}
             <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5 z-10">
               {CARRUSEL.map((_, i) => (
                 <button
@@ -446,11 +472,14 @@ export default function Home() {
                         <Camera size={38} />
                       </div>
                       <img
-                        src={`/assets/quinta/historia-${i + 1}.jpg`}
+                        src={h.img}
                         alt={h.title}
-                        className="absolute inset-0 w-full h-full object-cover"
+                        loading="lazy"
+                        className={`absolute inset-0 w-full h-full object-cover transition-transform duration-700 ${activo ? 'scale-110' : 'scale-100'}`}
                         onError={(e) => { e.currentTarget.style.visibility = 'hidden'; }}
                       />
+                      {/* Velo inferior para dar profundidad */}
+                      <div className="absolute inset-0 bg-gradient-to-t from-[#0D2137]/35 to-transparent pointer-events-none" />
                     </div>
 
                     {/* Flecha conectora (apunta hacia la tarjeta) */}

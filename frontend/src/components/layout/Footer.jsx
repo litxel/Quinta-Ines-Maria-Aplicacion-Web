@@ -12,6 +12,12 @@ const LINKS = [
   { to: '/configurador', label: 'Cotizar Evento' },
 ];
 
+/* ── Iluminación ARGB contenida para los ítems de contacto ───────────────────── */
+const ICONO_CONTACTO =
+  'w-8 h-8 rounded-xl bg-[#C9A227]/10 border border-[#C9A227]/15 flex items-center justify-center shrink-0 mt-0.5 transition-all duration-200 group-hover:bg-gradient-to-br group-hover:from-[#6B3F7A] group-hover:via-[#A971D6] group-hover:to-[#C9A227] group-hover:border-transparent group-hover:shadow-inner group-hover:shadow-white/25';
+const TEXTO_CONTACTO =
+  'text-[#3a3128] dark:text-white/75 transition-colors duration-200 group-hover:text-transparent group-hover:bg-gradient-to-r group-hover:from-[#6B3F7A] group-hover:via-[#A971D6] group-hover:to-[#C9A227] dark:group-hover:from-[#C9A8E6] dark:group-hover:via-[#F0A8E4] dark:group-hover:to-[#F0D060] group-hover:bg-clip-text';
+
 export default function Footer() {
   const anioActual  = new Date().getFullYear();
   const [hoveredLink, setHoveredLink] = useState(null);
@@ -88,12 +94,14 @@ export default function Footer() {
                     to={link.to}
                     onMouseEnter={() => setHoveredLink(link.to)}
                     onMouseLeave={() => setHoveredLink(null)}
-                    className="group flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium text-[#5a4f43] dark:text-white/55 hover:text-[#0D2137] dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5 transition-all duration-200"
+                    className="group flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium text-[#5a4f43] dark:text-white/55 transition-all duration-200 hover:bg-gradient-to-r hover:from-[#6B3F7A]/12 hover:via-[#A971D6]/14 hover:to-[#C9A227]/12 hover:shadow-inner hover:shadow-[#A971D6]/15"
                   >
                     <motion.div animate={{ x: hoveredLink === link.to ? 5 : 0 }} transition={{ duration: 0.15 }}>
                       <ChevronRight size={13} className="text-[#C9A227] opacity-0 group-hover:opacity-100 transition-opacity" />
                     </motion.div>
-                    {link.label}
+                    <span className="transition-colors duration-200 group-hover:text-transparent group-hover:bg-gradient-to-r group-hover:from-[#6B3F7A] group-hover:via-[#A971D6] group-hover:to-[#C9A227] dark:group-hover:from-[#C9A8E6] dark:group-hover:via-[#F0A8E4] dark:group-hover:to-[#F0D060] group-hover:bg-clip-text">
+                      {link.label}
+                    </span>
                   </Link>
                 </li>
               ))}
@@ -106,30 +114,53 @@ export default function Footer() {
               <div className="w-4 h-px bg-[#C9A227]" />
               Contacto
             </h4>
-            <ul className="space-y-4">
-              <li className="flex items-start gap-3">
-                <div className="w-8 h-8 rounded-xl bg-[#C9A227]/10 border border-[#C9A227]/15 flex items-center justify-center shrink-0 mt-0.5">
-                  <MapPin size={13} className="text-[#C9A227]" />
-                </div>
-                <div>
-                  <p className="text-[#3a3128] dark:text-white/75 text-sm font-semibold">Chambo, Chimborazo</p>
-                  <p className="text-[#7a6f60] dark:text-white/38 text-xs mt-0.5">Ecuador</p>
-                </div>
-              </li>
-              <li className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-xl bg-[#C9A227]/10 border border-[#C9A227]/15 flex items-center justify-center shrink-0">
-                  <Phone size={13} className="text-[#C9A227]" />
-                </div>
-                <a href="tel:+593985488891" className="text-[#3a3128] dark:text-white/75 text-sm font-semibold hover:text-[#C9A227] transition-colors">
-                  +593 98 548 8891
+            <ul className="space-y-3">
+              {/* Dirección → Google Maps (nueva pestaña) */}
+              <li>
+                <a
+                  href="https://www.google.com/maps/search/?api=1&query=Quinta+In%C3%A9s+Mar%C3%ADa+Chambo+Chimborazo"
+                  target="_blank" rel="noopener noreferrer"
+                  className="group flex items-start gap-3 rounded-xl p-1.5 -m-1.5 transition-all duration-200 hover:bg-gradient-to-r hover:from-[#6B3F7A]/8 hover:via-[#A971D6]/10 hover:to-[#C9A227]/8 hover:shadow-inner hover:shadow-[#A971D6]/15"
+                >
+                  <span className={ICONO_CONTACTO}>
+                    <MapPin size={13} className="text-[#C9A227] group-hover:text-white transition-colors" />
+                  </span>
+                  <span>
+                    <span className={`block text-sm font-semibold ${TEXTO_CONTACTO}`}>Chambo, Chimborazo</span>
+                    <span className="block text-[#7a6f60] dark:text-white/38 text-xs mt-0.5">Ecuador · Ver en Google Maps</span>
+                  </span>
                 </a>
               </li>
-              <li className="flex items-start gap-3">
-                <div className="w-8 h-8 rounded-xl bg-[#C9A227]/10 border border-[#C9A227]/15 flex items-center justify-center shrink-0 mt-0.5">
-                  <Mail size={13} className="text-[#C9A227]" />
-                </div>
-                <a href="mailto:hosteriainesmariabedyeventos@gmail.com" className="text-[#5a4f43] dark:text-white/50 text-xs hover:text-white/85 transition-colors leading-relaxed break-all font-medium">
-                  hosteriainesmariabedyeventos@gmail.com
+
+              {/* Teléfono → WhatsApp directo (wa.me) */}
+              <li>
+                <a
+                  href="https://wa.me/593985488891"
+                  target="_blank" rel="noopener noreferrer"
+                  className="group flex items-center gap-3 rounded-xl p-1.5 -m-1.5 transition-all duration-200 hover:bg-gradient-to-r hover:from-[#6B3F7A]/8 hover:via-[#A971D6]/10 hover:to-[#C9A227]/8 hover:shadow-inner hover:shadow-[#A971D6]/15"
+                >
+                  <span className={ICONO_CONTACTO}>
+                    <Phone size={13} className="text-[#C9A227] group-hover:text-white transition-colors" />
+                  </span>
+                  <span>
+                    <span className={`block text-sm font-semibold ${TEXTO_CONTACTO}`}>+593 98 548 8891</span>
+                    <span className="block text-[#7a6f60] dark:text-white/38 text-xs mt-0.5">Escríbenos por WhatsApp</span>
+                  </span>
+                </a>
+              </li>
+
+              {/* Email */}
+              <li>
+                <a
+                  href="mailto:hosteriainesmariabedyeventos@gmail.com"
+                  className="group flex items-start gap-3 rounded-xl p-1.5 -m-1.5 transition-all duration-200 hover:bg-gradient-to-r hover:from-[#6B3F7A]/8 hover:via-[#A971D6]/10 hover:to-[#C9A227]/8 hover:shadow-inner hover:shadow-[#A971D6]/15"
+                >
+                  <span className={ICONO_CONTACTO}>
+                    <Mail size={13} className="text-[#C9A227] group-hover:text-white transition-colors" />
+                  </span>
+                  <span className={`text-xs leading-relaxed break-all font-medium self-center ${TEXTO_CONTACTO}`}>
+                    hosteriainesmariabedyeventos@gmail.com
+                  </span>
                 </a>
               </li>
             </ul>
@@ -169,7 +200,7 @@ export default function Footer() {
             {/* CTA Cotizar */}
             <Link
               to="/configurador"
-              className="group flex items-center gap-3 w-full px-5 py-4 bg-gradient-to-r from-[#B7950B] to-[#D4AF37] text-white font-bold rounded-2xl hover:shadow-xl hover:shadow-[#C9A227]/22 hover:-translate-y-0.5 transition-all duration-250 text-sm"
+              className="group flex items-center gap-3 w-full px-5 py-4 bg-gradient-to-r from-[#6B3F7A] via-[#A971D6] to-[#C9A227] text-white font-bold rounded-2xl hover:shadow-lg hover:shadow-[#A971D6]/30 hover:-translate-y-0.5 transition-all duration-250 text-sm"
             >
               <Heart size={15} className="group-hover:scale-110 transition-transform shrink-0" fill="white" stroke="none" />
               <span>Cotizar mi evento</span>
@@ -192,24 +223,13 @@ export default function Footer() {
   );
 }
 
-function SocialIcon({ href, label, color, children }) {
+function SocialIcon({ href, label, children }) {
+  // Reposo: tinte ámbar discreto. Hover: iluminación ARGB contenida (púrpura →
+  // fucsia → ámbar) con shadow-inner, para integrarse al ecosistema del Navbar.
   return (
     <a
       href={href} target="_blank" rel="noopener noreferrer" aria-label={label}
-      className="w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-200 hover:scale-110 hover:-translate-y-0.5"
-      style={{
-        backgroundColor: `${color}18`,
-        border: `1px solid ${color}28`,
-        color,
-      }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.backgroundColor = color;
-        e.currentTarget.style.color = '#fff';
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.backgroundColor = `${color}18`;
-        e.currentTarget.style.color = color;
-      }}
+      className="group w-10 h-10 rounded-xl flex items-center justify-center bg-[#C9A227]/10 border border-[#C9A227]/20 text-[#C9A227] transition-all duration-200 hover:scale-110 hover:-translate-y-0.5 hover:text-white hover:border-transparent hover:bg-gradient-to-br hover:from-[#6B3F7A] hover:via-[#A971D6] hover:to-[#C9A227] hover:shadow-inner hover:shadow-white/25"
     >
       {children}
     </a>

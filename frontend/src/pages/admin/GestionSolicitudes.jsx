@@ -355,7 +355,7 @@ export default function GestionSolicitudes() {
       {/* ── Tabla Principal ── */}
       <div className="bg-white dark:bg-[#332247] rounded-2xl border border-slate-100 dark:border-white/8 shadow-md overflow-hidden flex flex-col min-h-[500px]">
         <div className="flex-1 overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full text-sm min-w-[820px]">
             <thead>
               <tr className="bg-gradient-to-r from-[#0D2137] to-[#1A3A5C]">
                 <Th>N.° Cotización</Th>

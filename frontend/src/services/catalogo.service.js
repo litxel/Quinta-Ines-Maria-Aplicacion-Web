@@ -53,7 +53,8 @@ export const actualizarPaquete = async (id, payload) => {
   return data.data;
 };
 
-export const desactivarPaquete = async (id) => {
+// Elimina PERMANENTEMENTE el paquete de la base de datos (hard delete).
+export const eliminarPaquete = async (id) => {
   const { data } = await api.delete(`/catalogo/admin/paquetes/${id}`);
   return data;
 };
@@ -87,22 +88,22 @@ export const actualizarServicioPaquete = async (paqueteId, servicioId, payload) 
 export const getTiposAdmin = async () => { const { data } = await api.get('/catalogo/admin/tipos-evento'); return data.data; };
 export const crearTipo = async (payload) => await api.post('/catalogo/admin/tipos-evento', payload);
 export const actualizarTipo = async (id, payload) => await api.put(`/catalogo/admin/tipos-evento/${id}`, payload);
-export const desactivarTipo = async (id) => await api.delete(`/catalogo/admin/tipos-evento/${id}`);
+export const eliminarTipo = async (id) => await api.delete(`/catalogo/admin/tipos-evento/${id}`);
 
 // ─── ESTILOS DE DECORACIÓN (Paso 6) ───────────────────────────────────────
 export const getEstilosAdmin = async () => { const { data } = await api.get('/catalogo/admin/estilos'); return data.data; };
 export const crearEstilo = async (payload) => await api.post('/catalogo/admin/estilos', payload);
 export const actualizarEstilo = async (id, payload) => await api.put(`/catalogo/admin/estilos/${id}`, payload);
-export const desactivarEstilo = async (id) => await api.delete(`/catalogo/admin/estilos/${id}`);
+export const eliminarEstilo = async (id) => await api.delete(`/catalogo/admin/estilos/${id}`);
 
 // ─── CENTROS DE MESA (Paso 6) ─────────────────────────────────────────────
 export const getCentrosAdmin = async () => { const { data } = await api.get('/catalogo/admin/centros-mesa'); return data.data; };
 export const crearCentro = async (payload) => await api.post('/catalogo/admin/centros-mesa', payload);
 export const actualizarCentro = async (id, payload) => await api.put(`/catalogo/admin/centros-mesa/${id}`, payload);
-export const desactivarCentro = async (id) => await api.delete(`/catalogo/admin/centros-mesa/${id}`);
+export const eliminarCentro = async (id) => await api.delete(`/catalogo/admin/centros-mesa/${id}`);
 
 // ─── SERVICIOS ADICIONALES / EXTRAS (Paso 7) ──────────────────────────────
 export const getExtrasAdmin = async () => { const { data } = await api.get('/catalogo/admin/extras'); return data.data; };
 export const crearExtra = async (payload) => await api.post('/catalogo/admin/extras', payload);
 export const actualizarExtra = async (id, payload) => await api.put(`/catalogo/admin/extras/${id}`, payload);
-export const desactivarExtra = async (id) => await api.delete(`/catalogo/admin/extras/${id}`);
+export const eliminarExtra = async (id) => await api.delete(`/catalogo/admin/extras/${id}`);

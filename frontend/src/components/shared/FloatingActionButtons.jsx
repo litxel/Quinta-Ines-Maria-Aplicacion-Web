@@ -3,6 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, X, Send } from 'lucide-react';
 import { whatsappUrl, WHATSAPP_NUMERO } from '../../config/contacto';
+import { useUIStore } from '../../store/useUIStore';
 
 const RUTAS_OCULTAS = ['/login', '/register', '/auth/callback', '/recuperar-clave', '/nueva-clave', '/verificar-cuenta'];
 
@@ -18,6 +19,7 @@ export default function FloatingActionButtons() {
   const { pathname } = useLocation();
   const [chatAbierto,   setChatAbierto]   = useState(false);
   const [notifVisible,  setNotifVisible]  = useState(false);
+  const asistenteAbierto = useUIStore((s) => s.asistenteAbierto);
 
   useEffect(() => {
     if (pathname.startsWith('/admin')) return;
@@ -30,6 +32,9 @@ export default function FloatingActionButtons() {
   if (RUTAS_OCULTAS.some((r) => pathname.startsWith(r))) return null;
 
   const enConfigurador = pathname.startsWith('/configurador');
+  // En el Configurador, cuando el Asistente IA está abierto, el botón de
+  // WhatsApp se aparta para no colisionar con el panel del chat.
+  const ocultarWhatsApp = enConfigurador && asistenteAbierto;
   const mensajeWA = 'Hola Quinta Inés María 👋, me gustaría obtener información sobre los eventos y paquetes disponibles.';
   const urlFinal  = whatsappUrl(mensajeWA);
 
@@ -143,7 +148,7 @@ export default function FloatingActionButtons() {
       </AnimatePresence>
 
       {/* Botón flotante WhatsApp */}
-      <div className="relative">
+      <div className={`relative transition-all duration-300 ${ocultarWhatsApp ? 'opacity-0 translate-y-[180%] pointer-events-none' : 'opacity-100 translate-y-0'}`}>
         {/* Tooltip notificación */}
         <AnimatePresence>
           {notifVisible && !chatAbierto && (

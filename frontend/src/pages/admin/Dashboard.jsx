@@ -144,8 +144,8 @@ export default function Dashboard() {
           <div className="absolute -right-6 -top-6 w-24 h-24 bg-white/5 rounded-full group-hover:scale-150 transition-transform duration-500" />
           <div className="relative z-10">
             <div className="flex items-center justify-between mb-4">
-              <div className="w-12 h-12 bg-[#B7950B] text-white rounded-xl flex items-center justify-center shadow-md"><DollarSign size={24} /></div>
-              <span className="text-2xl font-bold text-white">${parseFloat(resumen.ingresos_confirmados).toLocaleString('es-EC', { minimumFractionDigits: 2 })}</span>
+              <div className="w-12 h-12 bg-[#B7950B] text-white rounded-xl flex items-center justify-center shadow-md shrink-0"><DollarSign size={24} /></div>
+              <span className="text-xl sm:text-2xl font-bold text-white min-w-0 truncate text-right ml-2">${parseFloat(resumen.ingresos_confirmados).toLocaleString('es-EC', { minimumFractionDigits: 2 })}</span>
             </div>
             <p className="text-sm font-bold text-slate-300 dark:text-[#E8C84A]/90 uppercase tracking-wider">Ingresos Seguros</p>
           </div>
@@ -272,12 +272,12 @@ function DesgloseStat({ label, valor, icon, color }) {
     purple: 'text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-500/12 border-purple-200 dark:border-purple-500/25',
   };
   return (
-    <motion.div variants={item} className={`rounded-xl border px-6 py-5 flex items-center justify-between shadow-sm transition-transform hover:-translate-y-1 ${colores[color]}`}>
-      <div className="flex items-center gap-3">
-        <div className="opacity-70">{icon}</div>
-        <span className="text-sm font-bold opacity-90 tracking-wide">{label}</span>
+    <motion.div variants={item} className={`rounded-xl border px-5 sm:px-6 py-5 flex items-center justify-between gap-3 shadow-sm transition-transform hover:-translate-y-1 ${colores[color]}`}>
+      <div className="flex items-center gap-3 min-w-0">
+        <div className="opacity-70 shrink-0">{icon}</div>
+        <span className="text-xs sm:text-sm font-bold opacity-90 tracking-wide truncate">{label}</span>
       </div>
-      <span className="text-2xl font-black">{valor}</span>
+      <span className="text-xl sm:text-2xl font-black shrink-0 whitespace-nowrap">{valor}</span>
     </motion.div>
   );
 }

@@ -1,12 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
 import LucideIcon from '../../components/shared/LucideIcon';
-import { 
-  getPaquetesAdmin, actualizarPaquete, crearPaquete, desactivarPaquete,
+import {
+  getPaquetesAdmin, actualizarPaquete, crearPaquete, eliminarPaquete,
   agregarServicioPaquete, eliminarServicioPaquete, actualizarServicioPaquete,
-  getTiposAdmin, crearTipo, actualizarTipo, desactivarTipo,
-  getEstilosAdmin, crearEstilo, actualizarEstilo, desactivarEstilo,
-  getCentrosAdmin, crearCentro, actualizarCentro, desactivarCentro,
-  getExtrasAdmin, crearExtra, actualizarExtra, desactivarExtra
+  getTiposAdmin, crearTipo, actualizarTipo, eliminarTipo,
+  getEstilosAdmin, crearEstilo, actualizarEstilo, eliminarEstilo,
+  getCentrosAdmin, crearCentro, actualizarCentro, eliminarCentro,
+  getExtrasAdmin, crearExtra, actualizarExtra, eliminarExtra
 } from '../../services/catalogo.service';
 import { Package, GlassWater, GripHorizontal, Sparkles, Plus, Edit2, Trash2, X, Settings2, Eye, EyeOff } from 'lucide-react';
 
@@ -107,17 +107,28 @@ export default function GestionCatalogo() {
     }
   };
 
+  // ── ELIMINACIÓN PERMANENTE (HARD DELETE) ──────────────────────────────
+  // Llama al endpoint DELETE del backend. SOLO si el backend confirma el
+  // borrado (respuesta 200) se quita el elemento del estado local. Si el
+  // registro está en uso, el backend responde 409 y mostramos su mensaje.
   const handleEliminar = async (id) => {
-    if (!window.confirm('¿Seguro que deseas ELIMINAR/OCULTAR este elemento? No asomará a los clientes.')) return;
+    if (!window.confirm(
+      '¿Seguro que deseas ELIMINAR PERMANENTEMENTE este elemento?\n\n' +
+      'Esta acción borra el registro de la base de datos y NO se puede deshacer. ' +
+      'Si solo quieres que deje de mostrarse a los clientes, usa el botón del ojo para ocultarlo.'
+    )) return;
     try {
-      if (activeTab === 'paquetes') await desactivarPaquete(id);
-      if (activeTab === 'tipos')    await desactivarTipo(id);
-      if (activeTab === 'estilos')  await desactivarEstilo(id);
-      if (activeTab === 'centros')  await desactivarCentro(id);
-      if (activeTab === 'extras')   await desactivarExtra(id);
-      cargarDatos();
+      if (activeTab === 'paquetes') await eliminarPaquete(id);
+      if (activeTab === 'tipos')    await eliminarTipo(id);
+      if (activeTab === 'estilos')  await eliminarEstilo(id);
+      if (activeTab === 'centros')  await eliminarCentro(id);
+      if (activeTab === 'extras')   await eliminarExtra(id);
+      // Borrado confirmado por el backend → recién ahora lo quitamos del estado local.
+      setData(prev => prev.filter(
+        it => (it.paquete_id || it.tipo_id || it.estilo_id || it.centro_id || it.adicional_id) !== id
+      ));
     } catch (error) {
-      alert('Error al desactivar el elemento.');
+      alert(error.response?.data?.message || 'No se pudo eliminar el elemento. Intenta nuevamente.');
     }
   };
 
@@ -239,7 +250,7 @@ export default function GestionCatalogo() {
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-sm text-left">
+          <table className="w-full text-sm text-left min-w-[760px]">
             <thead className="bg-gradient-to-r from-[#0D2137] to-[#1A3A5C] dark:from-[#3E2B57] dark:to-[#332247] text-white/80 text-xs uppercase tracking-wider font-bold">
               <tr>
                 {activeTab === 'paquetes' && (
@@ -397,7 +408,7 @@ export default function GestionCatalogo() {
                         <button 
                           onClick={() => handleEliminar(item.paquete_id || item.tipo_id || item.estilo_id || item.centro_id || item.adicional_id)} 
                           className="p-2.5 text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors"
-                          title="Eliminar lógicamente"
+                          title="Eliminar permanentemente de la base de datos"
                         >
                           <Trash2 size={18}/>
                         </button>

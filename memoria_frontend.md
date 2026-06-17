@@ -733,4 +733,46 @@ Las 3 vistas (modal login requerido, **resumen "Enviar Solicitud"**, **ticket "�
 
 ---
 
+# 🛠️ FASE 9 — Depuración final (responsividad, contraste, z-index, DB delete, reseñas)
+
+## 1. Responsividad admin
+- **Tablas**: `min-w-[820px]` en `GestionSolicitudes.jsx` y `min-w-[760px]` en `GestionCatalogo.jsx` (ya envueltas en `overflow-x-auto`) → scroll horizontal real sin romper la cabecera. `SolicitudesArchivadas` ya tenía `min-w-[700px]`.
+- **Tarjetas**: `Dashboard.jsx` `DesgloseStat` (Dinero Potencial) → `min-w-0` + `truncate` en label, valor `text-xl sm:text-2xl shrink-0 whitespace-nowrap`; tarjeta "Ingresos Seguros" valor `truncate text-right`. `Reportes.jsx` KPI valor a `text-xl sm:text-2xl` (ya tenía `truncate`).
+
+## 2. Contraste Login dark mode
+- `Login.jsx`: añadidas clases `dark:` a "Bienvenido de vuelta" (`dark:text-white`), subtítulo y "¿No tienes cuenta?" (`dark:text-slate-300`), labels (`dark:text-slate-200`), divisor "o con tu correo" y borde. El `glass-card` en dark es violeta translúcido.
+
+## 3. Z-index Asistente IA (Configurador)
+- `AsistenteIA.jsx`: botón y panel subidos a **`z-[100]`**.
+- `FloatingActionButtons.jsx`: lee `asistenteAbierto` de `useUIStore`; cuando `enConfigurador && asistenteAbierto` el botón WhatsApp se aparta (`opacity-0 translate-y-[180%] pointer-events-none`). El Asistente sigue siendo **solo del Configurador** (render en `Configurador.jsx`).
+
+## 4. Eliminación REAL en "Servicios y Precios" (hard delete)
+- **Backend** `catalogo.service.js`: nuevas `eliminarPaquete/Tipo/Estilo/Centro/Extra` con `DELETE FROM` físico + protección FK (Postgres `23503` → error 409 "está en uso, ocúltalo en su lugar") + borrado del archivo de imagen. Paquete borra primero sus `paquete_servicios`.
+- `catalogo.controller.js`: los 5 handlers DELETE ahora llaman a `eliminar*` (auditoría `DELETE`, mensaje "eliminado permanentemente"). **Rutas DELETE sin cambios.**
+- **Frontend** `catalogo.service.js`: `desactivar*` renombrados a `eliminar*`. `GestionCatalogo.jsx` `handleEliminar` → confirma, llama API y **solo quita del estado local si responde éxito** (`setData(filter)`); muestra el mensaje del backend en error. El ojo (toggle visibilidad) sigue para ocultar/mostrar.
+
+## 5. Módulo de Reseñas (DB + UI + plan Google)
+- **Backend nuevo módulo** `modules/resenias/` (service/controller/routes) registrado en `app.js` como `/api/resenias`:
+  - `GET /api/resenias` (público) → reseñas aprobadas+activas con autor (`eqim_seguridad.usuarios`).
+  - `POST /api/resenias` (`verifyToken`) → crea reseña del usuario (1–5 estrellas + comentario, máx 1000).
+  - Tabla **`eqim_catalogo.resenias`** creada con `migrate_resenias.js` (FK a usuarios ON DELETE CASCADE, check 1–5, `aprobada/activo` default true). **Migración ya ejecutada.**
+- **Frontend** `services/resenias.service.js`: `fetchResenias`, `crearResenia`, y **`fetchGoogleReviews` (cascarón)** con **plan técnico por fases** comentado (curadas+DB → widget terceros tipo Elfsight/Trustindex gratis → backend propio con Places API y caché protegiendo la API Key en el `.env` del backend → scraping como último recurso no recomendado).
+- `Resenias.jsx`: formulario "Comparte tu experiencia" para usuarios autenticados (selector de estrellas interactivo con hover + textarea), publica al instante y antepone la reseña; filtro nuevo **"Comunidad QIM"**; `ReviewCard` soporta fuente `app` (badge púrpura) y **foto de perfil real** (fallback a inicial); empty-state cuando no hay reseñas de la comunidad. No autenticados ven CTA a `/login`.
+
+*Build front verde. Backend: `node -c` OK en todos los archivos tocados.*
+
+## 6. Ajustes posteriores (mismo sprint)
+- **Asistente IA detrás del footer (Configurador)**: la causa real es el *stacking context* que crea la animación de opacidad de `PageTransition`. Solución: `AsistenteIA.jsx` ahora **se renderiza con `createPortal(..., document.body)`** (botón y panel) con `z-[2147483000]` → siempre por encima del footer al hacer scroll.
+- **Google Reviews REAL (backend)**: `modules/resenias` añade `GET /api/resenias/google` → `obtenerResenasGoogle` llama Places API (Place Details, fields rating/user_ratings_total/reviews) con **caché en memoria 12h**; API Key SOLO en el `.env` del backend (`GOOGLE_PLACES_API_KEY`, `GOOGLE_PLACE_ID`). Sin credenciales devuelve `{configurado:false}` y la UI usa curadas. Frontend `fetchGoogleReviews` consume ese endpoint; `Resenias.jsx` usa reseñas live si `configurado`, si no las curadas (filtro/contador/promedio dinámicos).
+- **Carrusel hero Reseñas**: fondo de la sección "Lo que dicen nuestros clientes" con **8 fotos de `assets/FotosQuintaInes/PersonasQuinta`** (gente 1/5/6/10/11/15/16/19), orden **aleatorio cada 2 s**, crossfade + zoom Ken-Burns (`AnimatePresence` + `motion`, opacity 0→0.5, scale 1.14→1, 1.6s) y velo `#0D2137` para legibilidad.
+- **Widget "todas las reseñas" (Google + Facebook)**: `components/shared/GoogleReviewsWidget.jsx` inyecta el `<script>` de un widget gratuito de terceros (Trustindex/Featurable) leyendo `import.meta.env.VITE_TRUSTINDEX_SRC` (en `frontend/.env`). Sin configurar: no muestra nada al visitante (solo nota en modo dev). Integrado en `Resenias.jsx` como sección "Todas nuestras reseñas" antes del CTA. Es la única vía **gratis** de mostrar las 174 reales (requiere que el dueño cree cuenta gratis y conecte su ficha — no se puede automatizar). La API de Places (5) + paginación/orden siguen como base interactiva.
+- **Paginación + orden de reseñas**: ⚠️ Places API **limita a 5 reseñas** por place_id (no se pueden traer las 174 sin widget de terceros / scraper de pago). `googlePool` = 5 live + curadas no duplicadas (dedupe por nombre). `Resenias.jsx` ahora ordena por **Recientes / Más largas / Más cortas** (cada reseña lleva `ts`: Google `time*1000`, app `creado_en`, curadas vía `relativeToTs("hace X")` parser) y **pagina de 20 en 20** (`PAGE_SIZE=20`, controles Anterior/Números/Siguiente, `scrollIntoView` al cambiar, reset a pág.1 al cambiar filtro/orden, conteo "Mostrando X–Y de Z"). Backend `resenias.service.js` añade `ts` al mapping de Google.
+
+## 7. Iluminación ARGB en Navbar/Footer + deep links de contacto
+- **Navbar** (`Navbar.jsx`): se eliminaron `linkClass`/`mobileLinkClass`; nuevos componentes `NavItem` (desktop) y `NavItemMobile` con constantes `ARGB_TEXT_ACTIVE/HOVER` (texto en gradiente recortado `bg-clip-text text-transparent` púrpura→fucsia→ámbar, con variantes `dark:` más brillantes) y `ARGB_PILL_ACTIVE/HOVER` (fondo gradiente baja opacidad + `shadow-inner`, luz **contenida** sin desbordar). Hover y ruta activa iluminan. "Ingresar" también recibe el hover ARGB.
+- **Footer** (`Footer.jsx`): enlaces de navegación con texto ARGB en hover + fondo contenido; `SocialIcon` reescrito (sin JS inline) a tinte ámbar en reposo y **hover ARGB contenido** (gradiente + shadow-inner + scale); CTA "Cotizar mi evento" pasó de ámbar a gradiente ARGB. Constantes compartidas `ICONO_CONTACTO` / `TEXTO_CONTACTO`.
+- **Deep links de contacto (Footer)**: Teléfono → **WhatsApp** `https://wa.me/593985488891` (nueva pestaña). Dirección "Chambo, Chimborazo" → **Google Maps** (`maps/search/?api=1&query=...`, nueva pestaña). Email sigue `mailto:`. Cada ítem es un `<a>` con caja de ícono que se ilumina ARGB en hover.
+
+---
+
 *Este archivo sirve como contexto base para futuras sesiones de desarrollo. No eliminar.*

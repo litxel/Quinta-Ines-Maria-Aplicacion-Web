@@ -14,6 +14,7 @@ const configuradorRoutes = require('./modules/configurador/configurador.routes')
 const solicitudesRoutes  = require('./modules/solicitudes/solicitudes.routes');
 const usuariosRoutes     = require('./modules/usuarios/usuarios.routes');
 const reportesRoutes     = require('./modules/reportes/reportes.routes');
+const reseniasRoutes     = require('./modules/resenias/resenias.routes');
 
 require('./utils/cron.jobs');  // Inicia tareas programadas (Sprint 6)
 
@@ -46,6 +47,7 @@ app.use('/api/configurador',  configuradorRoutes);
 app.use('/api/solicitudes',   solicitudesRoutes);
 app.use('/api/usuarios',      usuariosRoutes);
 app.use('/api/reportes',      reportesRoutes);
+app.use('/api/resenias',      reseniasRoutes);
 
 app.get('/api/health', (req, res) =>
   res.json({ success: true, message: 'EventPlanner QIM API', sprint: 'Sprint 6', timestamp: new Date().toISOString() })

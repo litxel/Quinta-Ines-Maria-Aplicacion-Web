@@ -53,9 +53,9 @@ const actualizarPaquete = async (req, res, next) => {
 
 const desactivarPaquete = async (req, res, next) => {
   try {
-    const anterior = await svc.desactivarPaquete(parseInt(req.params.id, 10));
-    await auditoria.registrarLogOperacion({ schemaTabla: 'eqim_catalogo.paquetes', operacion: 'UPDATE', usuarioId: req.user.id, datosAnteriores: anterior, datosNuevos: { activo: false }, ipOrigen: req.ip, userAgent: req.headers['user-agent'], descripcion: `Paquete ocultado` });
-    return res.json({ success: true, message: `Paquete ocultado.` });
+    const eliminado = await svc.eliminarPaquete(parseInt(req.params.id, 10));
+    await auditoria.registrarLogOperacion({ schemaTabla: 'eqim_catalogo.paquetes', operacion: 'DELETE', usuarioId: req.user.id, datosAnteriores: eliminado, ipOrigen: req.ip, userAgent: req.headers['user-agent'], descripcion: `Paquete eliminado permanentemente` });
+    return res.json({ success: true, message: `Paquete eliminado permanentemente.` });
   } catch (err) { next(err); }
 };
 
@@ -103,7 +103,11 @@ const actualizarTipoEvento = async (req, res, next) => {
   try { return res.json({ success: true, message: 'Actualizado.', data: await svc.actualizarTipoEvento(parseInt(req.params.id, 10), req.body) }); } catch (err) { next(err); }
 };
 const desactivarTipoEvento = async (req, res, next) => {
-  try { await svc.desactivarTipoEvento(parseInt(req.params.id, 10)); return res.json({ success: true, message: 'Desactivado.' }); } catch (err) { next(err); }
+  try {
+    const eliminado = await svc.eliminarTipoEvento(parseInt(req.params.id, 10));
+    await auditoria.registrarLogOperacion({ schemaTabla: 'eqim_catalogo.tipos_evento', operacion: 'DELETE', usuarioId: req.user.id, datosAnteriores: eliminado, ipOrigen: req.ip, userAgent: req.headers['user-agent'], descripcion: `Tipo de evento eliminado permanentemente` });
+    return res.json({ success: true, message: 'Tipo de evento eliminado permanentemente.' });
+  } catch (err) { next(err); }
 };
 
 // ─── ESTILOS DE DECORACIÓN (Paso 6) ────────────────────────────────────────────
@@ -117,7 +121,11 @@ const actualizarEstilo = async (req, res, next) => {
   try { return res.json({ success: true, message: 'Actualizado.', data: await svc.actualizarEstilo(parseInt(req.params.id, 10), req.body) }); } catch (err) { next(err); }
 };
 const desactivarEstilo = async (req, res, next) => {
-  try { await svc.desactivarEstilo(parseInt(req.params.id, 10)); return res.json({ success: true, message: 'Desactivado.' }); } catch (err) { next(err); }
+  try {
+    const eliminado = await svc.eliminarEstilo(parseInt(req.params.id, 10));
+    await auditoria.registrarLogOperacion({ schemaTabla: 'eqim_catalogo.estilos_decoracion', operacion: 'DELETE', usuarioId: req.user.id, datosAnteriores: eliminado, ipOrigen: req.ip, userAgent: req.headers['user-agent'], descripcion: `Estilo eliminado permanentemente` });
+    return res.json({ success: true, message: 'Estilo eliminado permanentemente.' });
+  } catch (err) { next(err); }
 };
 
 // ─── CENTROS DE MESA (Paso 6) ──────────────────────────────────────────────────
@@ -131,7 +139,11 @@ const actualizarCentroMesa = async (req, res, next) => {
   try { return res.json({ success: true, message: 'Actualizado.', data: await svc.actualizarCentro(parseInt(req.params.id, 10), req.body) }); } catch (err) { next(err); }
 };
 const desactivarCentroMesa = async (req, res, next) => {
-  try { await svc.desactivarCentro(parseInt(req.params.id, 10)); return res.json({ success: true, message: 'Desactivado.' }); } catch (err) { next(err); }
+  try {
+    const eliminado = await svc.eliminarCentro(parseInt(req.params.id, 10));
+    await auditoria.registrarLogOperacion({ schemaTabla: 'eqim_catalogo.centros_mesa', operacion: 'DELETE', usuarioId: req.user.id, datosAnteriores: eliminado, ipOrigen: req.ip, userAgent: req.headers['user-agent'], descripcion: `Centro de mesa eliminado permanentemente` });
+    return res.json({ success: true, message: 'Centro de mesa eliminado permanentemente.' });
+  } catch (err) { next(err); }
 };
 
 // ─── SERVICIOS ADICIONALES / EXTRAS (Paso 7) ───────────────────────────────────
@@ -145,7 +157,11 @@ const actualizarExtra = async (req, res, next) => {
   try { return res.json({ success: true, message: 'Actualizado.', data: await svc.actualizarExtra(parseInt(req.params.id, 10), req.body) }); } catch (err) { next(err); }
 };
 const desactivarExtra = async (req, res, next) => {
-  try { await svc.desactivarExtra(parseInt(req.params.id, 10)); return res.json({ success: true, message: 'Desactivado.' }); } catch (err) { next(err); }
+  try {
+    const eliminado = await svc.eliminarExtra(parseInt(req.params.id, 10));
+    await auditoria.registrarLogOperacion({ schemaTabla: 'eqim_catalogo.servicios_adicionales', operacion: 'DELETE', usuarioId: req.user.id, datosAnteriores: eliminado, ipOrigen: req.ip, userAgent: req.headers['user-agent'], descripcion: `Servicio extra eliminado permanentemente` });
+    return res.json({ success: true, message: 'Servicio extra eliminado permanentemente.' });
+  } catch (err) { next(err); }
 };
 
 module.exports = { 

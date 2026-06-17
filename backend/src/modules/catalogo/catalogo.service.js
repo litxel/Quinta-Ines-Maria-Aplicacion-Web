@@ -334,11 +334,58 @@ const desactivarExtra = async (id) => {
   await pool.query('UPDATE eqim_catalogo.servicios_adicionales SET activo = false WHERE adicional_id = $1', [id]);
 };
 
-module.exports = { 
+// ============================================================================
+//  ELIMINACIÓN PERMANENTE (HARD DELETE) — con protección de llaves foráneas
+//  Borra físicamente el registro de la base de datos. Si el elemento está
+//  referenciado por solicitudes/cotizaciones (FK), Postgres lanza el código
+//  23503; lo capturamos y devolvemos un 409 con un mensaje claro para que el
+//  administrador opte por OCULTARLO en lugar de romper la integridad de datos.
+// ============================================================================
+const PG_FK_VIOLATION = '23503';
+const errorEnUso = (entidad) => {
+  const e = new Error(`No se puede eliminar este ${entidad} porque está siendo usado en solicitudes o cotizaciones existentes. Puedes ocultarlo en su lugar.`);
+  e.statusCode = 409;
+  return e;
+};
+
+const hardDelete = async ({ tabla, idCol, id, entidad }) => {
+  const actual = await pool.query(`SELECT * FROM ${tabla} WHERE ${idCol} = $1`, [id]);
+  if (actual.rows.length === 0) { const err = new Error(`${entidad} no encontrado.`); err.statusCode = 404; throw err; }
+  try {
+    await pool.query(`DELETE FROM ${tabla} WHERE ${idCol} = $1`, [id]);
+  } catch (err) {
+    if (err.code === PG_FK_VIOLATION) throw errorEnUso(entidad.toLowerCase());
+    throw err;
+  }
+  if (actual.rows[0].imagen_url) eliminarImagenAnterior(actual.rows[0].imagen_url);
+  return actual.rows[0];
+};
+
+const eliminarPaquete = async (id) => {
+  const actual = await pool.query('SELECT * FROM eqim_catalogo.paquetes WHERE paquete_id = $1', [id]);
+  if (actual.rows.length === 0) { const err = new Error('Paquete no encontrado.'); err.statusCode = 404; throw err; }
+  try {
+    // Los servicios incluidos son hijos directos del paquete: se borran primero.
+    await pool.query('DELETE FROM eqim_catalogo.paquete_servicios WHERE paquete_id = $1', [id]);
+    await pool.query('DELETE FROM eqim_catalogo.paquetes WHERE paquete_id = $1', [id]);
+  } catch (err) {
+    if (err.code === PG_FK_VIOLATION) throw errorEnUso('paquete');
+    throw err;
+  }
+  if (actual.rows[0].imagen_url) eliminarImagenAnterior(actual.rows[0].imagen_url);
+  return actual.rows[0];
+};
+const eliminarTipoEvento = (id) => hardDelete({ tabla: 'eqim_catalogo.tipos_evento',        idCol: 'tipo_id',      id, entidad: 'Tipo de evento' });
+const eliminarEstilo     = (id) => hardDelete({ tabla: 'eqim_catalogo.estilos_decoracion',   idCol: 'estilo_id',    id, entidad: 'Estilo' });
+const eliminarCentro     = (id) => hardDelete({ tabla: 'eqim_catalogo.centros_mesa',         idCol: 'centro_id',    id, entidad: 'Centro de mesa' });
+const eliminarExtra      = (id) => hardDelete({ tabla: 'eqim_catalogo.servicios_adicionales', idCol: 'adicional_id', id, entidad: 'Servicio extra' });
+
+module.exports = {
   obtenerPaquetesPublicos, obtenerPaquetePorCodigo, obtenerTodosPaquetesAdmin, crearPaquete, actualizarPaquete, desactivarPaquete,
   obtenerServiciosDePaquete, agregarServicio, actualizarServicio, eliminarServicio, calcularPrecio,
   obtenerTiposEventoAdmin, crearTipoEvento, actualizarTipoEvento, desactivarTipoEvento,
   obtenerEstilosAdmin, crearEstilo, actualizarEstilo, desactivarEstilo,
   obtenerCentrosAdmin, crearCentro, actualizarCentro, desactivarCentro,
-  obtenerExtrasAdmin, crearExtra, actualizarExtra, desactivarExtra
+  obtenerExtrasAdmin, crearExtra, actualizarExtra, desactivarExtra,
+  eliminarPaquete, eliminarTipoEvento, eliminarEstilo, eliminarCentro, eliminarExtra
 };

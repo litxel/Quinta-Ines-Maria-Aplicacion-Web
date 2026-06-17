@@ -58,7 +58,7 @@ function KpiCard({ label, value, icon: Icon, color, sub, trend }) {
       </div>
       <div className="min-w-0">
         <p className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">{label}</p>
-        <p className="text-2xl font-bold text-[#0D2137] dark:text-white mt-0.5 truncate">{value}</p>
+        <p className="text-xl sm:text-2xl font-bold text-[#0D2137] dark:text-white mt-0.5 truncate">{value}</p>
         {sub && <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">{sub}</p>}
       </div>
       {trend !== undefined && (

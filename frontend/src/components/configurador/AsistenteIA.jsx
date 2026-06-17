@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import api from '../../services/api';
 import { useUIStore } from '../../store/useUIStore';
 import { useConfiguradorStore } from '../../store/useConfiguradorStore';
@@ -203,26 +204,31 @@ export default function AsistenteIA({ paqueteActual = null, numInvitados = 100, 
   //  BOTÓN FLOTANTE (cuando el panel está cerrado)
   // ═══════════════════════════════════════════════════════════════
   if (!abierto) {
-    return (
+    // Portal a document.body: el botón es `fixed`, pero al renderizarse dentro
+    // del Configurador queda atrapado en el contexto de apilamiento que crea la
+    // animación de opacidad de PageTransition (por eso "se iba detrás del footer").
+    // Montándolo en el body, el z-[100] sí lo mantiene por encima de todo.
+    return createPortal(
       <button
         onClick={() => setAbierto(true)}
-        className="animate-glow-gold fixed bottom-6 right-6 z-[60] flex items-center gap-3 px-6 py-4 bg-gradient-to-r from-[#C9A227] via-[#A971D6] to-[#6B3F7A] text-white rounded-full shadow-2xl transition-transform duration-300 hover:scale-110 focus:outline-none focus:ring-2 focus:ring-[#C9A227] focus:ring-offset-2 group"
+        className="animate-glow-gold fixed bottom-6 right-6 z-[2147483000] flex items-center gap-3 px-6 py-4 bg-gradient-to-r from-[#C9A227] via-[#A971D6] to-[#6B3F7A] text-white rounded-full shadow-2xl transition-transform duration-300 hover:scale-110 focus:outline-none focus:ring-2 focus:ring-[#C9A227] focus:ring-offset-2 group"
         aria-label="Abrir asistente de IA"
       >
         <span className="text-xl group-hover:rotate-12 transition-transform inline-block">✨</span>
         <span className="font-bold text-sm hidden sm:block tracking-wide">Asistente IA</span>
         {/* Indicador de disponible */}
         <span className="w-2.5 h-2.5 bg-white rounded-full animate-pulse ring-2 ring-white/40" aria-hidden="true" />
-      </button>
+      </button>,
+      document.body
     );
   }
 
   // ═══════════════════════════════════════════════════════════════
   //  PANEL DEL CHAT
   // ═══════════════════════════════════════════════════════════════
-  return (
+  return createPortal(
     <div
-      className="fixed bottom-6 right-6 z-[60] w-[calc(100vw-3rem)] sm:w-[420px] flex flex-col rounded-2xl shadow-2xl overflow-hidden"
+      className="fixed bottom-6 right-6 z-[2147483000] w-[calc(100vw-3rem)] sm:w-[420px] flex flex-col rounded-2xl shadow-2xl overflow-hidden"
       style={{ maxHeight: 'calc(100vh - 80px)', height: '560px' }}
       role="dialog"
       aria-label="Asistente de Eventos con IA"
@@ -442,6 +448,7 @@ export default function AsistenteIA({ paqueteActual = null, numInvitados = 100, 
           IA basada en el catálogo oficial · Precios referenciales
         </p>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

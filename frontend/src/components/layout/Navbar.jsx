@@ -24,21 +24,6 @@ export default function Navbar() {
 
   const handleLogout = () => { logout(); setDropdown(false); navigate('/'); };
 
-  /* ── Estilos de links ── */
-  const linkClass = ({ isActive }) =>
-    `px-4 py-2.5 mx-0.5 rounded-full text-sm font-semibold transition-all duration-200 ${
-      isActive
-        ? 'bg-[#C9A227]/12 text-[#C9A227]'
-        : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/8 hover:text-[#C9A227]'
-    }`;
-
-  const mobileLinkClass = ({ isActive }) =>
-    `block px-5 py-3 rounded-xl text-sm font-semibold transition-all duration-200 text-center ${
-      isActive
-        ? 'bg-[#C9A227]/12 text-[#C9A227]'
-        : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/6 hover:text-[#C9A227]'
-    }`;
-
   /* ── Animaciones de dropdown ── */
   const dropdownVariants = {
     hidden:  { opacity: 0, scale: 0.95, y: -8 },
@@ -68,16 +53,16 @@ export default function Navbar() {
 
         {/* ── Links Desktop (píldora) ── */}
         <div className="hidden md:flex items-center bg-white/80 dark:bg-white/5 border border-slate-100 dark:border-white/8 p-1 rounded-full shadow-sm backdrop-blur-sm">
-          <NavLink to="/" end className={linkClass}>Inicio</NavLink>
-          <NavLink to="/paquetes" className={linkClass}>Paquetes</NavLink>
-          <NavLink to="/galeria" className={linkClass}>Galería</NavLink>
-          <NavLink to="/resenias" className={linkClass}>Reseñas</NavLink>
-          <NavLink to="/configurador" className={linkClass}>Configurar Evento</NavLink>
+          <NavItem to="/" end>Inicio</NavItem>
+          <NavItem to="/paquetes">Paquetes</NavItem>
+          <NavItem to="/galeria">Galería</NavItem>
+          <NavItem to="/resenias">Reseñas</NavItem>
+          <NavItem to="/configurador">Configurar Evento</NavItem>
           {isAuthenticated && esCliente && !esAdmin && (
-            <NavLink to="/mis-solicitudes" className={linkClass}>Mis Eventos</NavLink>
+            <NavItem to="/mis-solicitudes">Mis Eventos</NavItem>
           )}
           {isAuthenticated && esAdmin && (
-            <NavLink to="/admin" className={linkClass}>⚡ Panel Admin</NavLink>
+            <NavItem to="/admin">⚡ Panel Admin</NavItem>
           )}
         </div>
 
@@ -180,8 +165,8 @@ export default function Navbar() {
             </div>
           ) : (
             <div className="flex items-center gap-2">
-              <NavLink to="/login" className="text-sm font-semibold px-5 py-2.5 rounded-full text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/8 hover:text-[#0D2137] dark:hover:text-white transition-all duration-200">
-                Ingresar
+              <NavLink to="/login" className="group text-sm font-semibold px-5 py-2.5 rounded-full transition-all duration-200 hover:bg-gradient-to-r hover:from-[#6B3F7A]/12 hover:via-[#A971D6]/14 hover:to-[#C9A227]/12 hover:shadow-inner hover:shadow-[#A971D6]/20">
+                <span className="text-slate-600 dark:text-slate-300 transition-colors duration-200 group-hover:text-transparent group-hover:bg-gradient-to-r group-hover:from-[#6B3F7A] group-hover:via-[#A971D6] group-hover:to-[#C9A227] dark:group-hover:from-[#C9A8E6] dark:group-hover:via-[#F0A8E4] dark:group-hover:to-[#F0D060] group-hover:bg-clip-text">Ingresar</span>
               </NavLink>
               <NavLink to="/register" className="text-sm font-bold px-5 py-2.5 bg-[#0D2137] dark:bg-[#C9A227] text-white dark:text-[#0D2137] rounded-full hover:bg-[#1A6BAC] dark:hover:opacity-90 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200">
                 Registrarse
@@ -237,19 +222,19 @@ export default function Navbar() {
             className="md:hidden overflow-hidden border-b border-[#C9A227]/15 dark:border-[#C9A227]/10"
           >
             <div className="bg-[#E7D8BD]/98 dark:bg-[#2E2046]/98 backdrop-blur-xl px-4 py-5 flex flex-col gap-1.5">
-              <NavLink to="/" end className={mobileLinkClass} onClick={() => setMenuOpen(false)}>Inicio</NavLink>
-              <NavLink to="/paquetes" className={mobileLinkClass} onClick={() => setMenuOpen(false)}>Paquetes</NavLink>
-              <NavLink to="/galeria" className={mobileLinkClass} onClick={() => setMenuOpen(false)}>Galería</NavLink>
-              <NavLink to="/resenias" className={mobileLinkClass} onClick={() => setMenuOpen(false)}>Reseñas ⭐</NavLink>
-              <NavLink to="/configurador" className={mobileLinkClass} onClick={() => setMenuOpen(false)}>Configurar Evento</NavLink>
+              <NavItemMobile to="/" end onClick={() => setMenuOpen(false)}>Inicio</NavItemMobile>
+              <NavItemMobile to="/paquetes" onClick={() => setMenuOpen(false)}>Paquetes</NavItemMobile>
+              <NavItemMobile to="/galeria" onClick={() => setMenuOpen(false)}>Galería</NavItemMobile>
+              <NavItemMobile to="/resenias" onClick={() => setMenuOpen(false)}>Reseñas ⭐</NavItemMobile>
+              <NavItemMobile to="/configurador" onClick={() => setMenuOpen(false)}>Configurar Evento</NavItemMobile>
               {isAuthenticated && esCliente && !esAdmin && (
-                <NavLink to="/mis-solicitudes" className={mobileLinkClass} onClick={() => setMenuOpen(false)}>📋 Mis Eventos</NavLink>
+                <NavItemMobile to="/mis-solicitudes" onClick={() => setMenuOpen(false)}>📋 Mis Eventos</NavItemMobile>
               )}
               {isAuthenticated && esCliente && !esAdmin && (
-                <NavLink to="/mi-perfil" className={mobileLinkClass} onClick={() => setMenuOpen(false)}>👤 Mi Perfil</NavLink>
+                <NavItemMobile to="/mi-perfil" onClick={() => setMenuOpen(false)}>👤 Mi Perfil</NavItemMobile>
               )}
               {isAuthenticated && esAdmin && (
-                <NavLink to="/admin" className={mobileLinkClass} onClick={() => setMenuOpen(false)}>⚡ Panel Admin</NavLink>
+                <NavItemMobile to="/admin" onClick={() => setMenuOpen(false)}>⚡ Panel Admin</NavItemMobile>
               )}
 
               <div className="h-px bg-slate-200 dark:bg-white/8 my-1.5" />
@@ -290,6 +275,51 @@ export default function Navbar() {
         )}
       </AnimatePresence>
     </header>
+  );
+}
+
+/* ── Iluminación ARGB contenida (púrpura → fucsia → ámbar) ──────────────────────
+   Texto: gradiente recortado (bg-clip-text). Fondo: gradiente de baja opacidad +
+   shadow-inner para que la luz quede DENTRO del botón y no irradie hacia afuera. */
+const ARGB_TEXT_ACTIVE =
+  'bg-gradient-to-r from-[#6B3F7A] via-[#A971D6] to-[#C9A227] dark:from-[#C9A8E6] dark:via-[#F0A8E4] dark:to-[#F0D060] bg-clip-text text-transparent font-bold';
+const ARGB_TEXT_HOVER =
+  'text-slate-600 dark:text-slate-300 transition-colors duration-200 group-hover:text-transparent group-hover:bg-gradient-to-r group-hover:from-[#6B3F7A] group-hover:via-[#A971D6] group-hover:to-[#C9A227] dark:group-hover:from-[#C9A8E6] dark:group-hover:via-[#F0A8E4] dark:group-hover:to-[#F0D060] group-hover:bg-clip-text';
+const ARGB_PILL_ACTIVE =
+  'bg-gradient-to-r from-[#6B3F7A]/18 via-[#A971D6]/18 to-[#C9A227]/18 shadow-inner shadow-[#A971D6]/25 dark:shadow-[#A971D6]/35';
+const ARGB_PILL_HOVER =
+  'hover:bg-gradient-to-r hover:from-[#6B3F7A]/12 hover:via-[#A971D6]/14 hover:to-[#C9A227]/12 hover:shadow-inner hover:shadow-[#A971D6]/20';
+
+function NavItem({ to, end, children }) {
+  return (
+    <NavLink
+      to={to}
+      end={end}
+      className={({ isActive }) =>
+        `group relative px-4 py-2.5 mx-0.5 rounded-full text-sm font-semibold transition-all duration-200 ${isActive ? ARGB_PILL_ACTIVE : ARGB_PILL_HOVER}`
+      }
+    >
+      {({ isActive }) => (
+        <span className={isActive ? ARGB_TEXT_ACTIVE : ARGB_TEXT_HOVER}>{children}</span>
+      )}
+    </NavLink>
+  );
+}
+
+function NavItemMobile({ to, end, onClick, children }) {
+  return (
+    <NavLink
+      to={to}
+      end={end}
+      onClick={onClick}
+      className={({ isActive }) =>
+        `group block px-5 py-3 rounded-xl text-sm font-semibold transition-all duration-200 text-center ${isActive ? ARGB_PILL_ACTIVE : ARGB_PILL_HOVER}`
+      }
+    >
+      {({ isActive }) => (
+        <span className={isActive ? ARGB_TEXT_ACTIVE : ARGB_TEXT_HOVER}>{children}</span>
+      )}
+    </NavLink>
   );
 }
 
