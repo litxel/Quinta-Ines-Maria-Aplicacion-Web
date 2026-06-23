@@ -1,0 +1,15 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "task-manager",
+      "runtimeExecutable": "C:\\Users\\gerar\\Documents\\ProyectoFinalVrificacioValidacion\\.venv\\Scripts\\python.exe",
+      "runtimeArgs": ["C:\\Users\\gerar\\Documents\\ProyectoFinalVrificacioValidacion\\app\\app.py"],
+      "port": 5000,
+      "env": {
+        "APP_ENV": "dev",
+        "PORT": "5000"
+      }
+    }
+  ]
+}

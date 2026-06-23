@@ -773,6 +773,14 @@ Las 3 vistas (modal login requerido, **resumen "Enviar Solicitud"**, **ticket "�
 - **Footer** (`Footer.jsx`): enlaces de navegación con texto ARGB en hover + fondo contenido; `SocialIcon` reescrito (sin JS inline) a tinte ámbar en reposo y **hover ARGB contenido** (gradiente + shadow-inner + scale); CTA "Cotizar mi evento" pasó de ámbar a gradiente ARGB. Constantes compartidas `ICONO_CONTACTO` / `TEXTO_CONTACTO`.
 - **Deep links de contacto (Footer)**: Teléfono → **WhatsApp** `https://wa.me/593985488891` (nueva pestaña). Dirección "Chambo, Chimborazo" → **Google Maps** (`maps/search/?api=1&query=...`, nueva pestaña). Email sigue `mailto:`. Cada ítem es un `<a>` con caja de ícono que se ilumina ARGB en hover.
 
+## 8. Ronda QA (6 fixes)
+1. **Estado del configurador invitado→registrado**: `useConfiguradorStore` ahora usa `persist` (localStorage `qim-configurador`, partialize de los datos) → el progreso sobrevive al redirect de OAuth (recarga completa). `AuthCallback.jsx` ahora **honra `redirectAfterLogin`** (persistido en `qim-auth`) para clientes → vuelve a `/solicitar` a finalizar y guardar. Login email ya lo honraba.
+2. **Íconos superpuestos en inputs Auth**: causa raíz = `.input-field` (CSS sin capa) pisaba `pl-11`. Solución: envolví las reglas `.input-field` en **`@layer components`** en `index.css` → las utilidades de padding ganan. Arregla Login/Register/Recuperar de un golpe.
+3. **Contraste dark Auth**: añadí `dark:` a textos de `Register.jsx` (h1/subtítulo/labels/Campo/strength/«¿Ya tienes cuenta?»/éxito) y `RecuperarClave.jsx` (títulos/párrafos/label). Login ya estaba.
+4. **Misión y Visión**: quité el `<img absolute>` que se sobreponía; ahora cada bloque es flex (imagen lateral `object-cover` + texto). Imágenes nuevas: `EntradaQuinta/ingreso.jpeg` (Misión) y `encuentra.jpeg` (Visión).
+5. **Hero**: `IMAGENES_FONDO` += `EntradaQuinta/ingresoooo.jpeg` y `PORTADA.png` (bg7, bg8).
+6. **Historia + carrusel CTA**: ⚠️ Home.jsx se había **revertido** (CARRUSEL con rutas string rotas, HISTORIA sin `img`) → por eso las fotos «dejaron de renderizar». Restaurado con **imports reales** (car1–car7, hist1–hist5) y orden aprobado (2020=hist5, 2025=hist3, 2026=hist4). Carrusel CTA: +3 fotos (7), `aspect-[16/9]`, **fit según orientación** (`onLoad`: horizontal→`object-cover` llena, vertical→`object-contain` sobre fondo difuminado), aurora ARGB animada de fondo. Historia: `object-cover` (sin huecos) + zoom al activar, sin `lazy`.
+
 ---
 
 *Este archivo sirve como contexto base para futuras sesiones de desarrollo. No eliminar.*

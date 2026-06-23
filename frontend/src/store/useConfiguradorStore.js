@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 
 /**
  * Store del Configurador Interactivo — Sprint 4
@@ -12,7 +13,9 @@ import { create } from 'zustand';
  * servicios → tabla eqim_configurador.sesion_servicios:
  *   [{ adicional_id, cantidad, precio_snapshot }]
  */
-export const useConfiguradorStore = create((set, get) => ({
+export const useConfiguradorStore = create(
+  persist(
+    (set, get) => ({
 
   // ── Estado de sesión (mapea a eqim_configurador.sesiones) ────────────────
   sesion_id:        null,    // null = sesión aún no guardada en BD
@@ -181,4 +184,34 @@ export const useConfiguradorStore = create((set, get) => ({
     centroMesaSeleccionado:  null,
     precioServidor:          null,
   }),
-}));
+}),
+    {
+      name: 'qim-configurador',
+      // Persistimos solo los DATOS del evento (no las funciones) para que el
+      // progreso del invitado sobreviva al redirect de OAuth (recarga completa)
+      // y no se pierda al registrarse/iniciar sesión.
+      partialize: (s) => ({
+        sesion_id:               s.sesion_id,
+        tipo_evento_id:          s.tipo_evento_id,
+        paquete_id:              s.paquete_id,
+        num_invitados:           s.num_invitados,
+        fecha_evento:            s.fecha_evento,
+        color_primario:          s.color_primario,
+        color_secundario:        s.color_secundario,
+        estilo_deco_id:          s.estilo_deco_id,
+        centro_mesa_id:          s.centro_mesa_id,
+        num_mesas:               s.num_mesas,
+        num_meseros:             s.num_meseros,
+        paso_actual:             s.paso_actual,
+        completada:              s.completada,
+        precio_estimado:         s.precio_estimado,
+        servicios:               s.servicios,
+        paqueteSeleccionado:     s.paqueteSeleccionado,
+        tipoEventoSeleccionado:  s.tipoEventoSeleccionado,
+        estiloSeleccionado:      s.estiloSeleccionado,
+        centroMesaSeleccionado:  s.centroMesaSeleccionado,
+        precioServidor:          s.precioServidor,
+      }),
+    }
+  )
+);

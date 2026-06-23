@@ -46,7 +46,7 @@ export default function Navbar() {
               Quinta Inés María
             </span>
             <span className="text-[9px] text-[#C9A227] font-bold tracking-[0.22em] uppercase mt-1">
-              Catering &amp; Eventos
+              BED . Catering &amp; Eventos
             </span>
           </div>
         </Link>

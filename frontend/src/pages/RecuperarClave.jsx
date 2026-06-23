@@ -62,8 +62,8 @@ export default function RecuperarClave() {
             <div className="w-20 h-20 bg-green-100/80 rounded-full flex items-center justify-center mx-auto mb-6 border-4 border-white/60 shadow-xl">
               <CheckCircle2 size={38} className="text-green-600" />
             </div>
-            <h2 className="font-display text-3xl font-bold text-[#0D2137] mb-3">Revisa tu correo</h2>
-            <p className="text-slate-700 font-medium leading-relaxed mb-8 text-sm">
+            <h2 className="font-display text-3xl font-bold text-[#0D2137] dark:text-white mb-3">Revisa tu correo</h2>
+            <p className="text-slate-700 dark:text-slate-300 font-medium leading-relaxed mb-8 text-sm">
               Si el correo es correcto, recibirás un enlace de recuperación en breve. No olvides revisar tu carpeta de Spam.
             </p>
             <Link to="/login" className="btn-primary w-full justify-center">
@@ -74,15 +74,15 @@ export default function RecuperarClave() {
           /* ── Formulario ── */
           <>
             <div className="text-center mb-8">
-              <h2 className="font-display text-3xl font-bold text-[#0D2137] mb-2">¿Olvidaste tu clave?</h2>
-              <p className="text-slate-600 font-medium text-sm leading-relaxed">
+              <h2 className="font-display text-3xl font-bold text-[#0D2137] dark:text-white mb-2">¿Olvidaste tu clave?</h2>
+              <p className="text-slate-600 dark:text-slate-300 font-medium text-sm leading-relaxed">
                 Ingresa tu correo y te enviaremos las instrucciones para recuperarla.
               </p>
             </div>
 
             <form onSubmit={handleSubmit} noValidate className="space-y-5">
               <div>
-                <label htmlFor="correo" className="block text-sm font-semibold text-slate-800 mb-2">
+                <label htmlFor="correo" className="block text-sm font-semibold text-slate-800 dark:text-slate-200 mb-2">
                   Correo electrónico
                 </label>
                 <div className="relative">

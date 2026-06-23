@@ -139,37 +139,42 @@ html.dark body {
   background-clip: text;
 }
 
-/* ─── Input Field Global ─────────────────────────────────────────────────────── */
-.input-field {
-  width: 100%;
-  padding: 0.875rem 1.125rem;
-  border-radius: 0.875rem;
-  border: 1.5px solid rgba(214, 199, 172, 0.85);
-  background: rgba(255, 255, 255, 0.7);
-  font-size: 0.9375rem;
-  font-family: var(--font-sans);
-  font-weight: 500;
-  color: #2A2622;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
-  outline: none;
-}
-.input-field::placeholder { color: rgba(107, 98, 88, 0.55); font-weight: 400; }
-.input-field:focus {
-  border-color: #C9A227;
-  box-shadow: 0 0 0 3.5px rgba(201, 162, 39, 0.16);
-  background: rgba(255, 255, 255, 0.97);
-}
-.input-field.error { border-color: #EF4444; box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1); }
-.dark .input-field {
-  background: rgba(169, 113, 214, 0.06);
-  border-color: rgba(169, 113, 214, 0.18);
-  color: #ECE3F2;
-}
-.dark .input-field::placeholder { color: rgba(182, 168, 198, 0.55); }
-.dark .input-field:focus {
-  border-color: #C9A227;
-  background: rgba(169, 113, 214, 0.10);
-  box-shadow: 0 0 0 3.5px rgba(201, 162, 39, 0.20);
+/* ─── Input Field Global ───────────────────────────────────────────────────────
+   En @layer components para que las utilidades de Tailwind (pl-11, pr-12, etc.)
+   tengan prioridad y NO sean pisadas por el `padding` de .input-field. Esto evita
+   que el ícono interno se superponga con el texto/placeholder. */
+@layer components {
+  .input-field {
+    width: 100%;
+    padding: 0.875rem 1.125rem;
+    border-radius: 0.875rem;
+    border: 1.5px solid rgba(214, 199, 172, 0.85);
+    background: rgba(255, 255, 255, 0.7);
+    font-size: 0.9375rem;
+    font-family: var(--font-sans);
+    font-weight: 500;
+    color: #2A2622;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+    outline: none;
+  }
+  .input-field::placeholder { color: rgba(107, 98, 88, 0.55); font-weight: 400; }
+  .input-field:focus {
+    border-color: #C9A227;
+    box-shadow: 0 0 0 3.5px rgba(201, 162, 39, 0.16);
+    background: rgba(255, 255, 255, 0.97);
+  }
+  .input-field.error { border-color: #EF4444; box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1); }
+  .dark .input-field {
+    background: rgba(169, 113, 214, 0.06);
+    border-color: rgba(169, 113, 214, 0.18);
+    color: #ECE3F2;
+  }
+  .dark .input-field::placeholder { color: rgba(182, 168, 198, 0.55); }
+  .dark .input-field:focus {
+    border-color: #C9A227;
+    background: rgba(169, 113, 214, 0.10);
+    box-shadow: 0 0 0 3.5px rgba(201, 162, 39, 0.20);
+  }
 }
 
 /* ─── Botones globales ───────────────────────────────────────────────────────── */

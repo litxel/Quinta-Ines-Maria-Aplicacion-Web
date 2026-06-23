@@ -96,9 +96,9 @@ export default function Register() {
           <div className="w-24 h-24 bg-green-100/80 backdrop-blur-sm rounded-full flex items-center justify-center mx-auto mb-6 border-4 border-white/60 shadow-xl">
             <CheckCircle2 size={44} className="text-green-600" />
           </div>
-          <h2 className="font-display text-4xl font-bold text-[#0D2137] mb-3">¡Cuenta creada!</h2>
-          <p className="text-slate-700 leading-relaxed mb-8 font-medium">
-            Revisa tu bandeja en <strong className="text-[#0D2137] font-bold">{form.correo}</strong> y haz clic en el enlace de verificación para activar tu cuenta.
+          <h2 className="font-display text-4xl font-bold text-[#0D2137] dark:text-white mb-3">¡Cuenta creada!</h2>
+          <p className="text-slate-700 dark:text-slate-300 leading-relaxed mb-8 font-medium">
+            Revisa tu bandeja en <strong className="text-[#0D2137] dark:text-white font-bold">{form.correo}</strong> y haz clic en el enlace de verificación para activar tu cuenta.
           </p>
           <Link to="/login" className="btn-primary w-full justify-center">
             Ir a Iniciar sesión <ArrowRight size={17} />
@@ -127,8 +127,8 @@ export default function Register() {
           <Link to="/" className="inline-block group">
             <img src={logoAuth} alt="Logo Quinta Inés María" className="h-20 w-auto mx-auto group-hover:scale-105 transition-transform drop-shadow-xl" />
           </Link>
-          <h1 className="mt-5 font-display text-3xl font-bold text-[#0D2137]">Crear tu cuenta</h1>
-          <p className="mt-1.5 text-slate-600 text-sm font-medium">Únete para planificar tu evento soñado.</p>
+          <h1 className="mt-5 font-display text-3xl font-bold text-[#0D2137] dark:text-white">Crear tu cuenta</h1>
+          <p className="mt-1.5 text-slate-600 dark:text-slate-300 text-sm font-medium">Únete para planificar tu evento soñado.</p>
         </div>
 
         {apiError && (
@@ -150,7 +150,7 @@ export default function Register() {
 
         <div className="flex items-center gap-3 mb-5">
           <div className="flex-1 h-px bg-slate-300/50" />
-          <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">o con tu correo</span>
+          <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">o con tu correo</span>
           <div className="flex-1 h-px bg-slate-300/50" />
         </div>
 
@@ -161,7 +161,7 @@ export default function Register() {
 
           {/* Contraseña con indicador de fuerza */}
           <div>
-            <label htmlFor="password" className="block text-sm font-semibold text-slate-800 mb-2">Contraseña</label>
+            <label htmlFor="password" className="block text-sm font-semibold text-slate-800 dark:text-slate-200 mb-2">Contraseña</label>
             <div className="relative">
               <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"><Lock size={15} /></div>
               <input
@@ -190,7 +190,7 @@ export default function Register() {
                   style={{ color: fuerzaColor }}>{fuerzaLabel}</p>
               </div>
             )}
-            {!form.password && <p className="mt-1.5 text-xs text-slate-500 font-medium">Mayúscula, minúscula y número.</p>}
+            {!form.password && <p className="mt-1.5 text-xs text-slate-500 dark:text-slate-400 font-medium">Mayúscula, minúscula y número.</p>}
             {errores.password && <p className="mt-1.5 text-xs text-red-600 font-medium">{errores.password}</p>}
           </div>
 
@@ -208,8 +208,8 @@ export default function Register() {
           </button>
         </form>
 
-        <div className="mt-6 text-center text-sm border-t border-slate-200/60 pt-5">
-          <p className="text-slate-700 font-medium">
+        <div className="mt-6 text-center text-sm border-t border-slate-200/60 dark:border-white/10 pt-5">
+          <p className="text-slate-700 dark:text-slate-300 font-medium">
             ¿Ya tienes cuenta?{' '}
             <Link to="/login" className="font-bold text-[#C9A227] hover:text-[#B7950B] transition-colors">
               Inicia sesión
@@ -235,7 +235,7 @@ function OAuthButton({ onClick, label, children }) {
 function Campo({ label, id, name, type = 'text', value, onChange, error, placeholder, autoComplete, icon }) {
   return (
     <div>
-      <label htmlFor={id} className="block text-sm font-semibold text-slate-800 mb-2">{label}</label>
+      <label htmlFor={id} className="block text-sm font-semibold text-slate-800 dark:text-slate-200 mb-2">{label}</label>
       <div className="relative">
         {icon && <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">{icon}</div>}
         <input

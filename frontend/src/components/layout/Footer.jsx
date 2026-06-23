@@ -58,7 +58,7 @@ export default function Footer() {
                 Quinta Inés María
               </h2>
               <p className="text-[10px] text-[#7a6f60] dark:text-white/35 font-bold uppercase tracking-[0.28em] mt-1">
-                BED · Catering · Eventos
+                BED · Catering &amp; Eventos
               </p>
             </div>
 

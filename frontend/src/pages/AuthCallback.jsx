@@ -11,7 +11,7 @@ import api from '../services/api';
 export default function AuthCallback() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { login } = useAuthStore();
+  const { login, clearRedirect } = useAuthStore();
   const [error, setError] = useState(null);
 
   useEffect(() => {
@@ -46,23 +46,31 @@ export default function AuthCallback() {
 
     const requiereTel = searchParams.get('requiere_telefono') === '1';
 
+    // Ruta pendiente guardada antes de ir a OAuth (p. ej. el invitado que
+    // estaba finalizando su evento en /solicitar). Sobrevive a la recarga
+    // porque el store de auth se persiste en localStorage.
+    const destinoPendiente = useAuthStore.getState().redirectAfterLogin;
+
     api.get('/usuarios/me')
       .then(({ data }) => {
         const usuario = data.usuario ?? usuarioData;
         login(usuario, token);
         const esAdmin = (usuario.rol_codigo ?? rol) === 'ADMIN';
-        const sinTelefono = !usuario.telefono || String(usuario.telefono).trim() === '';
-        if (requiereTel || sinTelefono) {
-          if (!esAdmin) {
-            navigate('/paquetes', { replace: true });
-            return;
-          }
+        if (esAdmin) {
+          navigate('/admin', { replace: true });
+          return;
         }
-        navigate(esAdmin ? '/admin' : '/paquetes', { replace: true });
+        // Cliente: si hay un destino pendiente (configurador/solicitud), lo
+        // enviamos ahí para que finalice y se guarde su evento.
+        const destino = destinoPendiente ?? '/paquetes';
+        clearRedirect();
+        navigate(destino, { replace: true });
       })
       .catch(() => {
         login(usuarioData, token);
-        navigate('/paquetes', { replace: true });
+        const destino = destinoPendiente ?? '/paquetes';
+        clearRedirect();
+        navigate(destino, { replace: true });
       });
   }, []);
 

@@ -8,7 +8,10 @@ import bg1 from '../assets/FotosQuintaInes/EntradaQuinta/entrada 1 quinta ines.j
 import bg3 from '../assets/FotosQuintaInes/EntradaQuinta/entrada 3 quinta ines.jpg';
 import bg5 from '../assets/FotosQuintaInes/EntradaQuinta/entrada 5 quinta ines.jpg';
 import bg6 from '../assets/FotosQuintaInes/EntradaQuinta/entrada 6 quinta ines.jpg';
-import imgMisionVision from '../assets/FotosQuintaInes/LogosQuinta/mision.JPG';
+import bg7 from '../assets/FotosQuintaInes/EntradaQuinta/ingresoooo.jpeg';
+import bg8 from '../assets/FotosQuintaInes/EntradaQuinta/PORTADA.png';
+import imgMision from '../assets/FotosQuintaInes/EntradaQuinta/ingreso.jpeg';
+import imgVision from '../assets/FotosQuintaInes/EntradaQuinta/encuentra.jpeg';
 import imgQrDirections from '../assets/FotosQuintaInes/LogosQuinta/QRINVITACIONCOMOLLEGAR.jpg';
 import vidPromocional  from '../assets/FotosQuintaInes/VideosQuinta/WhatsAppVideo2024-06-04at2.43.50PM.mp4';
 
@@ -17,15 +20,18 @@ import car1 from '../assets/FotosQuintaInes/AreasVerdesQuinta/pileta.png';
 import car2 from '../assets/FotosQuintaInes/ArtistasQuinta/grupo chaparros quinta ines.jpg';
 import car3 from '../assets/FotosQuintaInes/BodasQuinta/619844066_122149389806698194_3567595811387650194_n.jpg.jpeg';
 import car4 from '../assets/FotosQuintaInes/DecoracionesQuinta/622871883_122149388912698194_588578243096562400_n.jpg.jpeg';
+import car5 from '../assets/FotosQuintaInes/BodasQuinta/NOVIOS.jpg.jpeg';
+import car6 from '../assets/FotosQuintaInes/AreasVerdesQuinta/espacio verdes quinta ines.jpg';
+import car7 from '../assets/FotosQuintaInes/DecoracionesQuinta/centros de mesa.jpg.jpeg';
 
-// Imágenes de la línea de tiempo "Historia de la Quinta" (en orden 2015→2026)
+// Imágenes de la línea de tiempo "Historia de la Quinta" (orden 2015→2026)
 import hist1 from '../assets/FotosQuintaInes/PersonasQuinta/gente 16 quinta ines.jpg';
 import hist2 from '../assets/FotosQuintaInes/AreasVerdesQuinta/puente.jpg.jpeg';
 import hist3 from '../assets/FotosQuintaInes/PersonasQuinta/gente 10 quinta ines.jpg';
 import hist4 from '../assets/FotosQuintaInes/EQUIM/fondoEQUIM.png';
 import hist5 from '../assets/FotosQuintaInes/DecoracionesQuinta/mesa principal.jpg.jpeg';
 
-const IMAGENES_FONDO = [bg1, bg3, bg5, bg6];
+const IMAGENES_FONDO = [bg1, bg3, bg5, bg6, bg7, bg8];
 
 const VALORES = [
   { icon: Leaf,           title: 'Entorno Natural',  desc: 'Jardines, glorieta, puente y pileta en Chambo. El escenario perfecto para cada celebración.' },
@@ -49,11 +55,12 @@ const HISTORIA = [
 ];
 
 // Carrusel de la sección CTA (imágenes reales importadas)
-const CARRUSEL = [car1, car2, car3, car4];
+const CARRUSEL = [car1, car2, car3, car4, car5, car6, car7];
 
 export default function Home() {
   const [indiceActual, setIndiceActual] = useState(0);
   const [carIdx, setCarIdx]   = useState(0);
+  const [carFit, setCarFit]   = useState('cover'); // 'cover' (horizontal) | 'contain' (vertical)
   const [activoHist, setActivoHist] = useState(0);
   const videoRef = useRef(null);
   const histRefs = useRef([]);
@@ -296,14 +303,20 @@ export default function Home() {
                   <div className="w-14 h-1 bg-gradient-to-r from-[#C9A227] to-transparent mt-4 rounded-full" />
                 </div>
                 {[
-                  { title: 'Misión', text: 'Proveer un entorno natural y servicios integrales de catering y planificación de excelencia, convirtiendo cada evento en una experiencia única con el calor del campo ecuatoriano.' },
-                  { title: 'Visión', text: 'Consolidarnos como la quinta de eventos líder en Chambo y Chimborazo, reconocida por la calidad humana, excelencia operativa y momentos de felicidad auténtica.' },
+                  { title: 'Misión', img: imgMision, text: 'Proveer un entorno natural y servicios integrales de catering y planificación de excelencia, convirtiendo cada evento en una experiencia única con el calor del campo ecuatoriano.' },
+                  { title: 'Visión', img: imgVision, text: 'Consolidarnos como la quinta de eventos líder en Chambo y Chimborazo, reconocida por la calidad humana, excelencia operativa y momentos de felicidad auténtica.' },
                 ].map((block, i) => (
                   <ScrollReveal key={block.title} delay={i * 0.12}>
-                    <div className="relative p-6 pl-12 bg-white dark:bg-[#332247] border border-slate-100 dark:border-white/8 rounded-2xl shadow-sm hover:shadow-md dark:hover:shadow-black/20 transition-all">
-                      <img src={imgMisionVision} alt="" className="absolute top-5 left-3 h-10 w-auto opacity-70" aria-hidden />
-                      <h4 className="font-bold text-lg text-[#0D2137] dark:text-white mb-2">{block.title}</h4>
-                      <p className="text-slate-600 dark:text-slate-400 text-sm leading-relaxed">{block.text}</p>
+                    <div className="flex flex-col sm:flex-row gap-5 items-stretch p-5 bg-white dark:bg-[#332247] border border-slate-100 dark:border-white/8 rounded-2xl shadow-sm hover:shadow-md dark:hover:shadow-black/20 transition-all">
+                      <img
+                        src={block.img}
+                        alt={`${block.title} — Quinta Inés María`}
+                        className="w-full sm:w-32 h-40 sm:h-auto object-cover rounded-xl shrink-0 shadow-sm"
+                      />
+                      <div className="flex flex-col justify-center">
+                        <h4 className="font-bold text-lg text-[#0D2137] dark:text-white mb-2">{block.title}</h4>
+                        <p className="text-slate-600 dark:text-slate-400 text-sm leading-relaxed">{block.text}</p>
+                      </div>
                     </div>
                   </ScrollReveal>
                 ))}
@@ -378,7 +391,7 @@ export default function Home() {
             <span className="gradient-text">inolvidable</span>
           </h2>
 
-          {/* Carrusel automático */}
+          {/* Carrusel automático (se adapta a fotos verticales u horizontales) */}
           <div className="relative mt-10 mx-auto max-w-3xl aspect-[16/9] rounded-3xl overflow-hidden shadow-2xl ring-1 ring-[#C9A227]/25 bg-[#140A1E]">
             <AnimatePresence>
               <motion.div
@@ -389,26 +402,23 @@ export default function Home() {
                 transition={{ duration: 1.1, ease: [0.22, 1, 0.36, 1] }}
                 className="absolute inset-0"
               >
-                {/* Fondo difuminado: rellena el marco sin recortar la foto */}
+                {/* Fondo difuminado: rellena el marco en fotos verticales (sin espacios vacíos) */}
                 <div
                   className="absolute inset-0 bg-cover bg-center blur-2xl scale-110 opacity-55"
                   style={{ backgroundImage: `url("${CARRUSEL[carIdx]}")` }}
                   aria-hidden="true"
                 />
-                {/* Imagen COMPLETA (sin recorte) y a buen tamaño */}
+                {/* Imagen: object-cover si es horizontal (ocupa toda la pantalla) / object-contain si es vertical */}
                 <img
                   src={CARRUSEL[carIdx]}
                   alt={`Quinta Inés María — momento ${carIdx + 1}`}
-                  className="absolute inset-0 w-full h-full object-contain drop-shadow-2xl"
+                  onLoad={(e) => setCarFit(e.currentTarget.naturalWidth >= e.currentTarget.naturalHeight ? 'cover' : 'contain')}
+                  className={`absolute inset-0 w-full h-full ${carFit === 'cover' ? 'object-cover' : 'object-contain'} drop-shadow-2xl`}
                 />
               </motion.div>
             </AnimatePresence>
-
-            {/* Velo inferior + borde interior sutil */}
-            <div className="absolute inset-0 bg-gradient-to-t from-[#140A1E]/55 via-transparent to-transparent pointer-events-none" />
+            <div className="absolute inset-0 bg-gradient-to-t from-[#140A1E]/55 to-transparent pointer-events-none" />
             <div className="absolute inset-0 rounded-3xl ring-1 ring-inset ring-white/10 pointer-events-none" />
-
-            {/* Indicadores */}
             <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5 z-10">
               {CARRUSEL.map((_, i) => (
                 <button
@@ -474,11 +484,10 @@ export default function Home() {
                       <img
                         src={h.img}
                         alt={h.title}
-                        loading="lazy"
-                        className={`absolute inset-0 w-full h-full object-cover transition-transform duration-700 ${activo ? 'scale-110' : 'scale-100'}`}
+                        className={`absolute inset-0 w-full h-full object-cover object-center transition-transform duration-700 ${activo ? 'scale-110' : 'scale-100'}`}
                         onError={(e) => { e.currentTarget.style.visibility = 'hidden'; }}
                       />
-                      {/* Velo inferior para dar profundidad */}
+                      {/* Velo inferior para profundidad */}
                       <div className="absolute inset-0 bg-gradient-to-t from-[#0D2137]/35 to-transparent pointer-events-none" />
                     </div>
 
