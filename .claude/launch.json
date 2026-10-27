@@ -10,6 +10,18 @@
         "APP_ENV": "dev",
         "PORT": "5000"
       }
+    },
+    {
+      "name": "qim-backend",
+      "runtimeExecutable": "npm.cmd",
+      "runtimeArgs": ["--prefix", "backend", "start"],
+      "port": 5000
+    },
+    {
+      "name": "qim-frontend",
+      "runtimeExecutable": "npm.cmd",
+      "runtimeArgs": ["--prefix", "frontend", "run", "dev"],
+      "port": 5173
     }
   ]
 }

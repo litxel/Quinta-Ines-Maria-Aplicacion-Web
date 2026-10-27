@@ -9,7 +9,7 @@ const obtenerDatosConfiguracion = async () => {
     pool.query(`SELECT estilo_id, estilo_codigo, nombre, descripcion, icono, imagen_url, costo_adicional FROM eqim_catalogo.estilos_decoracion WHERE activo = true ORDER BY estilo_id ASC`),
     pool.query(`SELECT centro_id, nombre, descripcion, icono, imagen_url, costo_por_mesa FROM eqim_catalogo.centros_mesa WHERE activo = true ORDER BY centro_id ASC`),
     pool.query(`SELECT adicional_id, nombre, descripcion, precio_unitario, unidad, categoria, icono, imagen_url FROM eqim_catalogo.servicios_adicionales WHERE activo = true ORDER BY categoria, adicional_id ASC`),
-    pool.query(`SELECT paquete_id, paquete_nombre, paquete_codigo, precio_persona, minimo_invitados, color_principal FROM eqim_catalogo.paquetes WHERE activo = true ORDER BY orden_display ASC`)
+    pool.query(`SELECT paquete_id, paquete_nombre, paquete_codigo, descripcion, precio_persona, minimo_invitados, color_principal, imagen_url FROM eqim_catalogo.paquetes WHERE activo = true ORDER BY orden_display ASC`)
   ]);
 
   return {
@@ -70,6 +70,8 @@ const guardarSesion = async ({
          precio_estimado  = $12,
          actualizado_en   = NOW()
        WHERE sesion_id = $13 AND completada = false
+         -- Una sesión de un usuario registrado solo la puede modificar ese usuario
+         AND (usuario_id IS NULL OR usuario_id = $14)
        RETURNING *`,
       [
         tipo_evento_id, paquete_id, num_invitados,
@@ -77,7 +79,7 @@ const guardarSesion = async ({
         estilo_deco_id, centro_mesa_id,
         num_mesas, num_meseros,
         paso_actual, completada, precio_estimado,
-        sesionId,
+        sesionId, usuarioId,
       ]
     );
 
@@ -112,14 +114,14 @@ const guardarSesion = async ({
     sesion = result.rows[0];
   }
 
-  if (servicios.length > 0) {
+  if (Array.isArray(servicios) && servicios.length > 0) {
     await pool.query(
       'DELETE FROM eqim_configurador.sesion_servicios WHERE sesion_id = $1',
       [sesion.sesion_id]
     );
 
-    for (const svc of servicios) {
-      if (!svc.adicional_id || svc.cantidad < 1) continue;
+    for (const svc of servicios.slice(0, 50)) {
+      if (!svc?.adicional_id || !(svc.cantidad >= 1)) continue;
       await pool.query(
         `INSERT INTO eqim_configurador.sesion_servicios
            (sesion_id, adicional_id, cantidad, precio_snapshot)
@@ -138,7 +140,8 @@ const guardarSesion = async ({
 };
 
 // ── GET sesión por ID (con sus servicios) ─────────────────────────────────────
-const obtenerSesion = async (sesionId) => {
+// Si la sesión pertenece a un usuario registrado, solo ese usuario puede verla.
+const obtenerSesion = async (sesionId, usuarioId = null) => {
   const { rows } = await pool.query(
     `SELECT s.*,
             COALESCE(
@@ -159,8 +162,9 @@ const obtenerSesion = async (sesionId) => {
      LEFT JOIN eqim_catalogo.servicios_adicionales sa
             ON sa.adicional_id = ss.adicional_id
      WHERE s.sesion_id = $1
+       AND (s.usuario_id IS NULL OR s.usuario_id = $2)
      GROUP BY s.sesion_id`,
-    [sesionId]
+    [sesionId, usuarioId]
   );
 
   if (rows.length === 0) {
@@ -168,7 +172,9 @@ const obtenerSesion = async (sesionId) => {
     err.statusCode = 404;
     throw err;
   }
-  return rows[0];
+  // Datos técnicos que no necesita el navegador
+  const { ip_origen, user_agent, ...sesion } = rows[0];
+  return sesion;
 };
 
 // ── Calcular precio total en el servidor (fuente de verdad) ──────────────────
@@ -214,13 +220,14 @@ const calcularPrecioTotal = async ({
 
   let subtotalAdicionales = 0;
   for (const svc of servicios) {
-    if (!svc.adicional_id || svc.cantidad < 1) continue;
+    const cantidad = parseInt(svc?.cantidad, 10);
+    if (!svc?.adicional_id || !(cantidad >= 1)) continue;
     const ad = await pool.query(
-      'SELECT precio_unitario FROM eqim_catalogo.servicios_adicionales WHERE adicional_id = $1',
+      'SELECT precio_unitario FROM eqim_catalogo.servicios_adicionales WHERE adicional_id = $1 AND activo = true',
       [svc.adicional_id]
     );
     if (ad.rows.length > 0) {
-      subtotalAdicionales += parseFloat(ad.rows[0].precio_unitario) * svc.cantidad;
+      subtotalAdicionales += parseFloat(ad.rows[0].precio_unitario) * Math.min(cantidad, 1000);
     }
   }
 
@@ -285,7 +292,17 @@ const bloquearFechaManual = async (fecha, nota_interna, adminId) => {
 
   if (checkEventos.rows.length > 0) {
     const err = new Error('Operación denegada. Hay clientes con solicitudes activas para esta fecha.');
-    err.statusCode = 400; 
+    err.statusCode = 409;
+    throw err;
+  }
+
+  const yaBloqueada = await pool.query(
+    'SELECT 1 FROM eqim_solicitudes.disponibilidad WHERE fecha = $1',
+    [fecha]
+  );
+  if (yaBloqueada.rows.length > 0) {
+    const err = new Error('Esa fecha ya está bloqueada.');
+    err.statusCode = 409;
     throw err;
   }
 

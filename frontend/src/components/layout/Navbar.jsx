@@ -1,10 +1,14 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Menu, X, Sun, Moon, ChevronDown } from 'lucide-react';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useDarkMode } from '../../hooks/useDarkMode';
+import { useUIStore } from '../../store/useUIStore';
 import LogoQuinta from '../shared/LogoQuinta';
+import AvatarUsuario from '../shared/AvatarUsuario';
+import PanelUsuario from './PanelUsuario';
+import { getMisSolicitudes, getDashboardData } from '../../services/solicitudes.service';
 
 export default function Navbar() {
   const [menuOpen, setMenuOpen]   = useState(false);
@@ -13,16 +17,45 @@ export default function Navbar() {
   const { isDark, toggle: toggleDark } = useDarkMode();
   const navigate = useNavigate();
 
-  const BACKEND_URL  = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000';
-  const fotoUrl      = user?.foto_perfil ? `${BACKEND_URL}${user.foto_perfil}?t=${Date.now()}` : null;
-  const inicial      = (user?.nombre_completo ?? user?.nombre ?? 'U')[0].toUpperCase();
   const nombreCorto  = (user?.nombre_completo ?? user?.nombre ?? 'Usuario').split(' ').slice(0, 2).join(' ');
 
   const rolUsuario = user?.rol_codigo ?? user?.rol ?? '';
   const esAdmin    = rolUsuario === 'ADMIN' || rolUsuario === 'administrador';
   const esCliente  = rolUsuario === 'CLIENTE' || esAdmin;
 
-  const handleLogout = () => { logout(); setDropdown(false); navigate('/'); };
+  // Resumen para el panel del usuario: admin → pendientes/confirmadas;
+  // cliente → sus solicitudes en curso/confirmadas. Se pide al abrir el menú.
+  const [resumen, setResumen] = useState(null);
+  const panelAbierto = dropdown || menuOpen;
+  useEffect(() => {
+    if (!panelAbierto || !isAuthenticated) return;
+    let vigente = true;
+    const pedir = esAdmin
+      ? getDashboardData().then(({ resumen: r }) => ({ a: Number(r.pendientes) + Number(r.en_revision), b: Number(r.confirmadas) }))
+      : getMisSolicitudes().then((lista) => ({
+          a: lista.filter((s) => ['PENDIENTE', 'EN_REVISION'].includes(s.estado_codigo)).length,
+          b: lista.filter((s) => s.estado_codigo === 'CONFIRMADA').length,
+        }));
+    pedir.then((r) => { if (vigente) setResumen(r); }).catch(() => {});
+    return () => { vigente = false; };
+  }, [panelAbierto, isAuthenticated, esAdmin]);
+
+  // Avisar a los botones flotantes para que no tapen el menú abierto
+  const setMenuUsuarioAbierto = useUIStore((s) => s.setMenuUsuarioAbierto);
+  useEffect(() => {
+    setMenuUsuarioAbierto(panelAbierto && isAuthenticated);
+    return () => setMenuUsuarioAbierto(false);
+  }, [panelAbierto, isAuthenticated, setMenuUsuarioAbierto]);
+
+  // Cerrar el menú del usuario con la tecla Escape
+  useEffect(() => {
+    if (!dropdown) return;
+    const alPresionar = (e) => { if (e.key === 'Escape') setDropdown(false); };
+    window.addEventListener('keydown', alPresionar);
+    return () => window.removeEventListener('keydown', alPresionar);
+  }, [dropdown]);
+
+  const handleLogout = () => { logout(); setDropdown(false); setMenuOpen(false); setResumen(null); navigate('/'); };
 
   /* ── Animaciones de dropdown ── */
   const dropdownVariants = {
@@ -52,7 +85,8 @@ export default function Navbar() {
         </Link>
 
         {/* ── Links Desktop (píldora) ── */}
-        <div className="hidden md:flex items-center bg-white/80 dark:bg-white/5 border border-slate-100 dark:border-white/8 p-1 rounded-full shadow-sm backdrop-blur-sm">
+        {/* Cápsula un poco más clara que el navbar, del mismo tono (crema / violeta) */}
+        <div className="hidden md:flex items-center p-1 rounded-full border bg-[#F0E6D3] border-[#C9A227]/18 shadow-[inset_0_1px_0_rgba(255,255,255,0.6),0_1px_2px_rgba(71,58,40,0.08)] dark:bg-[#52396F] dark:border-white/16 dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.10),0_2px_8px_rgba(0,0,0,0.30)]">
           <NavItem to="/" end>Inicio</NavItem>
           <NavItem to="/paquetes">Paquetes</NavItem>
           <NavItem to="/galeria">Galería</NavItem>
@@ -99,14 +133,21 @@ export default function Navbar() {
               {/* Botón usuario */}
               <button
                 onClick={() => setDropdown(!dropdown)}
-                className="flex items-center gap-2.5 bg-white dark:bg-white/7 border border-slate-200 dark:border-white/10 pl-2 pr-3.5 py-1.5 rounded-full hover:bg-slate-50 dark:hover:bg-white/10 transition-all shadow-sm focus:outline-none"
+                className={`flex items-center gap-2.5 bg-white dark:bg-white/7 border pl-1.5 pr-3.5 py-1.5 rounded-full hover:bg-slate-50 dark:hover:bg-white/10 transition-all shadow-sm focus:outline-none ${
+                  esAdmin ? 'border-[#C9A227]/40 dark:border-[#C9A227]/30' : 'border-[#A971D6]/30 dark:border-[#A971D6]/30'
+                }`}
                 aria-expanded={dropdown}
+                aria-haspopup="menu"
+                aria-label={`Menú de ${nombreCorto}`}
               >
-                <div className="w-7 h-7 rounded-full overflow-hidden bg-gradient-to-br from-[#C9A227] to-[#B7950B] flex items-center justify-center text-white font-bold text-xs shrink-0">
-                  {fotoUrl ? <img src={fotoUrl} alt="" className="w-full h-full object-cover" /> : inicial}
-                </div>
-                <span className="text-sm text-slate-700 dark:text-slate-200 font-semibold max-w-[120px] truncate">
-                  {nombreCorto}
+                <AvatarUsuario user={user} tamano="sm" />
+                <span className="flex flex-col items-start leading-tight text-left">
+                  <span className="text-sm text-slate-700 dark:text-slate-200 font-semibold max-w-[120px] truncate">
+                    {nombreCorto}
+                  </span>
+                  <span className={`text-[10px] font-bold uppercase tracking-wider ${esAdmin ? 'text-[#B7950B] dark:text-[#F0D060]' : 'text-[#6B3F7A] dark:text-[#C9A8E6]'}`}>
+                    {esAdmin ? 'Administrador' : 'Cliente'}
+                  </span>
                 </span>
                 <motion.div animate={{ rotate: dropdown ? 180 : 0 }} transition={{ duration: 0.2 }}>
                   <ChevronDown size={14} className="text-slate-400 dark:text-slate-500" />
@@ -121,43 +162,15 @@ export default function Navbar() {
                       variants={dropdownVariants}
                       initial="hidden" animate="visible" exit="exit"
                       transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
-                      className="absolute right-0 top-full mt-2.5 w-64 bg-white dark:bg-[#332247] rounded-2xl shadow-2xl border border-slate-100 dark:border-white/8 overflow-hidden z-40"
+                      className="absolute right-0 top-full mt-3 w-[20rem] bg-white dark:bg-[#332247] rounded-2xl shadow-2xl shadow-black/20 border border-slate-100 dark:border-white/8 overflow-x-hidden overflow-y-auto max-h-[calc(100dvh-6.5rem)] z-40 origin-top-right"
+                      role="menu"
                     >
-                      {/* Cabecera dropdown */}
-                      <div className="px-4 py-4 bg-slate-50/80 dark:bg-white/4 border-b border-slate-100 dark:border-white/8">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full overflow-hidden bg-gradient-to-br from-[#C9A227] to-[#B7950B] flex items-center justify-center text-white font-bold shrink-0">
-                            {fotoUrl ? <img src={fotoUrl} alt="" className="w-full h-full object-cover" /> : inicial}
-                          </div>
-                          <div className="min-w-0">
-                            <p className="text-sm font-bold text-[#0D2137] dark:text-white truncate">{user?.nombre_completo ?? user?.nombre}</p>
-                            <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{user?.correo}</p>
-                          </div>
-                        </div>
-                        <span className={`inline-block mt-3 text-[10px] font-bold uppercase px-2.5 py-1 rounded-full tracking-wide ${
-                          esAdmin
-                            ? 'bg-gradient-to-r from-[#B7950B] to-[#D4AF37] text-white'
-                            : 'bg-[#0D2137]/8 dark:bg-white/8 text-[#0D2137] dark:text-white'
-                        }`}>
-                          {esAdmin ? '⚡ Administrador' : '👤 Cliente'}
-                        </span>
-                      </div>
-
-                      {/* Items */}
-                      <nav className="py-1.5">
-                        {esAdmin && <DropdownLink to="/admin" onClick={() => setDropdown(false)}>📊 Panel de administración</DropdownLink>}
-                        {esCliente && !esAdmin && <DropdownLink to="/mis-solicitudes" onClick={() => setDropdown(false)}>📋 Mis eventos cotizados</DropdownLink>}
-                        {esCliente && !esAdmin && <DropdownLink to="/mi-perfil" onClick={() => setDropdown(false)}>👤 Mi perfil</DropdownLink>}
-                        <DropdownLink to="/configurador" onClick={() => setDropdown(false)}>✨ Configurar nuevo evento</DropdownLink>
-                        <div className="border-t border-slate-100 dark:border-white/8 mt-1.5 pt-1.5 px-2 pb-1.5">
-                          <button
-                            onClick={handleLogout}
-                            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-bold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-500/10 rounded-xl hover:bg-red-100 dark:hover:bg-red-500/18 transition-colors"
-                          >
-                            🚪 Cerrar sesión
-                          </button>
-                        </div>
-                      </nav>
+                      <PanelUsuario
+                        user={user}
+                        resumen={resumen}
+                        onNavegar={() => setDropdown(false)}
+                        onLogout={handleLogout}
+                      />
                     </motion.div>
                   </>
                 )}
@@ -221,37 +234,24 @@ export default function Navbar() {
             transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
             className="md:hidden overflow-hidden border-b border-[#C9A227]/15 dark:border-[#C9A227]/10"
           >
-            <div className="bg-[#E7D8BD]/98 dark:bg-[#2E2046]/98 backdrop-blur-xl px-4 py-5 flex flex-col gap-1.5">
+            <div className="bg-[#E7D8BD]/98 dark:bg-[#2E2046]/98 backdrop-blur-xl px-4 py-5 flex flex-col gap-1.5 max-h-[calc(100dvh-5rem)] overflow-y-auto overscroll-contain [&>*]:shrink-0">
               <NavItemMobile to="/" end onClick={() => setMenuOpen(false)}>Inicio</NavItemMobile>
               <NavItemMobile to="/paquetes" onClick={() => setMenuOpen(false)}>Paquetes</NavItemMobile>
               <NavItemMobile to="/galeria" onClick={() => setMenuOpen(false)}>Galería</NavItemMobile>
               <NavItemMobile to="/resenias" onClick={() => setMenuOpen(false)}>Reseñas ⭐</NavItemMobile>
               <NavItemMobile to="/configurador" onClick={() => setMenuOpen(false)}>Configurar Evento</NavItemMobile>
-              {isAuthenticated && esCliente && !esAdmin && (
-                <NavItemMobile to="/mis-solicitudes" onClick={() => setMenuOpen(false)}>📋 Mis Eventos</NavItemMobile>
-              )}
-              {isAuthenticated && esCliente && !esAdmin && (
-                <NavItemMobile to="/mi-perfil" onClick={() => setMenuOpen(false)}>👤 Mi Perfil</NavItemMobile>
-              )}
-              {isAuthenticated && esAdmin && (
-                <NavItemMobile to="/admin" onClick={() => setMenuOpen(false)}>⚡ Panel Admin</NavItemMobile>
-              )}
 
               <div className="h-px bg-slate-200 dark:bg-white/8 my-1.5" />
 
               {isAuthenticated ? (
-                <>
-                  <div className="text-center mb-1">
-                    <p className="text-sm font-bold text-[#0D2137] dark:text-white">{user?.nombre_completo}</p>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">{user?.correo}</p>
-                  </div>
-                  <button
-                    onClick={() => { handleLogout(); setMenuOpen(false); }}
-                    className="w-full text-sm font-bold px-5 py-3 rounded-xl bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-500/18 transition-colors border border-red-100 dark:border-red-500/15"
-                  >
-                    Cerrar sesión
-                  </button>
-                </>
+                <div className="rounded-2xl overflow-hidden bg-white dark:bg-[#332247] border border-slate-100 dark:border-white/8 shadow-lg">
+                  <PanelUsuario
+                    user={user}
+                    resumen={resumen}
+                    onNavegar={() => setMenuOpen(false)}
+                    onLogout={handleLogout}
+                  />
+                </div>
               ) : (
                 <div className="flex flex-col gap-2 pt-1">
                   <NavLink
@@ -320,17 +320,5 @@ function NavItemMobile({ to, end, onClick, children }) {
         <span className={isActive ? ARGB_TEXT_ACTIVE : ARGB_TEXT_HOVER}>{children}</span>
       )}
     </NavLink>
-  );
-}
-
-function DropdownLink({ to, onClick, children }) {
-  return (
-    <Link
-      to={to}
-      onClick={onClick}
-      className="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/6 hover:text-[#0D2137] dark:hover:text-white transition-colors"
-    >
-      {children}
-    </Link>
   );
 }

@@ -47,7 +47,9 @@ const renderMarkdown = (texto) => {
       if (parte.startsWith('[') && parte.endsWith(')') && parte.includes('](')) {
         const textMatch = parte.match(/\[([^\]]+)\]/);
         const urlMatch  = parte.match(/\(([^)]+)\)/);
-        if (textMatch && urlMatch) {
+        // Solo se aceptan enlaces internos al configurador: el texto lo genera la
+        // IA y no debe poder llevar al usuario a sitios externos.
+        if (textMatch && urlMatch && /^\/configurador(\?|$)/.test(urlMatch[1])) {
           // Limpiar el texto del botón: quitar emojis problemáticos al inicio
           const textoBoton = textMatch[1]
             .replace(/^[✨🚀⭐🎉🎊]+\s*/u, '')  // quitar emojis al inicio

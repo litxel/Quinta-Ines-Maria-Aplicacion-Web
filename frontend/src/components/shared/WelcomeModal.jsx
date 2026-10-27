@@ -2,8 +2,8 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, CalendarDays } from 'lucide-react';
 import { useAuthStore } from '../../store/useAuthStore';
+import { urlImagen } from '../../utils/urls';
 
-const BACKEND_URL = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000';
 
 export default function WelcomeModal() {
   const { user, isAuthenticated } = useAuthStore();
@@ -27,7 +27,7 @@ export default function WelcomeModal() {
   const esAdmin     = (user?.rol_codigo ?? user?.rol) === 'ADMIN';
   const hora        = new Date().getHours();
   const saludo      = hora < 12 ? 'Buenos días' : hora < 19 ? 'Buenas tardes' : 'Buenas noches';
-  const fotoUrl     = user?.foto_perfil ? `${BACKEND_URL}${user.foto_perfil}` : null;
+  const fotoUrl     = urlImagen(user?.foto_perfil, 160);
   const inicial     = (user?.nombre_completo ?? user?.nombre ?? 'U')[0].toUpperCase();
 
   const fechaHoy = new Date().toLocaleDateString('es-EC', { weekday: 'long', day: 'numeric', month: 'long' });

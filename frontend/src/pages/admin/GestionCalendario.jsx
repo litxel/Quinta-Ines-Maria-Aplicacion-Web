@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Calendar, Lock, PartyPopper, Info, X } from 'lucide-react';
 import api from '../../services/api';
+import { confirmar, avisar, mensajeDeError } from '../../utils/dialogos';
 
 export default function GestionCalendario() {
   const [eventos, setEventos] = useState([]);
@@ -44,19 +45,25 @@ export default function GestionCalendario() {
       cargarDatos(); // Recarga y pinta el cuadrito de ROJO
     } catch (error) {
       console.error("Error completo:", error);
-      alert('Error: ' + (error.response?.data?.message || error.message));
+      avisar({ tipo: 'error', titulo: 'No se pudo bloquear la fecha', mensaje: mensajeDeError(error) });
     } finally {
       setGuardando(false);
     }
   };
 
   const handleDesbloquear = async (id) => {
-    if(!window.confirm('¿Seguro que deseas habilitar esta fecha nuevamente?')) return;
+    const ok = await confirmar({
+      titulo: '¿Habilitar esta fecha?',
+      mensaje: 'La fecha volverá a estar disponible para que los clientes la reserven.',
+      tipo: 'advertencia',
+      textoConfirmar: 'Sí, habilitar',
+    });
+    if (!ok) return;
     try {
       await api.delete(`/configurador/admin/calendario/${id}`);
       cargarDatos(); // Recarga y pinta el cuadrito de BLANCO
     } catch (error) {
-      alert('Error al desbloquear: ' + (error.response?.data?.message || error.message));
+      avisar({ tipo: 'error', titulo: 'No se pudo habilitar la fecha', mensaje: mensajeDeError(error) });
     }
   };
 

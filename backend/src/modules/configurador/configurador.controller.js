@@ -1,9 +1,9 @@
 'use strict';
 const svc       = require('./configurador.service');
 const auditoria = require('../../utils/auditoria.service');
-const emailSvc = require('../../utils/email.service');
 const { consultarAsistente } = require('../../utils/gemini');
-console.log('🔍 Clave Gemini detectada:', process.env.GEMINI_API_KEY ? 'SÍ (oculta)' : 'NO');
+
+const FECHA_RE = /^\d{4}-\d{2}-\d{2}$/;
 // =============================================================================
 //  CONTROLADOR DEL CONFIGURADOR — EventPlanner QIM
 //  Middleware de auth en: src/middlewares/auth.js → { verifyToken, isAdmin }
@@ -138,7 +138,7 @@ const getSesion = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'ID de sesión inválido.' });
     }
 
-    const sesion = await svc.obtenerSesion(sesionId);
+    const sesion = await svc.obtenerSesion(sesionId, req.user?.id ?? null);
     return res.json({ success: true, data: sesion });
   } catch (err) {
     next(err);
@@ -169,9 +169,9 @@ const calcularPrecio = async (req, res, next) => {
 
     const resultado = await svc.calcularPrecioTotal({
       paqueteId:   paquete_id,
-      numInvitados: parseInt(num_invitados, 10),
+      numInvitados: Math.min(parseInt(num_invitados, 10), 5000),
       centrMesaId:  centro_mesa_id ?? null,
-      servicios,
+      servicios:    Array.isArray(servicios) ? servicios.slice(0, 50) : [],
     });
 
     return res.json({ success: true, data: resultado });
@@ -179,39 +179,6 @@ const calcularPrecio = async (req, res, next) => {
     next(err);
   }
 };
-/**
- * POST /api/configurador/enviar-solicitud
- * Recibe los datos finales y el PDF en base64 para enviarlo por correo.
- */
-const enviarSolicitudFinal = async (req, res, next) => {
-  try {
-    const { correo_cliente, nombre_cliente, total_estimado, pdf_base64 } = req.body;
-
-    if (!correo_cliente || !pdf_base64) {
-      return res.status(400).json({ success: false, message: 'Faltan datos o el PDF para enviar el correo.' });
-    }
-
-    // Generamos un número de cotización oficial
-    const numeroCotizacion = `QIM-2026-${Math.floor(100000 + Math.random() * 900000)}`;
-
-    // Enviamos el correo con el PDF adjunto
-    await emailSvc.enviarConfirmacionSolicitud({
-      nombre: nombre_cliente,
-      correo: correo_cliente,
-      numero: numeroCotizacion,
-      total: total_estimado || 0,
-      pdfBase64: pdf_base64
-    });
-
-    return res.json({ 
-      success: true, 
-      message: '¡Solicitud y cotización PDF enviadas exitosamente a tu correo!' 
-    });
-  } catch (err) {
-    next(err);
-  }
-};
-
 // ── Sprint 4-IA — NUEVO endpoint /recomendar ──────────────────────────────────
 /**
  * POST /api/configurador/recomendar
@@ -256,8 +223,22 @@ const recomendarConIA = async (req, res, next) => {
     if (!Array.isArray(historial))
       return res.status(400).json({ success: false, message: '"historial" debe ser un array.' });
 
+    // Solo se aceptan turnos con la forma esperada y de tamaño razonable: así no
+    // se puede inyectar contenido arbitrario ni gastar la cuota con textos enormes.
+    const historialLimpio = historial
+      .slice(-20)
+      .filter((t) => (t?.role === 'user' || t?.role === 'model') && Array.isArray(t.parts))
+      .map((t) => ({
+        role:  t.role,
+        parts: t.parts
+          .filter((p) => typeof p?.text === 'string')
+          .slice(0, 3)
+          .map((p) => ({ text: p.text.slice(0, 2000) })),
+      }))
+      .filter((t) => t.parts.length > 0);
+
     // ── Consultar a Gemini (con fallback incorporado — nunca rompe) ──────────
-    const resultado = await consultarAsistente(mensaje.trim(), historial);
+    const resultado = await consultarAsistente(mensaje.trim(), historialLimpio);
 
     // Registrar consulta en auditoría (sin datos personales del mensaje)
     await auditoria.registrarLogOperacion({
@@ -312,31 +293,23 @@ const getCalendarioAdmin = async (req, res, next) => {
 const bloquearFecha = async (req, res, next) => {
   try {
     const { fecha, nota_interna } = req.body;
-    if (!fecha) return res.status(400).json({ success: false, message: 'La fecha es obligatoria.' });
-    
-    // Fallback seguro para obtener el ID del administrador
-    const adminId = req.user?.id || req.user?.usuario_id || null;
+    if (typeof fecha !== 'string' || !FECHA_RE.test(fecha))
+      return res.status(400).json({ success: false, message: 'La fecha es obligatoria (formato AAAA-MM-DD).' });
 
-    const data = await svc.bloquearFechaManual(fecha, nota_interna || 'Bloqueado por administrador', adminId);
-    
-    // Envolvemos la auditoría en un try/catch propio para que no bloquee el guardado si falla
-    try {
-      if (adminId) {
-        await auditoria.registrarLogOperacion({
-          schemaTabla: 'eqim_solicitudes.disponibilidad', operacion: 'INSERT',
-          usuarioId: adminId, datosNuevos: data, ipOrigen: req.ip,
-          userAgent: req.headers['user-agent'], descripcion: `Fecha bloqueada: ${fecha}`
-        });
-      }
-    } catch (auditoriaErr) {
-      console.warn('⚠️ La auditoría falló, pero la fecha SÍ se bloqueó:', auditoriaErr.message);
-    }
+    const nota = typeof nota_interna === 'string' && nota_interna.trim()
+      ? nota_interna.trim().slice(0, 500)
+      : 'Bloqueado por administrador';
+
+    const data = await svc.bloquearFechaManual(fecha, nota, req.user.id);
+
+    await auditoria.registrarLogOperacion({
+      schemaTabla: 'eqim_solicitudes.disponibilidad', operacion: 'INSERT',
+      usuarioId: req.user.id, datosNuevos: data, ipOrigen: req.ip,
+      userAgent: req.headers['user-agent'], descripcion: `Fecha bloqueada: ${fecha}`
+    });
 
     return res.json({ success: true, message: 'Fecha bloqueada exitosamente.', data });
-  } catch (err) { 
-    console.error('❌ Error en bloquearFecha:', err.message);
-    return res.status(500).json({ success: false, message: 'Error BD: ' + err.message });
-  }
+  } catch (err) { next(err); }
 };
 
 /**
@@ -345,15 +318,23 @@ const bloquearFecha = async (req, res, next) => {
 const desbloquearFecha = async (req, res, next) => {
   try {
     const id = parseInt(req.params.id, 10);
+    if (!Number.isInteger(id) || id <= 0)
+      return res.status(400).json({ success: false, message: 'ID inválido.' });
+
     await svc.desbloquearFechaManual(id);
+
+    await auditoria.registrarLogOperacion({
+      schemaTabla: 'eqim_solicitudes.disponibilidad', operacion: 'DELETE',
+      usuarioId: req.user.id, datosAnteriores: { disponibilidad_id: id }, ipOrigen: req.ip,
+      userAgent: req.headers['user-agent'], descripcion: `Fecha desbloqueada (id ${id})`
+    });
+
     return res.json({ success: true, message: 'Fecha desbloqueada exitosamente.' });
-  } catch (err) { 
-    return res.status(500).json({ success: false, message: 'Error BD: ' + err.message });
-  }
+  } catch (err) { next(err); }
 };
 
 module.exports = { 
-  getDatosConfiguracion, crearSesion, actualizarSesion, getSesion, calcularPrecio, 
-  enviarSolicitudFinal, recomendarConIA, getFechasOcupadas,
+  getDatosConfiguracion, crearSesion, actualizarSesion, getSesion, calcularPrecio,
+  recomendarConIA, getFechasOcupadas,
   getCalendarioAdmin, bloquearFecha, desbloquearFecha // 🚀 Agregados
 };

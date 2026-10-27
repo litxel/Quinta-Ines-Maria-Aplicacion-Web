@@ -1,62 +1,45 @@
 import { useEffect, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/useAuthStore';
 import api from '../services/api';
 
 /**
  * Página de callback OAuth.
- * El backend redirige aquí con ?token=JWT&nombre=X&correo=Y&rol=Z
- * Esta página guarda el token en el store y redirige al destino.
+ * El backend redirige aquí con #token=JWT (en el fragmento, para que el token
+ * nunca viaje a ningún servidor ni quede en el historial de logs).
+ * Esta página pide el perfil completo, guarda la sesión y redirige al destino.
  */
 export default function AuthCallback() {
-  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { login, clearRedirect } = useAuthStore();
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    const token  = searchParams.get('token');
-    const nombre = searchParams.get('nombre');
-    const correo = searchParams.get('correo');
-    const rol    = searchParams.get('rol');
-    const err    = searchParams.get('error');
+    const params = new URLSearchParams(window.location.hash.slice(1));
+    const token  = params.get('token');
 
-    if (err) {
-      setError('Error en la autenticación social. Por favor, intenta de nuevo.');
-      setTimeout(() => navigate('/login'), 3000);
-      return;
-    }
+    // Quitar el token de la barra de direcciones de inmediato
+    window.history.replaceState(null, '', window.location.pathname);
 
     if (!token) {
-      setError('Token no recibido. Redirigiendo...');
-      setTimeout(() => navigate('/login'), 2000);
+      setError('No se recibió la sesión. Redirigiendo al inicio de sesión...');
+      setTimeout(() => navigate('/login', { replace: true }), 2500);
       return;
     }
-
-    // Guardar token y datos del usuario en el store
-    // Usar la misma estructura que el login normal
-    const usuarioData = {
-      nombre_completo: nombre ? decodeURIComponent(nombre) : 'Usuario',
-      correo: correo ? decodeURIComponent(correo) : '',
-      rol_codigo: rol || 'CLIENTE',
-    };
-
-    // Llamar al endpoint de perfil para obtener datos completos
-    api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-
-    const requiereTel = searchParams.get('requiere_telefono') === '1';
 
     // Ruta pendiente guardada antes de ir a OAuth (p. ej. el invitado que
     // estaba finalizando su evento en /solicitar). Sobrevive a la recarga
     // porque el store de auth se persiste en localStorage.
     const destinoPendiente = useAuthStore.getState().redirectAfterLogin;
 
-    api.get('/usuarios/me')
+    // El token se envía solo en esta petición (no se fija como cabecera global,
+    // así no queda "pegado" en axios después de cerrar sesión).
+    api.get('/usuarios/me', { headers: { Authorization: `Bearer ${token}` } })
       .then(({ data }) => {
-        const usuario = data.usuario ?? usuarioData;
+        const usuario = data.usuario;
         login(usuario, token);
-        const esAdmin = (usuario.rol_codigo ?? rol) === 'ADMIN';
-        if (esAdmin) {
+        if (usuario.rol_codigo === 'ADMIN') {
+          clearRedirect();
           navigate('/admin', { replace: true });
           return;
         }
@@ -67,15 +50,13 @@ export default function AuthCallback() {
         navigate(destino, { replace: true });
       })
       .catch(() => {
-        login(usuarioData, token);
-        const destino = destinoPendiente ?? '/paquetes';
-        clearRedirect();
-        navigate(destino, { replace: true });
+        setError('No pudimos completar el inicio de sesión. Intenta de nuevo.');
+        setTimeout(() => navigate('/login', { replace: true }), 3000);
       });
   }, []);
 
   return (
-    <main className="min-h-screen bg-[#EEE3CF] flex items-center justify-center">
+    <main className="min-h-screen bg-[#EEE3CF] dark:bg-[#221634] flex items-center justify-center px-4">
       <div className="text-center">
         {error ? (
           <div className="bg-red-50 border border-red-200 rounded-2xl p-8 max-w-sm">
@@ -85,7 +66,7 @@ export default function AuthCallback() {
         ) : (
           <div className="space-y-4">
             <div className="w-12 h-12 border-4 border-[#0D2137] border-t-[#B7950B] rounded-full animate-spin mx-auto" />
-            <p className="text-[#0D2137] font-semibold text-sm">Verificando tu sesión...</p>
+            <p className="text-[#0D2137] dark:text-white font-semibold text-sm">Verificando tu sesión...</p>
             <p className="text-slate-400 text-xs">Redirigiendo, por favor espera.</p>
           </div>
         )}

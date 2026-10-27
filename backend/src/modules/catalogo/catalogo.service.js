@@ -1,42 +1,6 @@
 'use strict';
 const pool = require('../../config/db');
-const path = require('path');
-const fs   = require('fs');
-
-// ============================================================================
-//  UTILIDAD: Guardar imagen base64 en disco
-// ============================================================================
-const guardarImagenBase64 = (base64, subcarpeta = 'catalogo') => {
-  if (!base64 || !base64.startsWith('data:image/')) {
-    const e = new Error('Formato de imagen inválido.'); e.statusCode = 400; throw e;
-  }
-
-  const match = base64.match(/^data:image\/(jpeg|jpg|png|gif|webp);base64,/i);
-  if (!match) {
-    const e = new Error('Tipo de imagen no permitido. Usa JPEG, PNG o WebP.'); e.statusCode = 400; throw e;
-  }
-
-  const ext    = match[1].toLowerCase() === 'jpeg' ? 'jpg' : match[1].toLowerCase();
-  const buffer = Buffer.from(base64.replace(/^data:image\/\w+;base64,/, ''), 'base64');
-
-  if (buffer.length > 5 * 1024 * 1024) {
-    const e = new Error('La imagen no puede superar 5MB.'); e.statusCode = 400; throw e;
-  }
-
-  const uploadDir = path.join(__dirname, '../../../public/uploads', subcarpeta);
-  if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
-
-  const filename = `${subcarpeta}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}.${ext}`;
-  fs.writeFileSync(path.join(uploadDir, filename), buffer);
-  return `/uploads/${subcarpeta}/${filename}`;
-};
-
-const eliminarImagenAnterior = (urlRelativa) => {
-  if (!urlRelativa || urlRelativa.startsWith('http')) return;
-  const relPath = urlRelativa.replace(/^\//, '');
-  const abs = path.join(__dirname, '../../../public', relPath);
-  if (fs.existsSync(abs)) { try { fs.unlinkSync(abs); } catch (_) {} }
-};
+const { guardarImagen, eliminarImagen } = require('../../utils/almacenamiento.service');
 
 // ============================================================================
 //  1. GESTIÓN DE PAQUETES
@@ -65,9 +29,12 @@ const obtenerTodosPaquetesAdmin = async () => {
 };
 
 const crearPaquete = async ({ paquete_nombre, paquete_codigo, descripcion, precio_persona, minimo_invitados = 100, color_principal = '#B7950B', orden_display = 99, imagen_base64 }) => {
+  if (typeof paquete_nombre !== 'string' || !paquete_nombre.trim() || typeof paquete_codigo !== 'string' || !paquete_codigo.trim() || !(parseFloat(precio_persona) > 0)) {
+    const err = new Error('Nombre, código y precio por persona son obligatorios.'); err.statusCode = 400; throw err;
+  }
   const existe = await pool.query('SELECT paquete_id FROM eqim_catalogo.paquetes WHERE paquete_codigo = $1', [paquete_codigo.toUpperCase()]);
   if (existe.rows.length > 0) { const err = new Error(`Ya existe un paquete con el código '${paquete_codigo}'.`); err.statusCode = 409; throw err; }
-  const imagen_url = imagen_base64 ? guardarImagenBase64(imagen_base64, 'paquetes') : null;
+  const imagen_url = imagen_base64 ? await guardarImagen(imagen_base64, 'paquetes') : null;
   const { rows } = await pool.query(
     `INSERT INTO eqim_catalogo.paquetes (paquete_nombre, paquete_codigo, descripcion, precio_persona, minimo_invitados, color_principal, orden_display, imagen_url) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
     [paquete_nombre.trim(), paquete_codigo.toUpperCase(), descripcion, precio_persona, minimo_invitados, color_principal, orden_display, imagen_url]
@@ -83,8 +50,8 @@ const actualizarPaquete = async (paqueteId, datos) => {
   // Si se manda nueva imagen, guardar y eliminar la anterior
   let imagen_url_nueva = undefined;
   if (imagen_base64) {
-    if (actual.rows[0]?.imagen_url) eliminarImagenAnterior(actual.rows[0].imagen_url);
-    imagen_url_nueva = guardarImagenBase64(imagen_base64, 'paquetes');
+    if (actual.rows[0]?.imagen_url) await eliminarImagen(actual.rows[0].imagen_url);
+    imagen_url_nueva = await guardarImagen(imagen_base64, 'paquetes');
   }
 
   const { rows } = await pool.query(
@@ -145,7 +112,10 @@ const obtenerTiposEventoAdmin = async () => {
   return rows;
 };
 const crearTipoEvento = async ({ tipo_nombre, tipo_codigo, tipo_icono, descripcion, orden_display = 99, imagen_base64 }) => {
-  const imagen_url = imagen_base64 ? guardarImagenBase64(imagen_base64, 'tipos') : null;
+  if (typeof tipo_nombre !== 'string' || !tipo_nombre.trim() || typeof tipo_codigo !== 'string' || !tipo_codigo.trim()) {
+    const err = new Error('Nombre y código del tipo de evento son obligatorios.'); err.statusCode = 400; throw err;
+  }
+  const imagen_url = imagen_base64 ? await guardarImagen(imagen_base64, 'tipos') : null;
   const { rows } = await pool.query(
     `INSERT INTO eqim_catalogo.tipos_evento (tipo_nombre, tipo_codigo, tipo_icono, descripcion, orden_display, imagen_url)
      VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
@@ -160,8 +130,8 @@ const actualizarTipoEvento = async (id, datos) => {
   let imagen_url_nueva = undefined;
   if (imagen_base64) {
     const actual = await pool.query('SELECT imagen_url FROM eqim_catalogo.tipos_evento WHERE tipo_id = $1', [id]);
-    if (actual.rows[0]?.imagen_url) eliminarImagenAnterior(actual.rows[0].imagen_url);
-    imagen_url_nueva = guardarImagenBase64(imagen_base64, 'tipos');
+    if (actual.rows[0]?.imagen_url) await eliminarImagen(actual.rows[0].imagen_url);
+    imagen_url_nueva = await guardarImagen(imagen_base64, 'tipos');
   }
 
   const { rows } = await pool.query(
@@ -195,7 +165,10 @@ const obtenerEstilosAdmin = async () => {
   return rows;
 };
 const crearEstilo = async ({ estilo_codigo, nombre, descripcion, icono, imagen_base64, costo_adicional = 0 }) => {
-  const imagen_url = imagen_base64 ? guardarImagenBase64(imagen_base64, 'estilos') : null;
+  if (typeof nombre !== 'string' || !nombre.trim() || typeof estilo_codigo !== 'string' || !estilo_codigo.trim()) {
+    const err = new Error('Nombre y código del estilo son obligatorios.'); err.statusCode = 400; throw err;
+  }
+  const imagen_url = imagen_base64 ? await guardarImagen(imagen_base64, 'estilos') : null;
   const { rows } = await pool.query(
     `INSERT INTO eqim_catalogo.estilos_decoracion (estilo_codigo, nombre, descripcion, icono, imagen_url, costo_adicional)
      VALUES ($1, $2, $3, $4, $5, $6)
@@ -211,8 +184,8 @@ const actualizarEstilo = async (id, datos) => {
   let imagen_url_nueva = undefined;
   if (imagen_base64) {
     const actual = await pool.query('SELECT imagen_url FROM eqim_catalogo.estilos_decoracion WHERE estilo_id = $1', [id]);
-    if (actual.rows[0]?.imagen_url) eliminarImagenAnterior(actual.rows[0].imagen_url);
-    imagen_url_nueva = guardarImagenBase64(imagen_base64, 'estilos');
+    if (actual.rows[0]?.imagen_url) await eliminarImagen(actual.rows[0].imagen_url);
+    imagen_url_nueva = await guardarImagen(imagen_base64, 'estilos');
   }
 
   const { rows } = await pool.query(
@@ -246,7 +219,10 @@ const obtenerCentrosAdmin = async () => {
   return rows;
 };
 const crearCentro = async ({ nombre, descripcion, icono, imagen_base64, costo_por_mesa = 0 }) => {
-  const imagen_url = imagen_base64 ? guardarImagenBase64(imagen_base64, 'centros') : null;
+  if (typeof nombre !== 'string' || !nombre.trim()) {
+    const err = new Error('El nombre del centro de mesa es obligatorio.'); err.statusCode = 400; throw err;
+  }
+  const imagen_url = imagen_base64 ? await guardarImagen(imagen_base64, 'centros') : null;
   const { rows } = await pool.query(
     `INSERT INTO eqim_catalogo.centros_mesa (nombre, descripcion, icono, imagen_url, costo_por_mesa)
      VALUES ($1, $2, $3, $4, $5)
@@ -261,8 +237,8 @@ const actualizarCentro = async (id, datos) => {
   let imagen_url_nueva = undefined;
   if (imagen_base64) {
     const actual = await pool.query('SELECT imagen_url FROM eqim_catalogo.centros_mesa WHERE centro_id = $1', [id]);
-    if (actual.rows[0]?.imagen_url) eliminarImagenAnterior(actual.rows[0].imagen_url);
-    imagen_url_nueva = guardarImagenBase64(imagen_base64, 'centros');
+    if (actual.rows[0]?.imagen_url) await eliminarImagen(actual.rows[0].imagen_url);
+    imagen_url_nueva = await guardarImagen(imagen_base64, 'centros');
   }
 
   const { rows } = await pool.query(
@@ -295,7 +271,10 @@ const obtenerExtrasAdmin = async () => {
   return rows;
 };
 const crearExtra = async ({ nombre, descripcion, precio_unitario, unidad = 'unidad', categoria = 'GENERAL', icono, imagen_base64 }) => {
-  const imagen_url = imagen_base64 ? guardarImagenBase64(imagen_base64, 'extras') : null;
+  if (typeof nombre !== 'string' || !nombre.trim()) {
+    const err = new Error('El nombre del servicio extra es obligatorio.'); err.statusCode = 400; throw err;
+  }
+  const imagen_url = imagen_base64 ? await guardarImagen(imagen_base64, 'extras') : null;
   const { rows } = await pool.query(
     `INSERT INTO eqim_catalogo.servicios_adicionales (nombre, descripcion, precio_unitario, unidad, categoria, icono, imagen_url)
      VALUES ($1, $2, $3, $4, $5, $6, $7)
@@ -310,8 +289,8 @@ const actualizarExtra = async (id, datos) => {
   let imagen_url_nueva = undefined;
   if (imagen_base64) {
     const actual = await pool.query('SELECT imagen_url FROM eqim_catalogo.servicios_adicionales WHERE adicional_id = $1', [id]);
-    if (actual.rows[0]?.imagen_url) eliminarImagenAnterior(actual.rows[0].imagen_url);
-    imagen_url_nueva = guardarImagenBase64(imagen_base64, 'extras');
+    if (actual.rows[0]?.imagen_url) await eliminarImagen(actual.rows[0].imagen_url);
+    imagen_url_nueva = await guardarImagen(imagen_base64, 'extras');
   }
 
   const { rows } = await pool.query(
@@ -357,22 +336,30 @@ const hardDelete = async ({ tabla, idCol, id, entidad }) => {
     if (err.code === PG_FK_VIOLATION) throw errorEnUso(entidad.toLowerCase());
     throw err;
   }
-  if (actual.rows[0].imagen_url) eliminarImagenAnterior(actual.rows[0].imagen_url);
+  if (actual.rows[0].imagen_url) await eliminarImagen(actual.rows[0].imagen_url);
   return actual.rows[0];
 };
 
 const eliminarPaquete = async (id) => {
   const actual = await pool.query('SELECT * FROM eqim_catalogo.paquetes WHERE paquete_id = $1', [id]);
   if (actual.rows.length === 0) { const err = new Error('Paquete no encontrado.'); err.statusCode = 404; throw err; }
+  // En una transacción: si el paquete está en uso y no se puede borrar,
+  // sus servicios incluidos tampoco se pierden.
+  const client = await pool.connect();
   try {
+    await client.query('BEGIN');
     // Los servicios incluidos son hijos directos del paquete: se borran primero.
-    await pool.query('DELETE FROM eqim_catalogo.paquete_servicios WHERE paquete_id = $1', [id]);
-    await pool.query('DELETE FROM eqim_catalogo.paquetes WHERE paquete_id = $1', [id]);
+    await client.query('DELETE FROM eqim_catalogo.paquete_servicios WHERE paquete_id = $1', [id]);
+    await client.query('DELETE FROM eqim_catalogo.paquetes WHERE paquete_id = $1', [id]);
+    await client.query('COMMIT');
   } catch (err) {
+    await client.query('ROLLBACK');
     if (err.code === PG_FK_VIOLATION) throw errorEnUso('paquete');
     throw err;
+  } finally {
+    client.release();
   }
-  if (actual.rows[0].imagen_url) eliminarImagenAnterior(actual.rows[0].imagen_url);
+  if (actual.rows[0].imagen_url) await eliminarImagen(actual.rows[0].imagen_url);
   return actual.rows[0];
 };
 const eliminarTipoEvento = (id) => hardDelete({ tabla: 'eqim_catalogo.tipos_evento',        idCol: 'tipo_id',      id, entidad: 'Tipo de evento' });

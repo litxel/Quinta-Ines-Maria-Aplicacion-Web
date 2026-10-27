@@ -4,6 +4,8 @@ import api from '../../services/api';
 import { getMisSolicitudes } from '../../services/solicitudes.service';
 import BadgeEstado from '../../components/shared/BadgeEstado';
 import logoQuinta from '../../assets/FotosQuintaInes/LogosQuinta/logo quinta ines.png';
+import { formatearFecha } from '../../utils/fechas';
+import { confirmar, avisar, mensajeDeError } from '../../utils/dialogos';
 
 // Mensajes de estado
 const MENSAJES_ESTADO = {
@@ -45,14 +47,21 @@ export default function MisSolicitudes() {
 
   // 🚀 FUNCIÓN: CANCELAR SOLICITUD
   const handleCancelar = async (id) => {
-    if (!window.confirm('¿Estás totalmente seguro de cancelar esta cotización? Esta acción no se puede deshacer.')) return;
+    const ok = await confirmar({
+      titulo: '¿Cancelar esta solicitud?',
+      mensaje: 'Tu solicitud de cotización quedará cancelada. Esta acción no se puede deshacer.',
+      tipo: 'peligro',
+      textoConfirmar: 'Sí, cancelar solicitud',
+      textoCancelar: 'No, mantenerla',
+    });
+    if (!ok) return;
     setCancelando(id);
     try {
       await api.put(`/solicitudes/${id}/cancelar`);
-      alert('Cotización cancelada exitosamente.');
+      avisar({ tipo: 'exito', titulo: 'Solicitud cancelada', mensaje: 'Tu solicitud fue cancelada correctamente.' });
       cargar(); // Recargamos para que asome cancelada
     } catch (e) {
-      alert('Error al cancelar: ' + (e.response?.data?.message || e.message));
+      avisar({ tipo: 'error', titulo: 'No se pudo cancelar', mensaje: mensajeDeError(e) });
     } finally {
       setCancelando(null);
     }
@@ -156,7 +165,7 @@ export default function MisSolicitudes() {
       
       doc.save(`Cotizacion-${sol.numero_cotizacion}.pdf`);
     } catch (error) {
-      alert('Error al generar PDF: ' + error.message);
+      avisar({ tipo: 'error', titulo: 'No se pudo generar el PDF', mensaje: error.message });
     } finally {
       setDescargando(null);
     }
@@ -272,10 +281,18 @@ export default function MisSolicitudes() {
                 {/* ── Footer: fechas y BOTONES DE ACCIÓN ────────────────────── */}
                 <div className="mt-4 pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-4 text-xs text-slate-400 dark:text-slate-500">
                   <div className="flex flex-col gap-1">
+                    {s.fecha_evento && (
+                      <span>
+                        Fecha del evento:{' '}
+                        <strong className="text-[#0D2137] dark:text-white">
+                          {formatearFecha(s.fecha_evento, { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' })}
+                        </strong>
+                      </span>
+                    )}
                     <span>
                       Solicitada el{' '}
                       <strong className="text-slate-600 dark:text-slate-300">
-                        {new Date(s.creado_en).toLocaleDateString('es-EC', { day: '2-digit', month: 'long', year: 'numeric' })}
+                        {formatearFecha(s.creado_en, { day: '2-digit', month: 'long', year: 'numeric' })}
                       </strong>
                     </span>
                   </div>

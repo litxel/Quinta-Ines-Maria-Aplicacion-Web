@@ -4,14 +4,17 @@ const svc = require('./usuarios.service');
 const getClientes = async (req, res, next) => {
   try {
     const { busqueda = '', pagina = 1, limite = 20 } = req.query;
-    const data = await svc.listarClientes({ busqueda, pagina: parseInt(pagina), limite: parseInt(limite) });
+    const data = await svc.listarClientes({ busqueda, pagina: parseInt(pagina, 10), limite: parseInt(limite, 10) });
     res.json({ success: true, ...data });
   } catch (e) { next(e); }
 };
 
 const toggleActivo = async (req, res, next) => {
   try {
-    const data = await svc.toggleActivoUsuario(parseInt(req.params.id));
+    const id = parseInt(req.params.id, 10);
+    if (!(id > 0)) return res.status(400).json({ success: false, message: 'ID inválido.' });
+    if (id === req.user.id) return res.status(400).json({ success: false, message: 'No puedes desactivar tu propia cuenta.' });
+    const data = await svc.toggleActivoUsuario(id);
     res.json({ success: true, usuario: data });
   } catch (e) { next(e); }
 };
@@ -25,7 +28,7 @@ const getMiPerfil = async (req, res, next) => {
 
 const putMiPerfil = async (req, res, next) => {
   try {
-    const data = await svc.actualizarPerfil(req.user.id, req.body);
+    const data = await svc.actualizarPerfil(req.user.id, req.body ?? {});
     res.json({ success: true, usuario: data });
   } catch (e) { next(e); }
 };
@@ -43,7 +46,7 @@ const subirFoto = async (req, res, next) => {
 
 const cambiarPassword = async (req, res, next) => {
   try {
-    await svc.cambiarPassword(req.user.id, req.body);
+    await svc.cambiarPassword(req.user.id, req.body ?? {});
     res.json({ success: true, message: 'Contraseña actualizada correctamente.' });
   } catch (e) { next(e); }
 };

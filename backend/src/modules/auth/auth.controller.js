@@ -2,39 +2,39 @@
 
 const svc       = require('./auth.service');
 const auditoria = require('../../utils/auditoria.service');
-const emailSvc = require('../../utils/email.service');
+const { describirErrorCorreo } = require('../../utils/email.service');
+
+const { EMAIL_RE, TEL_RE, errorPassword } = require('../../utils/validaciones');
 
 // ── POST /api/auth/register ───────────────────────────────────────────────────
 const register = async (req, res, next) => {
   try {
-    // 🚀 NUEVO: Extraemos el teléfono del body
     const { nombre_completo, correo, telefono, password } = req.body;
 
     // Validaciones de entrada
     const errores = [];
-    if (!nombre_completo || nombre_completo.trim().length < 2)
+    if (typeof nombre_completo !== 'string' || nombre_completo.trim().length < 2)
       errores.push('El nombre debe tener al menos 2 caracteres.');
-    if (!correo || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo))
+    if (typeof correo !== 'string' || !EMAIL_RE.test(correo))
       errores.push('El correo no tiene un formato válido.');
-    if (!password || password.length < 8)
-      errores.push('La contraseña debe tener mínimo 8 caracteres.');
-    if (password && !/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(password))
-      errores.push('La contraseña debe tener al menos una mayúscula, una minúscula y un número.');
+    if (telefono && (typeof telefono !== 'string' || !TEL_RE.test(telefono.trim())))
+      errores.push('El teléfono no tiene un formato válido.');
+    const errPass = errorPassword(password);
+    if (errPass) errores.push(errPass);
     if (errores.length > 0)
-      return res.status(400).json({ success: false, errores });
+      return res.status(400).json({ success: false, message: errores[0], errores });
 
-    // 1. Registra al usuario y obtiene el token limpio (AGREGAMOS TELÉFONO)
     const { usuario, tokenLimpio } = await svc.registrarUsuario({ nombre_completo, correo, telefono, password }, req.ip);
-    
-    // Usamos FRONTEND_URL de tu .env, o el localhost por defecto
-    const baseUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
-    const enlaceVerificacion = `${baseUrl}/verificar-cuenta?token=${tokenLimpio}`;
 
-    await emailSvc.enviarVerificacionCorreo({
-      nombre: usuario.nombre_completo,
-      correo: usuario.correo,
-      enlace: enlaceVerificacion
-    });
+    // Si el correo falla, la cuenta igual queda creada: el usuario puede pedir
+    // un nuevo enlace desde el login ("Reenviar correo de verificación").
+    let correoEnviado = true;
+    try {
+      await svc.enviarCorreoVerificacion(usuario, tokenLimpio);
+    } catch (err) {
+      correoEnviado = false;
+      console.error('[EMAIL] No se pudo enviar el correo de verificación:', describirErrorCorreo(err));
+    }
 
     await auditoria.registrarLogOperacion({
       schemaTabla: 'eqim_seguridad.usuarios',
@@ -48,8 +48,10 @@ const register = async (req, res, next) => {
 
     return res.status(201).json({
       success: true,
-      message: 'Cuenta creada. Revisa tu correo para verificarla.',
-      data:    { correo: usuario.correo, nombre_completo: usuario.nombre_completo },
+      message: correoEnviado
+        ? 'Cuenta creada. Revisa tu correo para verificarla.'
+        : 'Cuenta creada, pero no pudimos enviarte el correo de verificación. Puedes pedir uno nuevo desde el inicio de sesión.',
+      data:    { correo: usuario.correo, nombre_completo: usuario.nombre_completo, correo_enviado: correoEnviado },
     });
   } catch (err) { next(err); }
 };
@@ -58,7 +60,7 @@ const register = async (req, res, next) => {
 const login = async (req, res, next) => {
   try {
     const { correo, password } = req.body;
-    if (!correo || !password)
+    if (typeof correo !== 'string' || typeof password !== 'string' || !correo || !password)
       return res.status(400).json({ success: false, message: 'Correo y contraseña requeridos.' });
 
     const resultado = await svc.loginUsuario({ correo, password });
@@ -85,13 +87,13 @@ const login = async (req, res, next) => {
 
 // ── GET /api/auth/profile ─────────────────────────────────────────────────────
 const getProfile = (req, res) =>
-  res.json({ success: true, data: req.user }); // req.user.id desde JWT
+  res.json({ success: true, data: req.user });
 
 // ── GET /api/auth/verificar?token=xxx ────────────────────────────────────────
 const verificarCuenta = async (req, res, next) => {
   try {
     const { token } = req.query;
-    if (!token)
+    if (typeof token !== 'string' || !token)
       return res.status(400).json({ success: false, message: 'Token requerido.' });
 
     const r = await svc.verificarCuenta(token);
@@ -99,11 +101,28 @@ const verificarCuenta = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
+// ── POST /api/auth/reenviar-verificacion ─────────────────────────────────────
+const reenviarVerificacion = async (req, res, next) => {
+  try {
+    const { correo } = req.body;
+    if (typeof correo !== 'string' || !EMAIL_RE.test(correo))
+      return res.status(400).json({ success: false, message: 'Ingresa un correo válido.' });
+
+    await svc.reenviarVerificacion(correo, req.ip);
+
+    // Siempre la misma respuesta: no revelar si el correo existe (OWASP)
+    return res.json({
+      success: true,
+      message: 'Si tu cuenta existe y aún no está verificada, recibirás un nuevo enlace en unos minutos.',
+    });
+  } catch (err) { next(err); }
+};
+
 // ── POST /api/auth/recuperar-clave ────────────────────────────────────────────
 const recuperarClave = async (req, res, next) => {
   try {
     const { correo } = req.body;
-    if (!correo)
+    if (typeof correo !== 'string' || !correo)
       return res.status(400).json({ success: false, message: 'Correo requerido.' });
 
     await svc.solicitarResetPassword(correo, req.ip);
@@ -117,16 +136,17 @@ const recuperarClave = async (req, res, next) => {
 const nuevaClave = async (req, res, next) => {
   try {
     const { token, password } = req.body;
-    if (!token || !password)
+    if (typeof token !== 'string' || !token || !password)
       return res.status(400).json({ success: false, message: 'Token y nueva contraseña requeridos.' });
-    if (password.length < 8)
-      return res.status(400).json({ success: false, message: 'Mínimo 8 caracteres.' });
-    if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(password))
-      return res.status(400).json({ success: false, message: 'Debe tener mayúscula, minúscula y número.' });
+    const errPass = errorPassword(password);
+    if (errPass)
+      return res.status(400).json({ success: false, message: errPass });
 
     await svc.restablecerPassword(token, password);
     return res.json({ success: true, message: 'Contraseña restablecida. Ya puedes iniciar sesión.' });
   } catch (err) { next(err); }
 };
 
-module.exports = { register, login, getProfile, verificarCuenta, recuperarClave, nuevaClave };
+module.exports = {
+  register, login, getProfile, verificarCuenta, reenviarVerificacion, recuperarClave, nuevaClave,
+};

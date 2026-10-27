@@ -3,8 +3,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAuthStore } from '../../store/useAuthStore';
 import { getMiPerfil, actualizarMiPerfil, cambiarMiPassword, subirFotoPerfil } from '../../services/usuarios.service';
 import { User, Mail, Lock, Save, Eye, EyeOff, CheckCircle, AlertCircle, Shield, Edit3, Camera, Loader2, X, Crown } from 'lucide-react';
+import { urlImagen } from '../../utils/urls';
+import { leerImagenComprimida } from '../../utils/imagenes';
 
-const BACKEND_URL = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000';
 
 export default function PerfilAdmin() {
   const { user, updateUser } = useAuthStore();
@@ -48,13 +49,18 @@ export default function PerfilAdmin() {
     setTimeout(() => setToast(null), 4000);
   };
 
-  const handleSeleccionarFoto = (e) => {
+  const handleSeleccionarFoto = async (e) => {
     const file = e.target.files?.[0];
+    e.target.value = '';
     if (!file) return;
-    if (file.size > 10 * 1024 * 1024) { mostrarToast('error', 'Máximo 5MB.'); return; }
-    const reader = new FileReader();
-    reader.onload = (ev) => { setPreview(ev.target.result); setFotoBase64(ev.target.result); };
-    reader.readAsDataURL(file);
+    try {
+      // Foto de perfil: basta con 600 px (se reduce en el navegador)
+      const base64 = await leerImagenComprimida(file, { maxLado: 600 });
+      setPreview(base64);
+      setFotoBase64(base64);
+    } catch (err) {
+      mostrarToast('error', err.message);
+    }
   };
 
   const handleGuardarFoto = async () => {
@@ -111,7 +117,7 @@ export default function PerfilAdmin() {
   };
 
   const iniciales = (n) => n?.split(' ').slice(0, 2).map(x => x[0]).join('').toUpperCase() || 'A';
-  const fotoUrl   = preview || (perfil?.foto_perfil ? `${BACKEND_URL}${perfil.foto_perfil}` : null);
+  const fotoUrl   = preview || urlImagen(perfil?.foto_perfil, 300);
 
   if (loading) return (
     <div className="flex items-center justify-center h-64">

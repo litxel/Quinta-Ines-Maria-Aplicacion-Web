@@ -1,0 +1,55 @@
+# =============================================================================
+#  Render Blueprint — backend de EventPlanner QIM (plan gratuito)
+#  Render → New → Blueprint → elegir este repositorio.
+#  Las variables con `sync: false` se piden en el panel al crear el servicio.
+# =============================================================================
+services:
+  - type: web
+    name: qim-api
+    runtime: node
+    plan: free
+    region: virginia
+    rootDir: backend
+    branch: deploy/produccion
+    buildCommand: npm ci
+    startCommand: node server.js
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NODE_VERSION
+        value: "22"
+      - key: TZ
+        value: America/Guayaquil
+      - key: JWT_SECRET
+        generateValue: true          # Render genera un secreto aleatorio y seguro
+      - key: JWT_EXPIRES_IN
+        value: 7d
+      - key: GEMINI_MODEL
+        value: gemini-2.5-flash-lite
+      - key: MAIL_FROM_NAME
+        value: Quinta Inés María
+      # ── Se completan en el panel de Render ──────────────────────────────
+      - key: DATABASE_URL            # Neon → Connection string
+        sync: false
+      - key: FRONTEND_URL            # https://<proyecto>.pages.dev (sin "/" al final)
+        sync: false
+      - key: BACKEND_URL             # https://qim-api.onrender.com
+        sync: false
+      - key: BREVO_API_KEY
+        sync: false
+      - key: MAIL_FROM_EMAIL         # correo verificado en Brevo → Senders
+        sync: false
+      - key: CLOUDINARY_URL
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: GOOGLE_PLACES_API_KEY   # opcional
+        sync: false
+      - key: GOOGLE_PLACE_ID         # opcional
+        sync: false

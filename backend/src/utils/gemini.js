@@ -1,5 +1,4 @@
 'use strict';
-require('dotenv').config();
 
 // =============================================================================
 //  UTILIDAD GEMINI — EventPlanner QIM
@@ -8,10 +7,11 @@ require('dotenv').config();
 //
 //  Variables .env requeridas:
 //    GEMINI_API_KEY=tu_api_key
-//    GEMINI_MODEL=gemini-2.5-flash
+//    GEMINI_MODEL=gemini-2.5-flash-lite
 // =============================================================================
 
 const { GoogleGenerativeAI } = require('@google/generative-ai');
+const pool = require('../config/db');
 
 // ── Inicializar el cliente una sola vez (singleton) ──────────────────────────
 let genAI  = null;
@@ -25,12 +25,11 @@ const inicializarGemini = () => {
     return null;
   }
 
+  const nombreModelo = process.env.GEMINI_MODEL || 'gemini-2.5-flash-lite';
   genAI  = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-  modelo = genAI.getGenerativeModel({
-    model: 'gemini-2.5-flash-lite',
-  });
+  modelo = genAI.getGenerativeModel({ model: nombreModelo });
 
-  console.log(`✅  Gemini inicializado: ${process.env.GEMINI_MODEL ?? 'gemini-2.5-flash-lite'}`);
+  console.log(`✅  Gemini inicializado: ${nombreModelo}`);
   return modelo;
 };
 
@@ -39,26 +38,54 @@ const inicializarGemini = () => {
 //  Este prompt define la identidad, el catálogo y las restricciones del modelo.
 // =============================================================================
 
-const YEAR_ACTUAL = new Date().getFullYear();
-const MES_ACTUAL  = new Date().toLocaleDateString('es-EC', { month: 'long', year: 'numeric' });
+// Catálogo de respaldo por si la BD no responde
+const CATALOGO_RESPALDO = `• PAQUETE BRONCE (Código: BRONCE) — $15.00/persona
+• PAQUETE SILVER (Código: SILVER) — $22.00/persona
+• PAQUETE GOLD (Código: GOLD) — $35.00/persona
+• PROMO CORPORATIVA (Código: CORPORATIVO) — $28.00/persona
+• ALFOMBRA ROJA (Código: VIP-01) — $55.00/persona`;
 
-const SYSTEM_PROMPT = `
+// El catálogo se lee de la BD (paquetes activos) y se guarda 10 minutos en
+// memoria, así el asistente siempre cotiza con los precios que tiene el admin.
+let _catalogoCache = { texto: null, expira: 0 };
+const obtenerCatalogo = async () => {
+  if (_catalogoCache.texto && Date.now() < _catalogoCache.expira) return _catalogoCache.texto;
+  try {
+    const { rows } = await pool.query(
+      `SELECT paquete_nombre, paquete_codigo, precio_persona, minimo_invitados
+       FROM eqim_catalogo.paquetes WHERE activo = true ORDER BY orden_display ASC`
+    );
+    if (rows.length === 0) return CATALOGO_RESPALDO;
+    const texto = rows
+      .map((p) => `• ${p.paquete_nombre.toUpperCase()} (Código: ${p.paquete_codigo}) — $${Number(p.precio_persona).toFixed(2)}/persona (mín. ${p.minimo_invitados} personas)`)
+      .join('\n');
+    _catalogoCache = { texto, expira: Date.now() + 10 * 60 * 1000 };
+    return texto;
+  } catch (err) {
+    console.warn('⚠️  Gemini: no se pudo leer el catálogo de la BD:', err.message);
+    return CATALOGO_RESPALDO;
+  }
+};
+
+// Se construye en cada consulta para que la fecha de hoy nunca quede desactualizada
+const construirSystemPrompt = (catalogo) => {
+  const ZONA = { timeZone: 'America/Guayaquil' };
+  const YEAR_ACTUAL = parseInt(new Date().toLocaleDateString('en-US', { ...ZONA, year: 'numeric' }), 10);
+  const HOY = new Date().toLocaleDateString('es-EC', { ...ZONA, weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+
+  return `
 Eres el Asistente Experto de Eventos de la "Quinta Inés María BED, Catering y Eventos",
 un exclusivo centro de eventos ubicado en el Cantón Chambo, Chimborazo, Ecuador.
 
 Tu misión es ayudar a los clientes a elegir el mejor paquete y configuración para su evento.
 
-FECHA DE HOY: ${new Date().toLocaleDateString('es-EC', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+FECHA DE HOY: ${HOY}
 AÑO EN CURSO: ${YEAR_ACTUAL}
 
 ═══════════════════════════════════════════════════════
   CATÁLOGO OFICIAL — QUINTA INÉS MARÍA (${YEAR_ACTUAL})
 ═══════════════════════════════════════════════════════
-• PAQUETE BRONCE (Código: BRONCE) — $15.00/persona
-• PAQUETE SILVER (Código: SILVER) — $22.00/persona
-• PAQUETE GOLD (Código: GOLD) — $35.00/persona
-• PROMO CORPORATIVA (Código: CORPORATIVO) — $28.00/persona
-• ALFOMBRA ROJA (Código: VIP-01) — $55.00/persona
+${catalogo}
 (Todos requieren un mínimo de 100 personas).
 
 ═══════════════════════════════════════════════════════
@@ -73,7 +100,7 @@ AÑO EN CURSO: ${YEAR_ACTUAL}
    explícale que el costo mínimo es $15.00/persona × 100 personas = $1,500.00.
 
 3. FECHAS: Las fechas deben ser en el año ${YEAR_ACTUAL} o ${YEAR_ACTUAL + 1}, NUNCA en el pasado.
-   La fecha de hoy es ${new Date().toLocaleDateString('es-EC', { day: 'numeric', month: 'long', year: 'numeric' })}.
+   La fecha de hoy es ${HOY}.
    Si el cliente menciona una fecha pasada, dile que seleccione una fecha futura.
    SIEMPRE convierte la fecha al formato YYYY-MM-DD. Si el cliente no especifica el año,
    usa ${YEAR_ACTUAL} si la fecha es futura, o ${YEAR_ACTUAL + 1} si ya pasó en ${YEAR_ACTUAL}.
@@ -103,6 +130,7 @@ generarás el "Enlace Inteligente" en formato Markdown estricto:
 - El texto del enlace debe ser SIMPLE, sin emojis ni caracteres especiales: solo letras, espacios y el nombre del paquete.
 
 `.trim();
+};
 
 // =============================================================================
 //  FUNCIÓN PRINCIPAL — consultarAsistente
@@ -138,7 +166,7 @@ const consultarAsistente = async (mensajeUsuario, historial = []) => {
       },
       {
         role:  'model',
-        parts: [{ text: SYSTEM_PROMPT }],
+        parts: [{ text: construirSystemPrompt(await obtenerCatalogo()) }],
       },
       // Historial de conversación previo
       ...historial,

@@ -4,8 +4,8 @@ import { motion } from 'framer-motion';
 import { getClientes, toggleActivoCliente } from '../../services/usuarios.service';
 import { Users, Search, UserCheck, UserX, Mail, Phone, Calendar, RefreshCw, ChevronLeft, ChevronRight, Clock, AlertCircle, CheckCircle, FileText } from 'lucide-react';
 import { telefonoAWa } from '../../config/contacto';
+import { urlImagen } from '../../utils/urls';
 
-const BACKEND_URL = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000';
 const LIMITE = 12;
 
 // ── Ícono oficial de WhatsApp ─────────────────────────────────────────────
@@ -60,7 +60,7 @@ function EstadoBadge({ activo, ultimoLogin }) {
 function UserCard({ cliente, onToggle, toggling, index }) {
   const tint = !cliente.activo ? TINT_BLOQUEADO : TINTS[index % TINTS.length];
   const inicial = cliente.nombre_completo?.split(' ').slice(0,2).map(n => n[0]).join('').toUpperCase() || '?';
-  const fotoUrl = cliente.foto_perfil ? `${BACKEND_URL}${cliente.foto_perfil}` : null;
+  const fotoUrl = urlImagen(cliente.foto_perfil, 96);
 
   return (
     <motion.div

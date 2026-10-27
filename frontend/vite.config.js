@@ -10,10 +10,14 @@ export default defineConfig({
   ],
   server: {
     port: 5173,
-    // Proxy para evitar CORS en desarrollo: todas las llamadas a /api
-    // se redirigen automáticamente al backend en el puerto 5000
+    // Proxy para evitar CORS en desarrollo: /api y las imágenes antiguas de
+    // /uploads se redirigen automáticamente al backend en el puerto 5000
     proxy: {
       '/api': {
+        target: 'http://localhost:5000',
+        changeOrigin: true,
+      },
+      '/uploads': {
         target: 'http://localhost:5000',
         changeOrigin: true,
       },

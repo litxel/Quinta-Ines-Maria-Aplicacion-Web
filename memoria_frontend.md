@@ -781,6 +781,11 @@ Las 3 vistas (modal login requerido, **resumen "Enviar Solicitud"**, **ticket "�
 5. **Hero**: `IMAGENES_FONDO` += `EntradaQuinta/ingresoooo.jpeg` y `PORTADA.png` (bg7, bg8).
 6. **Historia + carrusel CTA**: ⚠️ Home.jsx se había **revertido** (CARRUSEL con rutas string rotas, HISTORIA sin `img`) → por eso las fotos «dejaron de renderizar». Restaurado con **imports reales** (car1–car7, hist1–hist5) y orden aprobado (2020=hist5, 2025=hist3, 2026=hist4). Carrusel CTA: +3 fotos (7), `aspect-[16/9]`, **fit según orientación** (`onLoad`: horizontal→`object-cover` llena, vertical→`object-contain` sobre fondo difuminado), aurora ARGB animada de fondo. Historia: `object-cover` (sin huecos) + zoom al activar, sin `lazy`.
 
+## 9. Ronda QA 2 (envío, reinicio, fechas)
+1. **"Error de conexión" al enviar solicitud** (pero sí llegaba al admin): `Solicitar.jsx` `handleEnviar` hacía 2 llamadas — `crearSolicitudRequest` (BD, crítica) y `/configurador/enviar-solicitud` (correo). Si el **correo fallaba** (SMTP), el catch marcaba error pese a estar ya guardada. Ahora el envío de correo va en su **propio try/catch (best-effort)**; la pantalla de éxito (con descarga de PDF) aparece si la BD respondió OK.
+2. **Refrescar no reinicia el configurador**: efecto colateral de persistir `useConfiguradorStore`. Solución: botón **"↻ Reiniciar evento"** en el header del configurador (`store.reset()` + confirm) y reset al terminar (botones "Configurar otro evento"/"Ver otros paquetes" en la pantalla de éxito de `Solicitar.jsx`).
+3. **Fecha ocupada/bloqueada aceptada vía Asistente IA**: el pre-llenado por URL (`?fecha=` del "magic link" del asistente) hacía `setFechaEvento` **sin validar**. Ahora valida `fechaCorregida` contra `fechasBloqueadas` (que ya une reservas CONFIRMADA/COMPLETADA + `disponibilidad BLOQUEADA`); si no está disponible no la pre-carga y manda al **paso 4 (Fecha)** con aviso. La selección manual en el calendario ya lo bloqueaba.
+
 ---
 
 *Este archivo sirve como contexto base para futuras sesiones de desarrollo. No eliminar.*

@@ -2,8 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/useAuthStore'; 
 import { useConfiguradorStore } from '../store/useConfiguradorStore';
-import api from '../services/api';
-import { crearSolicitudRequest } from '../services/solicitudes.service';
+import { crearSolicitudRequest, enviarCotizacionRequest } from '../services/solicitudes.service';
 import logoQuinta from '../assets/FotosQuintaInes/LogosQuinta/logo quinta ines.png';
 
 const INCLUSIONES_PAQUETES = {
@@ -89,6 +88,16 @@ const generarPDF = async (datos, soloDevolverBase64 = false) => {
   doc.setFontSize(9);
   doc.setTextColor(255, 255, 255);
   doc.text(datos.tipoEvento.toUpperCase(), pW - 45, y + 8, { align: 'center' });
+
+  if (datos.fechaEvento) {
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.setTextColor(...SLATE);
+    doc.text('Fecha del evento:', pW - 45, y + 16, { align: 'center' });
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(...NAVY);
+    doc.text(datos.fechaEvento, pW - 45, y + 20.5, { align: 'center' });
+  }
 
   y += 34;
 
@@ -241,6 +250,12 @@ const generarPDF = async (datos, soloDevolverBase64 = false) => {
   }
 };
 
+// 'YYYY-MM-DD' → "sábado, 14 de noviembre de 2026" (sin desfase por zona horaria)
+const formatearFechaEvento = (fecha) =>
+  fecha
+    ? new Date(`${fecha}T12:00:00`).toLocaleDateString('es-EC', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+    : '';
+
 export default function Solicitar() {
   const navigate = useNavigate();
   const { isAuthenticated, user, setRedirectAfterLogin } = useAuthStore();
@@ -250,143 +265,109 @@ export default function Solicitar() {
   const [loading,      setLoading]      = useState(false);
   const [enviado,      setEnviado]      = useState(false);
   const [numSolicitud, setNumSolicitud] = useState('');
+  const [totalFinal,   setTotalFinal]   = useState(null);
+  const [avisoCorreo,  setAvisoCorreo]  = useState('');
   const [generandoPDF, setGenerandoPDF] = useState(false);
   const [error,        setError]        = useState('');
-  
+
   // 🚀 NUEVO ESTADO: Comentario del cliente
   const [comentarioCliente, setComentarioCliente] = useState('');
+
+  const totalEstimado = totalFinal ?? store.precioServidor?.total ?? store.precio_estimado;
 
   const handleIrLogin = () => {
     setRedirectAfterLogin('/solicitar');
     navigate('/login');
   };
 
-  const generarNumero = () => {
-    const rand = Math.floor(100000 + Math.random() * 900000);
-    return `QIM-${new Date().getFullYear()}-${rand}`;
-  };
+  // Datos de la cotización para el PDF (mismo contenido en pantalla, PDF y correo)
+  const construirDatosCotizacion = (numero, total) => ({
+    numero,
+    fecha:              new Date().toLocaleDateString('es-EC', { year: 'numeric', month: 'long', day: 'numeric' }),
+    fechaEvento:        formatearFechaEvento(store.fecha_evento),
+    cliente: {
+      nombre:   user?.nombre_completo ?? 'Cliente',
+      correo:   user?.correo          ?? '',
+      telefono: user?.telefono        ?? '',
+    },
+    tipoEvento:         store.tipoEventoSeleccionado?.tipo_nombre      ?? 'Evento',
+    paquete: {
+      nombre:           store.paqueteSeleccionado?.paquete_nombre      ?? 'Paquete',
+      precioPorPersona: parseFloat(store.paqueteSeleccionado?.precio_persona ?? 0).toFixed(2),
+    },
+    invitados:          store.num_invitados,
+    numMesas:           store.num_mesas,
+    numMeseros:         store.num_meseros,
+    centroMesa:         store.centroMesaSeleccionado?.nombre           ?? '',
+    costoPorMesa:       parseFloat(store.centroMesaSeleccionado?.costo_por_mesa ?? 0).toFixed(2),
+    estiloDecoracion:   store.estiloSeleccionado?.nombre              ?? '',
+    colorPrimario:      store.color_primario,
+    colorSecundario:    store.color_secundario,
+    servicios:          store.servicios,
+    subtotalPaquete:    store.precioServidor?.subtotal_paquete ?? (parseFloat(store.paqueteSeleccionado?.precio_persona ?? 0) * store.num_invitados),
+    subtotalMesas:      store.precioServidor?.subtotal_mesas   ?? 0,
+    total:              Number(total),
+  });
 
   const handleEnviar = async () => {
-    if (!store.paquete_id) { setError('Debes completar el configurador antes de solicitar.'); return; }
-    
+    if (!store.paquete_id)   { setError('Debes completar el configurador antes de solicitar.'); return; }
+    if (!store.fecha_evento) { setError('Falta la fecha del evento. Vuelve al configurador y elígela en el paso "Fecha".'); return; }
+
     setLoading(true);
     setError('');
-    
+
+    let solicitud;
     try {
-      const numero = generarNumero();
-
-      const datosCotizacion = {
-        numero:             numero,
-        fecha:              new Date().toLocaleDateString('es-EC', { year: 'numeric', month: 'long', day: 'numeric' }),
-        cliente: {
-          nombre:   user?.nombre_completo ?? 'Cliente',
-          correo:   user?.correo          ?? '',
-          telefono: user?.telefono        ?? '',
-        },
-        tipoEvento:         store.tipoEventoSeleccionado?.tipo_nombre      ?? 'Evento',
-        paquete: {
-          nombre:           store.paqueteSeleccionado?.paquete_nombre      ?? 'Paquete',
-          precioPorPersona: parseFloat(store.paqueteSeleccionado?.precio_persona ?? 0).toFixed(2),
-        },
-        invitados:          store.num_invitados,
-        numMesas:           store.num_mesas,
-        numMeseros:         store.num_meseros,
-        centroMesa:         store.centroMesaSeleccionado?.nombre           ?? '',
-        costoPorMesa:       parseFloat(store.centroMesaSeleccionado?.costo_por_mesa ?? 0).toFixed(2),
-        estiloDecoracion:   store.estiloSeleccionado?.nombre              ?? '',
-        colorPrimario:      store.color_primario,
-        colorSecundario:    store.color_secundario,
-        servicios:          store.servicios,
-        subtotalPaquete:    store.precioServidor?.subtotal_paquete ?? (parseFloat(store.paqueteSeleccionado?.precio_persona ?? 0) * store.num_invitados),
-        subtotalMesas:      store.precioServidor?.subtotal_mesas   ?? 0,
-        total:              store.precioServidor?.total             ?? store.precio_estimado,
-      };
-
-      const pdfBaseURI = await generarPDF(datosCotizacion, true);
-      const pdfBase64Limpio = pdfBaseURI.includes('base64,') ? pdfBaseURI.split('base64,')[1] : pdfBaseURI;
-
-      // 🚀 EMPAQUETAMOS LOS COLORES Y EXTRAS PARA EL ADMIN
-      const coloresTexto = store.color_primario ? `${store.color_primario} / ${store.color_secundario}` : 'Sin colores especiales';
-      const estiloTexto  = store.estiloSeleccionado?.nombre || 'Estándar';
-      const centroTexto  = store.centroMesaSeleccionado?.nombre || 'Estándar';
-      const extrasTexto  = store.servicios.length > 0 ? store.servicios.map(s => `${s.nombre} (x${s.cantidad})`).join(', ') : 'Ninguno';
-
-      const notasFormateadas = `🎨 Colores: ${coloresTexto}\n✨ Estilo: ${estiloTexto}\n🌺 Centro de Mesa: ${centroTexto}\n📦 Extras: ${extrasTexto}`;
-
-      const payloadBD = {
-        numero_cotizacion: numero,
-        tipo_evento_id:    store.tipoEventoSeleccionado?.tipo_id,
+      // PASO CRÍTICO: registrar la solicitud en la BD (esto es lo que ve el admin).
+      // El servidor recalcula el precio y genera el número oficial (SOL-AAAA-NNNNNN).
+      solicitud = await crearSolicitudRequest({
+        tipo_evento_id:    store.tipoEventoSeleccionado?.tipo_id ?? store.tipo_evento_id,
         paquete_id:        store.paquete_id,
         num_invitados:     store.num_invitados,
-        precio_estimado:   datosCotizacion.total,
+        fecha_evento:      store.fecha_evento,
         telefono_contacto: user?.telefono,
         mensaje_cliente:   comentarioCliente,
-        // Datos del configurador estético (guardados directamente en BD)
         color_primario:    store.color_primario    || null,
         color_secundario:  store.color_secundario  || null,
         estilo_deco_id:    store.estilo_deco_id    || null,
         centro_mesa_id:    store.centro_mesa_id    || null,
-        extras:            store.servicios.map(s => ({
-          adicional_id:    s.adicional_id,
-          nombre:          s.nombre,
-          cantidad:        s.cantidad,
-          precio_snapshot: s.precio_snapshot,
-        })),
-      };
-
-      await crearSolicitudRequest(payloadBD); 
-
-      const endpoint = api.defaults.baseURL?.endsWith('/api') 
-                       ? '/configurador/enviar-solicitud' 
-                       : '/api/configurador/enviar-solicitud';
-
-      await api.post(endpoint, {
-        correo_cliente: user.correo,
-        nombre_cliente: user.nombre_completo,
-        total_estimado: datosCotizacion.total,
-        pdf_base64: pdfBase64Limpio
+        extras:            store.servicios.map((s) => ({ adicional_id: s.adicional_id, cantidad: s.cantidad })),
       });
-
-      setNumSolicitud(numero);
-      setEnviado(true);
-      
     } catch (e) {
-      setError(`Error de conexión con el servidor. Intenta nuevamente.`);
-    } finally {
+      // Solo llega aquí si falló el registro en BD (lo verdaderamente importante).
+      setError(e.response?.data?.message ?? 'No se pudo registrar tu solicitud. Verifica tu conexión e intenta nuevamente.');
       setLoading(false);
+      return;
     }
+
+    setNumSolicitud(solicitud.numero_cotizacion);
+    setTotalFinal(solicitud.precio_estimado);
+
+    // PASO SECUNDARIO (best-effort): generar el PDF con el número oficial y
+    // pedir al servidor que lo envíe al correo de la cuenta. Si falla, la
+    // solicitud igual quedó guardada.
+    try {
+      const pdfDataUri = await generarPDF(construirDatosCotizacion(solicitud.numero_cotizacion, solicitud.precio_estimado), true);
+      await enviarCotizacionRequest(solicitud.solicitud_id, pdfDataUri.split('base64,')[1]);
+      setAvisoCorreo('');
+    } catch (mailErr) {
+      // El servidor explica la causa (al admin le da el detalle técnico)
+      const causa = mailErr?.response?.data?.message;
+      console.warn('Solicitud guardada, pero el correo no pudo enviarse:', causa ?? mailErr?.message);
+      setAvisoCorreo(
+        `${causa ?? 'Tu solicitud quedó registrada, pero no pudimos enviarte el correo.'} Puedes descargar tu cotización aquí abajo.`
+      );
+    }
+
+    setEnviado(true);
+    setLoading(false);
   };
 
   const handleDescargarPDF = async () => {
     setGenerandoPDF(true);
     try {
-      await generarPDF({
-        numero:             numSolicitud || generarNumero(),
-        fecha:              new Date().toLocaleDateString('es-EC', { year: 'numeric', month: 'long', day: 'numeric' }),
-        cliente: {
-          nombre:   user?.nombre_completo ?? 'Cliente',
-          correo:   user?.correo          ?? '',
-          telefono: user?.telefono        ?? '',
-        },
-        tipoEvento:         store.tipoEventoSeleccionado?.tipo_nombre      ?? 'Evento',
-        paquete: {
-          nombre:           store.paqueteSeleccionado?.paquete_nombre      ?? 'Paquete',
-          precioPorPersona: parseFloat(store.paqueteSeleccionado?.precio_persona ?? 0).toFixed(2),
-        },
-        invitados:          store.num_invitados,
-        numMesas:           store.num_mesas,
-        numMeseros:         store.num_meseros,
-        centroMesa:         store.centroMesaSeleccionado?.nombre           ?? '',
-        costoPorMesa:       parseFloat(store.centroMesaSeleccionado?.costo_por_mesa ?? 0).toFixed(2),
-        estiloDecoracion:   store.estiloSeleccionado?.nombre              ?? '',
-        colorPrimario:      store.color_primario,
-        colorSecundario:    store.color_secundario,
-        servicios:          store.servicios,
-        subtotalPaquete:    store.precioServidor?.subtotal_paquete ?? (parseFloat(store.paqueteSeleccionado?.precio_persona ?? 0) * store.num_invitados),
-        subtotalMesas:      store.precioServidor?.subtotal_mesas   ?? 0,
-        total:              store.precioServidor?.total             ?? store.precio_estimado,
-      });
-    } catch (e) {
+      await generarPDF(construirDatosCotizacion(numSolicitud || 'BORRADOR', totalEstimado));
+    } catch {
       setError('Error al generar el PDF. Intenta de nuevo.');
     } finally {
       setGenerandoPDF(false);
@@ -467,13 +448,24 @@ export default function Solicitar() {
             </p>
 
             <div className="inline-block bg-[#0D2137] dark:bg-gradient-to-r dark:from-[#6B3F7A] dark:to-[#A971D6] rounded-xl px-6 py-3 mb-6">
-              <p className="text-white/60 text-xs uppercase tracking-wider">N.° de cotización</p>
+              <p className="text-white/60 text-xs uppercase tracking-wider">N.° de solicitud</p>
               <p className="text-[#B7950B] font-bold text-lg font-mono">{numSolicitud}</p>
             </div>
+
+            {avisoCorreo ? (
+              <p role="alert" className="mb-5 p-3 rounded-xl bg-amber-50 dark:bg-amber-500/12 border border-amber-200 dark:border-amber-500/25 text-sm text-amber-800 dark:text-amber-300">
+                {avisoCorreo}
+              </p>
+            ) : (
+              <p className="mb-5 text-sm text-slate-500 dark:text-slate-400">
+                Te enviamos la cotización en PDF a <strong>{user?.correo}</strong>.
+              </p>
+            )}
 
             <div className="bg-[#F5F0E8] dark:bg-[#221634] rounded-xl p-4 mb-6 text-left">
               <p className="text-xs font-bold text-slate-500 dark:text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-3">Resumen</p>
               <div className="space-y-1.5">
+                <InfoRow label="Fecha"      valor={formatearFechaEvento(store.fecha_evento) || '—'} />
                 <InfoRow label="Paquete"    valor={store.paqueteSeleccionado?.paquete_nombre ?? '—'} />
                 <InfoRow label="Invitados"  valor={`${store.num_invitados} personas`} />
                 <InfoRow label="Mesas"      valor={`${store.num_mesas} mesas · ${store.num_meseros} meseros`} />
@@ -481,7 +473,7 @@ export default function Solicitar() {
                   <InfoRow label="Decoración" valor={store.estiloSeleccionado.nombre} />
                 )}
                 <div className="border-t border-slate-200 dark:border-white/12 pt-2 mt-2">
-                  <InfoRow label="Total estimado" valor={`$${(store.precioServidor?.total ?? store.precio_estimado).toFixed(2)}`} dorado />
+                  <InfoRow label="Total estimado" valor={`$${Number(totalEstimado).toFixed(2)}`} dorado />
                 </div>
               </div>
             </div>
@@ -495,8 +487,15 @@ export default function Solicitar() {
                 <span>{generandoPDF ? '⏳' : '📄'}</span>
                 {generandoPDF ? 'Generando PDF…' : 'Descargar cotización PDF'}
               </button>
+              <button
+                onClick={() => { store.reset(); navigate('/configurador'); }}
+                className="w-full py-3 border-2 border-[#0D2137] dark:border-[#A971D6] text-[#0D2137] dark:text-white font-bold rounded-xl hover:bg-[#0D2137]/5 dark:hover:bg-[#A971D6]/15 transition-colors text-sm"
+              >
+                ✨ Configurar otro evento
+              </button>
               <Link
                 to="/paquetes"
+                onClick={() => store.reset()}
                 className="text-sm text-[#1A6BAC] dark:text-[#A971D6] hover:underline font-medium"
               >
                 Ver otros paquetes
@@ -530,6 +529,7 @@ export default function Solicitar() {
             <div className="space-y-2 text-sm">
               <InfoRow label="Cliente"        valor={user?.nombre_completo ?? '—'} />
               <InfoRow label="Tipo de evento" valor={store.tipoEventoSeleccionado?.tipo_nombre ?? '—'} />
+              <InfoRow label="Fecha del evento" valor={formatearFechaEvento(store.fecha_evento) || '⚠ Sin elegir'} />
               <InfoRow label="Paquete"        valor={store.paqueteSeleccionado?.paquete_nombre ?? '—'} />
               <InfoRow label="Invitados"      valor={`${store.num_invitados} personas`} />
               <InfoRow label="Mesas"          valor={`${store.num_mesas} mesas · ${store.num_meseros} meseros`} />
@@ -561,7 +561,7 @@ export default function Solicitar() {
               <div className="flex justify-between items-center pt-3">
                 <span className="font-bold text-[#0D2137] dark:text-white">TOTAL ESTIMADO</span>
                 <span className="text-2xl font-bold text-[#B7950B]">
-                  ${(store.precioServidor?.total ?? store.precio_estimado).toFixed(2)}
+                  ${Number(totalEstimado).toFixed(2)}
                 </span>
               </div>
             </div>
@@ -588,8 +588,8 @@ export default function Solicitar() {
         </div>
 
         <div className="bg-amber-50 dark:bg-amber-500/12 border border-amber-200 dark:border-amber-500/25 rounded-xl p-4 mb-6 text-sm text-amber-800 dark:text-amber-300">
-          <strong>⚠ Nota:</strong> El precio es estimado. La cotización definitiva se enviará
-          a <strong>{user?.correo}</strong> tras la revisión de nuestro equipo.
+          <strong>⚠ Nota:</strong> El precio es estimado. Te enviaremos la cotización en PDF
+          a <strong>{user?.correo}</strong> y nuestro equipo te contactará tras revisarla.
         </div>
 
         {error && (

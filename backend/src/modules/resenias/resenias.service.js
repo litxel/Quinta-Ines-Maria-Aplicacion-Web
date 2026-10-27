@@ -27,10 +27,20 @@ const crearResena = async ({ usuarioId, calificacion, comentario }) => {
   if (!cal || cal < 1 || cal > 5) {
     const e = new Error('La calificación debe estar entre 1 y 5 estrellas.'); e.statusCode = 400; throw e;
   }
-  if (!comentario || !comentario.trim()) {
+  if (typeof comentario !== 'string' || !comentario.trim()) {
     const e = new Error('El comentario no puede estar vacío.'); e.statusCode = 400; throw e;
   }
   const texto = comentario.trim().slice(0, 1000);
+
+  // Anti-spam: las reseñas se publican al instante, así que se limita su cantidad
+  const { rows: recientes } = await pool.query(
+    `SELECT COUNT(*)::int AS total FROM eqim_catalogo.resenias
+     WHERE usuario_id = $1 AND creado_en > NOW() - INTERVAL '24 hours'`,
+    [usuarioId]
+  );
+  if (recientes[0].total >= 3) {
+    const e = new Error('Ya publicaste varias reseñas hoy. Gracias, puedes volver a escribir mañana.'); e.statusCode = 429; throw e;
+  }
 
   const { rows } = await pool.query(
     `INSERT INTO eqim_catalogo.resenias (usuario_id, calificacion, comentario)

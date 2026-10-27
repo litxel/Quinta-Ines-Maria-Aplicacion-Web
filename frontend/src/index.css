@@ -256,6 +256,32 @@ html.dark body {
 }
 .animate-glow-gold { animation: glow-gold 2.2s ease-in-out infinite; }
 
+/* ─── Avatar de usuario: anillo que gira + halo que respira ───────────────────
+   Distinto al logo (que usa un resplandor difuso): aquí la luz recorre el borde
+   de la foto. El color depende del rol: dorado = administrador,
+   violeta/azul = cliente. */
+@keyframes avatar-girar { to { transform: rotate(360deg); } }
+@keyframes avatar-respirar {
+  0%, 100% { opacity: 0.35; transform: scale(0.98); }
+  50%      { opacity: 0.8;  transform: scale(1.1); }
+}
+.avatar-anillo { animation: avatar-girar 5s linear infinite; }
+.avatar-halo   { animation: avatar-respirar 3.2s ease-in-out infinite; }
+.avatar-admin {
+  --avatar-grad: conic-gradient(from 0deg, #8C6A00, #C9A227, #FFF1B8, #E2B93B, #8C6A00, #F0D060, #8C6A00);
+  --avatar-fondo: linear-gradient(135deg, #C9A227, #8C6A00);
+}
+.avatar-cliente {
+  --avatar-grad: conic-gradient(from 0deg, #6B3F7A, #A971D6, #1A6BAC, #7DD3FC, #F0A8E4, #6B3F7A);
+  --avatar-fondo: linear-gradient(135deg, #A971D6, #1A6BAC);
+}
+.dark .avatar-cliente {
+  --avatar-grad: conic-gradient(from 0deg, #A971D6, #F0A8E4, #7DD3FC, #C9A8E6, #A971D6);
+}
+@media (prefers-reduced-motion: reduce) {
+  .avatar-anillo, .avatar-halo { animation: none; }
+}
+
 /* ─── Skeleton shimmer ─────────────────────────────────────────────────────── */
 @keyframes shimmer {
   0%   { background-position: -600px 0; }
