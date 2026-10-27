@@ -5,7 +5,7 @@
  * producción (Neon), después de restaurar el respaldo.
  *
  * Uso (desde la carpeta backend):
- *   1. Poner en .env (temporalmente) DATABASE_URL de Neon y CLOUDINARY_URL
+ *   1. Poner en .env (temporalmente) NEON_DATABASE_URL (de Neon) y CLOUDINARY_URL
  *   2. node scripts/migrar-imagenes-cloudinary.js --dry-run   (solo muestra qué haría)
  *   3. node scripts/migrar-imagenes-cloudinary.js             (migra de verdad)
  *
@@ -34,12 +34,14 @@ const TABLAS = [
 const main = async () => {
   if (!process.env.CLOUDINARY_URL) throw new Error('Falta CLOUDINARY_URL en .env');
 
-  const pool = new Pool(process.env.DATABASE_URL
-    ? { connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: true } }
+  // Destino: Neon (NEON_DATABASE_URL o DATABASE_URL); si no hay, la BD local
+  const urlDestino = process.env.NEON_DATABASE_URL || process.env.DATABASE_URL;
+  const pool = new Pool(urlDestino
+    ? { connectionString: urlDestino, ssl: { rejectUnauthorized: true } }
     : { host: process.env.DB_HOST, port: +process.env.DB_PORT, database: process.env.DB_NAME,
         user: process.env.DB_USER, password: process.env.DB_PASSWORD });
 
-  console.log(`\n${DRY_RUN ? '🔎 MODO PRUEBA (no cambia nada)' : '🚀 MIGRANDO'} — BD: ${process.env.DATABASE_URL ? 'DATABASE_URL' : process.env.DB_NAME}\n`);
+  console.log(`\n${DRY_RUN ? '🔎 MODO PRUEBA (no cambia nada)' : '🚀 MIGRANDO'} — BD: ${urlDestino ? 'Neon (remota)' : process.env.DB_NAME}\n`);
 
   const subidas = new Map();  // url local → url Cloudinary (evita subir dos veces la misma)
   let migradas = 0, faltantes = 0;

@@ -156,14 +156,13 @@ Todo se puede desplegar **gratis y sin tarjeta de crédito** con: **Cloudflare P
 
 ### Paso 2. Base de datos en Neon
 1. Crear cuenta en neon.tech → **New project** → PostgreSQL 17 → región **AWS US East 1 (N. Virginia)**.
-2. Copiar el *connection string* (el que termina en `?sslmode=require`).
-3. Exportar la BD local y restaurarla en Neon (PowerShell):
+2. En **Connect**, copiar el *connection string* (empieza con `postgresql://` y termina en `?sslmode=require`).
+3. En `backend/.env` agregar la línea `NEON_DATABASE_URL=<connection string>` (¡no `DATABASE_URL`, eso cambiaría tu backend local a Neon!).
+4. Desde `backend/`:
    ```powershell
-   & "C:\Program Files\PostgreSQL\17\bin\pg_dump.exe" -U postgres -d quinta_ines_maria -Fc --no-owner --no-privileges -f qim.dump
-   & "C:\Program Files\PostgreSQL\17\bin\pg_restore.exe" --no-owner --no-privileges -d "<CONNECTION_STRING_DE_NEON>" qim.dump
+   node scripts/migrar-bd-a-neon.js
    ```
-   (Los avisos sobre la extensión `plpgsql` o roles `qim_*` se pueden ignorar.)
-4. Ejecutar en Neon `database/migracion_produccion.sql` (corrige textos `Ã³`; ya se aplicó en local, así que si exportas después del 24-oct ya viene corregido).
+   El script respalda la BD local, la restaura en Neon, aplica `database/migracion_produccion.sql` y compara la cantidad de registros tabla por tabla.
 5. ⚠ Las solicitudes creadas antes de la corrección tienen como fecha del evento la fecha en que se crearon (no se puede recuperar la fecha real). Revísalas o archívalas desde el panel.
 
 ### Paso 3. Cloudinary
@@ -183,12 +182,12 @@ Todo se puede desplegar **gratis y sin tarjeta de crédito** con: **Cloudflare P
   ```
   Si falla, el script explica la causa (clave inválida, remitente sin verificar, etc.). Sirve igual para probar Gmail/SMTP en local.
 
-### Paso 5. Backend en Render
-1. render.com → **New → Web Service** → conectar el repo de GitHub.
-2. **Root Directory:** `backend` · **Build:** `npm ci` · **Start:** `node server.js` · **Instance:** Free · **Región:** Virginia (US East).
-3. **Health Check Path:** `/api/health`.
-4. Cargar las variables de entorno (sección 6) → **Deploy**.
-5. Abrir `https://<tu-servicio>.onrender.com/api/health` → debe responder `success: true`.
+### Paso 5. Backend en Render (Blueprint)
+1. render.com → **New → Blueprint** → conectar GitHub → elegir el repositorio. Render lee `render.yaml` (rama `deploy/produccion`, carpeta `backend`, plan gratis, región Virginia, health check `/api/health`).
+2. Render pide los valores marcados como secretos: `DATABASE_URL` (el mismo de Neon), `FRONTEND_URL`, `BACKEND_URL`, `BREVO_API_KEY`, `MAIL_FROM_EMAIL`, `CLOUDINARY_URL`, `GEMINI_API_KEY`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` (y opcionales de Google Places). `JWT_SECRET` lo genera Render solo.
+   - Si aún no tienes la URL de Cloudflare, pon `FRONTEND_URL=https://quinta-ines-maria.pages.dev` y corrígela después.
+   - `BACKEND_URL` = `https://qim-api.onrender.com` (Render te muestra la URL exacta).
+3. **Apply** → esperar el deploy → abrir `https://<tu-servicio>.onrender.com/api/health` → debe responder `success: true`.
 
 ### Paso 6. Frontend en Cloudflare Pages
 1. dash.cloudflare.com → **Workers & Pages → Create → Pages → Connect to Git** → elegir el repo.

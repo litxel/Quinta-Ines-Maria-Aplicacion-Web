@@ -137,3 +137,7 @@ dist
 # Vite logs files
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
+
+# Respaldos de la base de datos (contienen datos personales)
+backend/respaldos/
+*.dump
