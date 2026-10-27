@@ -15,8 +15,9 @@ import {
   calcularPrecioServidor,
   fetchFechasOcupadas
 } from '../services/configurador.service';
+import { urlImagen } from '../utils/urls';
+import { confirmar, avisar } from '../utils/dialogos';
 
-const BACKEND_URL = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000';
 
 const PASOS = [
   { num: 1, label: 'Evento',      campo: 'tipo_evento_id'   },
@@ -48,7 +49,6 @@ export default function Configurador() {
   const [loadingCat,     setLoadingCat]     = useState(true);
   const [guardando,      setGuardando]      = useState(false);
   const [errorMsg,       setErrorMsg]       = useState('');
-  const [alertaMagica,   setAlertaMagica]   = useState(null);
 
   // Animación de transición de evento (Paso 1 → 2)
   const [transicionEvento, setTransicionEvento] = useState(null);
@@ -100,15 +100,28 @@ export default function Configurador() {
           if (tipoEventoEncontrado) store.setTipoEvento(tipoEventoEncontrado);
           store.setPaquete(paq);
           store.setNumInvitados(urlInvitados);
-          store.setFechaEvento(fechaCorregida);
-          
-          store.setPaso(5);
           setSearchParams({});
-          
-          setAlertaMagica({
-            titulo: '✨ ¡Magia Aplicada!',
-            mensaje: `Hemos pre-cargado el ${paq.paquete_nombre} para ${urlInvitados} personas en la fecha ${new Date(fechaCorregida + 'T12:00:00').toLocaleDateString('es-EC', { day: 'numeric', month: 'long', year: 'numeric' })}. Por favor, continúa personalizando tu evento.`
-          });
+
+          const fechaLegible = new Date(fechaCorregida + 'T12:00:00').toLocaleDateString('es-EC', { day: 'numeric', month: 'long', year: 'numeric' });
+
+          // Validar la fecha sugerida (p. ej. por el Asistente IA) contra las
+          // fechas ya reservadas o bloqueadas por el administrador. Si no está
+          // disponible NO se pre-carga: se envía al paso de Fecha para elegir otra.
+          if ((fechasBloqueadas || []).includes(fechaCorregida)) {
+            store.setFechaEvento('');
+            store.setPaso(4);
+            avisar({ tipo: 'info',
+              titulo: '📅 Fecha no disponible',
+              mensaje: `La fecha sugerida (${fechaLegible}) ya está reservada o fue bloqueada por el administrador. Por favor elige otra disponibilidad en el calendario.`
+            });
+          } else {
+            store.setFechaEvento(fechaCorregida);
+            store.setPaso(5);
+            avisar({ tipo: 'info',
+              titulo: '✨ ¡Magia Aplicada!',
+              mensaje: `Hemos pre-cargado el ${paq.paquete_nombre} para ${urlInvitados} personas en la fecha ${fechaLegible}. Por favor, continúa personalizando tu evento.`
+            });
+          }
         }
       } catch (e) {
         setErrorMsg(e.message);
@@ -228,7 +241,7 @@ export default function Configurador() {
 
   const handleFechaChange = (fecha) => {
     if (fechasOcupadas.includes(fecha)) {
-      setAlertaMagica({
+      avisar({ tipo: 'info',
         titulo: '📅 Fecha Ocupada',
         mensaje: 'Lo sentimos, esa fecha ya está reservada. Por favor elige otra disponibilidad.'
       });
@@ -262,7 +275,7 @@ export default function Configurador() {
                 transition={{ duration: 0.6 }}
                 className="absolute inset-0"
                 style={{
-                  backgroundImage: `url(${BACKEND_URL}${transicionEvento.imagen_url})`,
+                  backgroundImage: `url(${urlImagen(transicionEvento.imagen_url, 1600)})`,
                   backgroundSize: 'cover',
                   backgroundPosition: 'center',
                 }}
@@ -288,7 +301,7 @@ export default function Configurador() {
                 >
                   <div className="absolute inset-0 rounded-2xl ring-4 ring-[#B7950B]/60 shadow-2xl overflow-hidden">
                     <img
-                      src={`${BACKEND_URL}${transicionEvento.imagen_url}`}
+                      src={urlImagen(transicionEvento.imagen_url, 1200)}
                       alt={transicionEvento.tipo_nombre}
                       className="w-full h-full object-cover"
                     />
@@ -330,23 +343,32 @@ export default function Configurador() {
         )}
       </AnimatePresence>
 
-      {/* ── MODAL ALERTA MÁGICA ── */}
-      {alertaMagica && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-[#221634]/70 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-white dark:bg-[#332247] border border-transparent dark:border-white/8 rounded-3xl p-8 max-w-md w-full shadow-2xl text-center animate-in zoom-in-95">
-            <div className="w-16 h-16 bg-[#B7950B]/10 dark:bg-[#C9A227]/15 text-[#B7950B] dark:text-[#C9A227] rounded-full flex items-center justify-center text-3xl mx-auto mb-4">✨</div>
-            <h2 className="text-2xl font-bold text-[#0D2137] dark:text-white mb-2 font-display">{alertaMagica.titulo}</h2>
-            <p className="text-slate-600 dark:text-slate-300 mb-6 leading-relaxed text-sm">{alertaMagica.mensaje}</p>
-            <button onClick={() => setAlertaMagica(null)} className="w-full btn-primary">Aceptar</button>
-          </div>
-        </div>
-      )}
-
       <div className="max-w-4xl mx-auto px-4 sm:px-6">
 
         <div className="text-center pt-8 mb-8">
           <h1 className="font-display text-4xl font-bold text-[#0D2137] dark:text-white">Configura tu Evento</h1>
           <p className="mt-2 text-slate-500 dark:text-slate-400 text-sm">Personaliza cada detalle. <span className="text-[#B7950B] dark:text-[#C9A227] font-medium">✨ Consulta al Asistente IA.</span></p>
+
+          {/* Reiniciar: limpia toda la configuración (también la guardada) y vuelve al paso 1 */}
+          <button
+            onClick={async () => {
+              const ok = await confirmar({
+                titulo: '¿Reiniciar el evento?',
+                mensaje: 'Se borrará toda la configuración actual (tipo de evento, paquete, fecha, decoración y extras) y volverás al primer paso.',
+                tipo: 'advertencia',
+                textoConfirmar: 'Sí, reiniciar',
+                textoCancelar: 'Seguir editando',
+              });
+              if (ok) {
+                store.reset();
+                setSearchParams({});
+                setErrorMsg('');
+              }
+            }}
+            className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-slate-500 dark:text-slate-300 bg-white/70 dark:bg-white/5 border border-slate-200 dark:border-white/12 rounded-full hover:text-[#0D2137] dark:hover:text-white hover:border-[#B7950B] transition-colors"
+          >
+            ↻ Reiniciar evento
+          </button>
         </div>
 
         {/* ── BARRA DE PROGRESO ── */}
@@ -878,9 +900,13 @@ function useHoverPreview(delayMs = 300, autoHideMs = 4000) {
   const autoHideRef = useRef(null);
 
   const iniciar = () => {
+    // En celulares/tabletas no hay "pasar el mouse": un toque abriría la vista
+    // previa encima del contenido, así que solo se activa con mouse.
+    if (!window.matchMedia?.('(hover: hover)').matches) return;
+    clearTimeout(timerRef.current);
     timerRef.current = setTimeout(() => {
       setVisible(true);
-      autoHideRef.current = setTimeout(() => setVisible(false), autoHideMs);
+      if (autoHideMs) autoHideRef.current = setTimeout(() => setVisible(false), autoHideMs);
     }, delayMs);
   };
 
@@ -899,7 +925,7 @@ function useHoverPreview(delayMs = 300, autoHideMs = 4000) {
 const PREVIEW_ANCHO = 300;
 const PREVIEW_IMG_ALTO = 260;
 
-function PreviewImagenLateral({ visible, anchorRef, imagenUrl, titulo, descripcion, pie, fallbackIcon }) {
+function PreviewImagenLateral({ visible, anchorRef, imagenUrl, titulo, descripcion, pie, fallbackIcon, color = null }) {
   const [pos, setPos] = useState({ top: 0, left: 0, lado: 'right' });
 
   useEffect(() => {
@@ -950,22 +976,31 @@ function PreviewImagenLateral({ visible, anchorRef, imagenUrl, titulo, descripci
       {visible && (
       <motion.div
         key="preview-lateral"
-        initial={{ opacity: 0, x: pos.lado === 'right' ? -16 : 16 }}
-        animate={{ opacity: 1, x: 0 }}
-        exit={{ opacity: 0, x: pos.lado === 'right' ? -16 : 16 }}
-        transition={{ type: 'spring', stiffness: 320, damping: 26 }}
-        style={{ top: pos.top, left: pos.left, width: PREVIEW_ANCHO }}
+        initial={{ opacity: 0, scale: 0.9, x: pos.lado === 'right' ? -24 : 24, filter: 'blur(6px)' }}
+        animate={{ opacity: 1, scale: 1, x: 0, filter: 'blur(0px)' }}
+        exit={{ opacity: 0, scale: 0.94, x: pos.lado === 'right' ? -12 : 12, filter: 'blur(4px)' }}
+        transition={{ type: 'spring', stiffness: 260, damping: 24 }}
+        style={{
+          top: pos.top, left: pos.left, width: PREVIEW_ANCHO,
+          transformOrigin: pos.lado === 'right' ? 'left center' : 'right center',
+          ...(color && { boxShadow: `0 24px 60px -12px ${color}66, 0 0 0 1px ${color}55` }),
+        }}
         className="fixed z-[100] rounded-2xl overflow-hidden shadow-2xl border border-slate-200 dark:border-white/10 bg-white dark:bg-[#3E2B57] pointer-events-none"
       >
         {imagenUrl ? (
           <>
-            <div className="bg-slate-100 dark:bg-[#2A1C40] flex items-center justify-center" style={{ minHeight: PREVIEW_IMG_ALTO }}>
-              <img
+            <div className="relative overflow-hidden bg-slate-100 dark:bg-[#2A1C40]" style={{ height: PREVIEW_IMG_ALTO }}>
+              {/* Zoom lento de la foto (efecto "Ken Burns") */}
+              <motion.img
                 src={imagenUrl}
                 alt={titulo}
-                className="w-full object-cover"
-                style={{ maxHeight: PREVIEW_IMG_ALTO }}
+                initial={{ scale: 1.18 }}
+                animate={{ scale: 1 }}
+                transition={{ duration: 1.6, ease: [0.22, 1, 0.36, 1] }}
+                className="absolute inset-0 w-full h-full object-cover"
               />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/45 via-transparent to-transparent" />
+              {color && <div className="absolute bottom-0 inset-x-0 h-1" style={{ backgroundColor: color }} />}
             </div>
             <div className="px-3 py-2.5 border-t border-slate-100 dark:border-white/8 bg-white dark:bg-[#3E2B57]">
               <p className="font-bold text-sm text-[#0D2137] dark:text-slate-100 leading-snug">{titulo}</p>
@@ -998,7 +1033,7 @@ function PreviewImagenLateral({ visible, anchorRef, imagenUrl, titulo, descripci
 function TarjetaConHover({ item, seleccionado, onSelect, precio }) {
   const cardRef = useRef(null);
   const { visible, iniciar, cancelar } = useHoverPreview();
-  const imagenUrl = item.imagen_url ? `${BACKEND_URL}${item.imagen_url}` : null;
+  const imagenUrl = urlImagen(item.imagen_url, 600);
 
   return (
     <div ref={cardRef} className="relative">
@@ -1039,24 +1074,88 @@ function TarjetaConHover({ item, seleccionado, onSelect, precio }) {
 // ═══════════════════════════════════════════════════════════════════════════════
 function PaqueteConHover({ paq, seleccionado, onSelect }) {
   const cardRef = useRef(null);
-  const { visible, iniciar, cancelar } = useHoverPreview();
-  const imagenUrl = paq.imagen_url ? `${BACKEND_URL}${paq.imagen_url}` : null;
+  // Sin auto-ocultar: la vista previa se queda mientras el mouse esté encima
+  const { visible, iniciar, cancelar } = useHoverPreview(350, 0);
+  const imagenUrl = urlImagen(paq.imagen_url, 600);
+  const color     = paq.color_principal || '#B7950B';
+  const precio    = parseFloat(paq.precio_persona).toFixed(2);
 
   return (
     <div ref={cardRef} className="relative">
       <motion.button
-        whileHover={{ scale: 1.02, y: -3 }}
+        type="button"
+        whileHover={{ y: -5 }}
         whileTap={{ scale: 0.98 }}
+        transition={{ type: 'spring', stiffness: 320, damping: 22 }}
         onMouseEnter={iniciar}
         onMouseLeave={cancelar}
         onClick={onSelect}
-        className={`relative w-full rounded-xl border-2 p-4 text-left transition-all overflow-hidden ${seleccionado ? 'border-[#0D2137] dark:border-[#A971D6] bg-[#0D2137]/5 dark:bg-[#A971D6]/12 shadow-md' : 'bg-slate-50 dark:bg-white/[0.05] border-slate-200 dark:border-white/10 hover:border-[#C9A227] dark:hover:border-[#C9A227] hover:shadow-[0_0_0_3px_rgba(201,162,39,0.16)] hover:shadow-sm'}`}
+        aria-pressed={seleccionado}
+        className={`group relative w-full rounded-2xl text-left overflow-hidden border-2 bg-white dark:bg-[#2E2046] transition-shadow duration-300 ${
+          seleccionado ? 'shadow-lg' : 'border-slate-200 dark:border-white/10 hover:shadow-xl'
+        }`}
+        style={seleccionado
+          ? { borderColor: color, boxShadow: `0 12px 32px -8px ${color}80` }
+          : undefined}
       >
-        <div className="absolute top-0 left-0 bottom-0 w-2 rounded-l-lg" style={{ backgroundColor: paq.color_principal || '#B7950B' }} />
-        <div className="pl-3">
-          <p className="font-bold text-[#0D2137] dark:text-slate-100 text-sm">{paq.paquete_nombre}</p>
-          <p className="text-[#B7950B] dark:text-[#C9A227] font-bold text-xl mt-1">${parseFloat(paq.precio_persona).toFixed(2)}</p>
-          <p className="text-slate-400 dark:text-slate-500 text-[10px] uppercase mt-0.5">Desde {paq.minimo_invitados} pax</p>
+        {/* Foto del paquete (la misma de la página de Paquetes) */}
+        <div className="relative h-36 overflow-hidden" style={{ background: `linear-gradient(145deg, ${color}, ${color}aa)` }}>
+          {imagenUrl ? (
+            <img
+              src={imagenUrl}
+              alt=""
+              loading="lazy"
+              className="absolute inset-0 w-full h-full object-cover scale-105 transition-transform duration-[1400ms] ease-out group-hover:scale-[1.18]"
+            />
+          ) : (
+            <div className="absolute inset-0 flex items-center justify-center text-white/70">
+              <LucideIcon name="Package" size={36} />
+            </div>
+          )}
+          {/* Velo para que el nombre se lea sobre cualquier foto */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/15 to-transparent transition-opacity duration-500 group-hover:opacity-80" />
+          {/* Destello que cruza la foto al pasar el mouse */}
+          <span
+            aria-hidden
+            className="absolute inset-y-0 -left-2/3 w-1/2 -skew-x-12 bg-gradient-to-r from-transparent via-white/40 to-transparent opacity-0 group-hover:opacity-100 group-hover:translate-x-[420%] transition-[transform,opacity] duration-[1100ms] ease-out"
+          />
+          <p className="absolute bottom-2.5 left-4 right-12 font-display text-2xl font-bold text-white leading-tight drop-shadow-md">
+            {paq.paquete_nombre}
+          </p>
+          {seleccionado && (
+            <motion.span
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ type: 'spring', stiffness: 400, damping: 18 }}
+              className="absolute top-2.5 right-2.5 w-8 h-8 rounded-full bg-white flex items-center justify-center shadow-lg text-base font-black"
+              style={{ color }}
+            >
+              ✓
+            </motion.span>
+          )}
+        </div>
+        {/* Franja con el color del paquete */}
+        <div className="h-1" style={{ backgroundColor: color }} />
+
+        <div className="px-4 py-3 flex items-end justify-between gap-2">
+          <div>
+            <p className="text-xl font-bold leading-none" style={{ color }}>
+              ${precio}
+              <span className="text-[11px] font-semibold text-slate-400 dark:text-slate-500"> / persona</span>
+            </p>
+            <p className="text-slate-400 dark:text-slate-500 text-[10px] uppercase tracking-wide mt-1">Desde {paq.minimo_invitados} invitados</p>
+          </div>
+          {/* Al pasar el mouse, "Elegir" toma el color del paquete */}
+          <span
+            className={`text-[11px] font-bold px-3 py-1.5 rounded-full transition-colors duration-300 ${
+              seleccionado
+                ? 'text-white bg-[var(--color-paq)]'
+                : 'text-slate-500 dark:text-slate-300 bg-slate-100 dark:bg-white/8 group-hover:text-white group-hover:bg-[var(--color-paq)]'
+            }`}
+            style={{ '--color-paq': color }}
+          >
+            {seleccionado ? 'Elegido' : 'Elegir'}
+          </span>
         </div>
       </motion.button>
 
@@ -1066,7 +1165,8 @@ function PaqueteConHover({ paq, seleccionado, onSelect }) {
         imagenUrl={imagenUrl}
         titulo={paq.paquete_nombre}
         descripcion={paq.descripcion}
-        pie={<p className="mt-1 text-[#B7950B] font-bold text-xs">${parseFloat(paq.precio_persona).toFixed(2)} / persona</p>}
+        color={color}
+        pie={<p className="mt-1 font-bold text-xs" style={{ color }}>${precio} / persona · mín. {paq.minimo_invitados}</p>}
         fallbackIcon="Package"
       />
     </div>
@@ -1079,7 +1179,7 @@ function PaqueteConHover({ paq, seleccionado, onSelect }) {
 function TarjetaExtraConHover({ item, seleccionado, onToggle }) {
   const cardRef = useRef(null);
   const { visible, iniciar, cancelar } = useHoverPreview();
-  const imagenUrl = item.imagen_url ? `${BACKEND_URL}${item.imagen_url}` : null;
+  const imagenUrl = urlImagen(item.imagen_url, 600);
   const precioTxt = `$${parseFloat(item.precio_unitario).toFixed(2)} / ${item.unidad}`;
 
   return (

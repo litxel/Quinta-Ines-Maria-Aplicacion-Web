@@ -2,16 +2,18 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Eye, EyeOff, AlertCircle, ArrowRight, User, Mail, Phone, Lock, CheckCircle2 } from 'lucide-react';
-import { registerRequest } from '../services/auth.service';
+import { registerRequest, reenviarVerificacionRequest } from '../services/auth.service';
 
 import bgAuth   from '../assets/FotosQuintaInes/EntradaQuinta/entrada 1 quinta ines.jpg';
 import logoAuth from '../assets/FotosQuintaInes/LogosQuinta/logo quinta ines.png';
+import { urlOAuth } from '../utils/urls';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PASS_RE  = /(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/;
 const PHONE_RE = /^[0-9]{9,10}$/;
-const API_BASE = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000';
-const irOAuth  = (proveedor) => { window.location.href = `${API_BASE}/api/auth/${proveedor}`; };
+const irOAuth  = (proveedor) => { window.location.href = urlOAuth(proveedor); };
+// Botón de Microsoft: oculto por defecto. Reactivar con VITE_MICROSOFT_ENABLED=true.
+const MICROSOFT_HABILITADO = import.meta.env.VITE_MICROSOFT_ENABLED === 'true';
 
 export default function Register() {
   const navigate = useNavigate();
@@ -21,7 +23,19 @@ export default function Register() {
   const [apiError, setApiError] = useState('');
   const [loading,  setLoading]  = useState(false);
   const [exito,    setExito]    = useState(false);
+  const [correoEnviado, setCorreoEnviado] = useState(true);
+  const [reenvio,  setReenvio]  = useState({ enviando: false, mensaje: '' });
   const [showPass, setShowPass] = useState(false);
+
+  const handleReenviar = async () => {
+    setReenvio({ enviando: true, mensaje: '' });
+    try {
+      const data = await reenviarVerificacionRequest(form.correo);
+      setReenvio({ enviando: false, mensaje: data.message });
+    } catch (err) {
+      setReenvio({ enviando: false, mensaje: err.response?.data?.message ?? 'No se pudo reenviar el correo. Intenta más tarde.' });
+    }
+  };
 
   const validarCampo = (name, value) => {
     let msg = '';
@@ -55,7 +69,8 @@ export default function Register() {
 
     setLoading(true);
     try {
-      await registerRequest({ nombre_completo: form.nombre_completo, correo: form.correo, telefono: form.telefono, password: form.password });
+      const data = await registerRequest({ nombre_completo: form.nombre_completo, correo: form.correo, telefono: form.telefono, password: form.password });
+      setCorreoEnviado(data?.data?.correo_enviado !== false);
       setExito(true);
     } catch (err) {
       setApiError(err.response?.data?.message ?? 'Error al crear la cuenta.');
@@ -97,9 +112,27 @@ export default function Register() {
             <CheckCircle2 size={44} className="text-green-600" />
           </div>
           <h2 className="font-display text-4xl font-bold text-[#0D2137] dark:text-white mb-3">¡Cuenta creada!</h2>
-          <p className="text-slate-700 dark:text-slate-300 leading-relaxed mb-8 font-medium">
-            Revisa tu bandeja en <strong className="text-[#0D2137] dark:text-white font-bold">{form.correo}</strong> y haz clic en el enlace de verificación para activar tu cuenta.
+          <p className="text-slate-700 dark:text-slate-300 leading-relaxed mb-4 font-medium">
+            {correoEnviado ? (
+              <>Revisa tu bandeja en <strong className="text-[#0D2137] dark:text-white font-bold">{form.correo}</strong> (y la carpeta de spam) y haz clic en el enlace de verificación para activar tu cuenta.</>
+            ) : (
+              <>Tu cuenta quedó creada, pero no pudimos enviar el correo de verificación a <strong className="text-[#0D2137] dark:text-white font-bold">{form.correo}</strong>. Pide uno nuevo con el botón de abajo.</>
+            )}
           </p>
+          <div className="mb-8 text-sm">
+            {reenvio.mensaje ? (
+              <p className="text-emerald-700 dark:text-emerald-400 font-medium">{reenvio.mensaje}</p>
+            ) : (
+              <button
+                type="button"
+                onClick={handleReenviar}
+                disabled={reenvio.enviando}
+                className="font-bold text-[#1A6BAC] dark:text-[#C9A227] hover:underline disabled:opacity-50"
+              >
+                {reenvio.enviando ? 'Enviando…' : '¿No te llegó? Reenviar correo de verificación'}
+              </button>
+            )}
+          </div>
           <Link to="/login" className="btn-primary w-full justify-center">
             Ir a Iniciar sesión <ArrowRight size={17} />
           </Link>
@@ -145,7 +178,9 @@ export default function Register() {
         {/* OAuth */}
         <div className="space-y-2.5 mb-5">
           <OAuthButton onClick={() => irOAuth('google')} label="Registrarme con Google"><GoogleSVG /></OAuthButton>
-          <OAuthButton onClick={() => irOAuth('microsoft')} label="Registrarme con Microsoft"><MicrosoftSVG /></OAuthButton>
+          {MICROSOFT_HABILITADO && (
+            <OAuthButton onClick={() => irOAuth('microsoft')} label="Registrarme con Microsoft"><MicrosoftSVG /></OAuthButton>
+          )}
         </div>
 
         <div className="flex items-center gap-3 mb-5">

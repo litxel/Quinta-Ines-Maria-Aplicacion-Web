@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, ChevronLeft, ChevronRight, X, ArrowDown, ArrowUp, ArrowUpDown } from 'lucide-react';
 import { fetchImagenes, fetchCategorias } from '../services/galeria.service';
+import { urlImagen } from '../utils/urls';
 
 // ── Componente ImageWithSkeleton ──────────────────────────────────────────────
 const ImageWithSkeleton = ({ src, alt, onClick, className }) => {
@@ -51,9 +52,7 @@ export default function Galeria() {
             .filter(img => img.categoria_id === cat.categoria_id)
             .map(img => ({
               id:       img.imagen_id,
-              url:      img.url_original.startsWith('http')
-                          ? img.url_original
-                          : `http://localhost:5000${img.url_original}`,
+              url:      urlImagen(img.url_original, 1600),
               titulo:   img.titulo,
               alt_text: img.alt_text,
             }));

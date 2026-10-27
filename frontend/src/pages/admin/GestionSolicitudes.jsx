@@ -15,6 +15,8 @@ import {
   Palette, GripHorizontal, MessageSquare, Flower2, ShoppingBag,
   Archive, Trash2, AlertTriangle
 } from 'lucide-react';
+import { urlImagen } from '../../utils/urls';
+import { formatearFecha } from '../../utils/fechas';
 
 const ESTADOS = [
   { codigo: 'PENDIENTE',   label: 'Pendiente',    color: 'amber'  },
@@ -363,7 +365,7 @@ export default function GestionSolicitudes() {
                 <Th>Paquete / Tipo</Th>
                 <Th>Invitados</Th>
                 <Th>Total</Th>
-                <Th>Fecha sol.</Th>
+                <Th>Fecha evento</Th>
                 <Th>Estado</Th>
                 <Th>Cambiar estado</Th>
                 <Th>Acciones</Th>
@@ -420,10 +422,13 @@ export default function GestionSolicitudes() {
                       <span className="font-bold text-[#0D2137] dark:text-white text-base">${parseFloat(s.precio_estimado).toFixed(2)}</span>
                     </td>
 
-                    {/* Fecha */}
+                    {/* Fecha del evento (y debajo, cuándo se solicitó) */}
                     <td className="px-4 py-3.5 whitespace-nowrap">
-                      <span className="text-xs font-medium text-slate-500 dark:text-slate-300">
-                        {new Date(s.creado_en).toLocaleDateString('es-EC', { day: '2-digit', month: 'short', year: 'numeric' })}
+                      <span className="block text-sm font-bold text-[#0D2137] dark:text-white">
+                        {formatearFecha(s.fecha_evento)}
+                      </span>
+                      <span className="block text-[10px] font-medium text-slate-400 dark:text-slate-400">
+                        Solicitada {formatearFecha(s.creado_en)}
                       </span>
                     </td>
 
@@ -520,7 +525,7 @@ export default function GestionSolicitudes() {
                     <div className="w-14 h-14 rounded-2xl overflow-hidden shrink-0 ring-2 ring-[#C9A227]/50 shadow-lg bg-gradient-to-br from-[#C9A227] to-[#B7950B] flex items-center justify-center text-white font-bold text-lg">
                       {solicitudDetalle.cliente_foto ? (
                         <img
-                          src={`${import.meta.env.VITE_API_URL?.replace('/api','') || 'http://localhost:5000'}${solicitudDetalle.cliente_foto}`}
+                          src={urlImagen(solicitudDetalle.cliente_foto, 96)}
                           alt={solicitudDetalle.cliente_nombre}
                           className="w-full h-full object-cover"
                         />
@@ -617,7 +622,7 @@ export default function GestionSolicitudes() {
                       <div className="grid grid-cols-2 gap-4">
                         <div className="bg-slate-50 dark:bg-white/5 p-4 rounded-xl border border-slate-100 dark:border-white/8 transition-all hover:-translate-y-0.5 hover:shadow-md"><div className="flex items-center gap-2 text-slate-500 dark:text-slate-300 mb-1.5"><Package size={16} /><span className="text-xs font-bold">Paquete</span></div><p className="font-bold text-[#0D2137] dark:text-white text-sm">{solicitudDetalle.paquete_nombre}</p></div>
                         <div className="bg-slate-50 dark:bg-white/5 p-4 rounded-xl border border-slate-100 dark:border-white/8 transition-all hover:-translate-y-0.5 hover:shadow-md"><div className="flex items-center gap-2 text-slate-500 dark:text-slate-300 mb-1.5"><Users size={16} /><span className="text-xs font-bold">Invitados</span></div><p className="font-bold text-[#0D2137] dark:text-white text-sm">{solicitudDetalle.num_invitados} pax</p></div>
-                        <div className="bg-[#0D2137]/5 dark:bg-[#A971D6]/10 p-4 rounded-xl border border-[#0D2137]/10 dark:border-[#A971D6]/20 col-span-2 transition-all hover:-translate-y-0.5 hover:shadow-md"><div className="flex items-center gap-2 text-[#0D2137] dark:text-white mb-1.5"><Calendar size={16} /><span className="text-xs font-bold uppercase tracking-wider">Fecha Reservada</span></div><p className="font-bold text-[#0D2137] dark:text-white text-base">{solicitudDetalle.fecha_evento ? new Date(solicitudDetalle.fecha_evento).toLocaleDateString('es-EC', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) : 'No definida'}</p></div>
+                        <div className="bg-[#0D2137]/5 dark:bg-[#A971D6]/10 p-4 rounded-xl border border-[#0D2137]/10 dark:border-[#A971D6]/20 col-span-2 transition-all hover:-translate-y-0.5 hover:shadow-md"><div className="flex items-center gap-2 text-[#0D2137] dark:text-white mb-1.5"><Calendar size={16} /><span className="text-xs font-bold uppercase tracking-wider">Fecha Reservada</span></div><p className="font-bold text-[#0D2137] dark:text-white text-base">{solicitudDetalle.fecha_evento ? formatearFecha(solicitudDetalle.fecha_evento, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) : 'No definida'}</p></div>
                       </div>
                     </div>
                   </div>

@@ -14,6 +14,8 @@ import {
   ArrowUpRight, Clock, X, Check, Receipt, Sparkles
 } from 'lucide-react';
 import logoQuinta from '../../assets/FotosQuintaInes/LogosQuinta/logo quinta ines.png';
+import { formatearFecha } from '../../utils/fechas';
+import { avisar } from '../../utils/dialogos';
 
 // ─── Colores de marca (gráficas) ──────────────────────────────────────────────
 const PLUM   = '#6B3F7A';
@@ -137,7 +139,7 @@ export default function Reportes() {
   useEffect(() => { cargar(); }, []);
 
   const fmt = (n) => new Intl.NumberFormat('es-EC', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(n || 0);
-  const fmtFecha = (d) => d ? new Date(d).toLocaleDateString('es-EC', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
+  const fmtFecha = (d) => formatearFecha(d);
 
   const toggleOpcion = (key) => setOpciones(o => ({ ...o, [key]: !o[key] }));
 
@@ -301,7 +303,7 @@ export default function Reportes() {
       setModalPDF(false);
     } catch (e) {
       console.error('Error generando PDF:', e);
-      alert('Error al generar el PDF. Intenta nuevamente.');
+      avisar({ tipo: 'error', titulo: 'No se pudo generar el PDF', mensaje: 'Intenta nuevamente en unos segundos.' });
     } finally {
       setExportando(false);
     }

@@ -40,6 +40,14 @@ export const nuevaClaveRequest = async ({ token, password }) => {
 
 // ── GET /api/auth/verificar?token=xxx ────────────────────────────────────────
 export const verificarCuentaRequest = async (token) => {
-  const { data } = await api.get(`/auth/verificar?token=${token}`);
+  const { data } = await api.get('/auth/verificar', { params: { token } });
+  return data;
+};
+
+// ── POST /api/auth/reenviar-verificacion ─────────────────────────────────────
+export const reenviarVerificacionRequest = async (correo) => {
+  const { data } = await api.post('/auth/reenviar-verificacion', {
+    correo: sanitize(correo).toLowerCase(),
+  });
   return data;
 };

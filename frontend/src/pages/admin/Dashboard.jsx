@@ -10,6 +10,7 @@ import {
 import {
   FileText, Clock, CheckCircle2, DollarSign, ArrowRight, TrendingUp, AlertCircle
 } from 'lucide-react';
+import { formatearFecha } from '../../utils/fechas';
 
 // ── Variantes de animación de entrada ──────────────────────────────────────────
 const container = {
@@ -239,8 +240,8 @@ export default function Dashboard() {
                 <p className="font-mono text-xs text-[#B7950B] dark:text-[#C9A227] font-bold group-hover:underline cursor-pointer">{s.numero_cotizacion}</p>
                 <p className="text-sm font-bold text-[#0D2137] dark:text-white truncate">{s.cliente_nombre}</p>
                 <p className="text-xs text-slate-400 dark:text-slate-500 font-medium">
-                  {s.paquete_nombre ?? 'Personalizado'} ·{' '}
-                  {new Date(s.creado_en).toLocaleDateString('es-EC', { day: '2-digit', month: 'short', year: 'numeric' })}
+                  {s.paquete_nombre ?? 'Personalizado'} · Evento:{' '}
+                  {formatearFecha(s.fecha_evento)}
                 </p>
               </div>
 

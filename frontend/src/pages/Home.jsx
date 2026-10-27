@@ -9,14 +9,14 @@ import bg3 from '../assets/FotosQuintaInes/EntradaQuinta/entrada 3 quinta ines.j
 import bg5 from '../assets/FotosQuintaInes/EntradaQuinta/entrada 5 quinta ines.jpg';
 import bg6 from '../assets/FotosQuintaInes/EntradaQuinta/entrada 6 quinta ines.jpg';
 import bg7 from '../assets/FotosQuintaInes/EntradaQuinta/ingresoooo.jpeg';
-import bg8 from '../assets/FotosQuintaInes/EntradaQuinta/PORTADA.png';
+import bg8 from '../assets/FotosQuintaInes/EntradaQuinta/PORTADA.jpg';
 import imgMision from '../assets/FotosQuintaInes/EntradaQuinta/ingreso.jpeg';
 import imgVision from '../assets/FotosQuintaInes/EntradaQuinta/encuentra.jpeg';
 import imgQrDirections from '../assets/FotosQuintaInes/LogosQuinta/QRINVITACIONCOMOLLEGAR.jpg';
 import vidPromocional  from '../assets/FotosQuintaInes/VideosQuinta/WhatsAppVideo2024-06-04at2.43.50PM.mp4';
 
 // Imágenes del carrusel de la sección CTA (importadas para que Vite las empaquete)
-import car1 from '../assets/FotosQuintaInes/AreasVerdesQuinta/pileta.png';
+import car1 from '../assets/FotosQuintaInes/AreasVerdesQuinta/pileta.jpg';
 import car2 from '../assets/FotosQuintaInes/ArtistasQuinta/grupo chaparros quinta ines.jpg';
 import car3 from '../assets/FotosQuintaInes/BodasQuinta/619844066_122149389806698194_3567595811387650194_n.jpg.jpeg';
 import car4 from '../assets/FotosQuintaInes/DecoracionesQuinta/622871883_122149388912698194_588578243096562400_n.jpg.jpeg';
@@ -28,7 +28,7 @@ import car7 from '../assets/FotosQuintaInes/DecoracionesQuinta/centros de mesa.j
 import hist1 from '../assets/FotosQuintaInes/PersonasQuinta/gente 16 quinta ines.jpg';
 import hist2 from '../assets/FotosQuintaInes/AreasVerdesQuinta/puente.jpg.jpeg';
 import hist3 from '../assets/FotosQuintaInes/PersonasQuinta/gente 10 quinta ines.jpg';
-import hist4 from '../assets/FotosQuintaInes/EQUIM/fondoEQUIM.png';
+import hist4 from '../assets/FotosQuintaInes/EQUIM/fondoEQUIM.webp';
 import hist5 from '../assets/FotosQuintaInes/DecoracionesQuinta/mesa principal.jpg.jpeg';
 
 const IMAGENES_FONDO = [bg1, bg3, bg5, bg6, bg7, bg8];

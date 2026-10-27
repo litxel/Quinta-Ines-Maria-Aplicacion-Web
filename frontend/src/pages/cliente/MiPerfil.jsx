@@ -3,8 +3,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAuthStore } from '../../store/useAuthStore';
 import { getMiPerfil, actualizarMiPerfil, cambiarMiPassword, subirFotoPerfil } from '../../services/usuarios.service';
 import { User, Phone, Mail, Lock, Save, Eye, EyeOff, CheckCircle, AlertCircle, Shield, Edit3, Camera, Loader2, X } from 'lucide-react';
+import { urlImagen } from '../../utils/urls';
+import { leerImagenComprimida } from '../../utils/imagenes';
 
-const BACKEND_URL = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000';
 
 export default function MiPerfil() {
   const { user, updateUser } = useAuthStore();
@@ -50,19 +51,18 @@ export default function MiPerfil() {
   };
 
   // ── Manejo de foto ──────────────────────────────────────────────────────────
-  const handleSeleccionarFoto = (e) => {
+  const handleSeleccionarFoto = async (e) => {
     const file = e.target.files?.[0];
+    e.target.value = '';
     if (!file) return;
-    if (file.size > 5 * 1024 * 1024) {
-      mostrarToast('error', 'La imagen no puede superar 5MB.');
-      return;
+    try {
+      // Foto de perfil: basta con 600 px (se reduce en el navegador)
+      const base64 = await leerImagenComprimida(file, { maxLado: 600 });
+      setPreview(base64);
+      setFotoBase64(base64);
+    } catch (err) {
+      mostrarToast('error', err.message);
     }
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      setPreview(ev.target.result);
-      setFotoBase64(ev.target.result);
-    };
-    reader.readAsDataURL(file);
   };
 
   const handleGuardarFoto = async () => {
@@ -129,7 +129,7 @@ export default function MiPerfil() {
   };
 
   const iniciales = (nombre) => nombre?.split(' ').slice(0, 2).map(n => n[0]).join('').toUpperCase() || '?';
-  const fotoUrl   = preview || (perfil?.foto_perfil ? `${BACKEND_URL}${perfil.foto_perfil}` : null);
+  const fotoUrl   = preview || urlImagen(perfil?.foto_perfil, 300);
 
   if (loading) return (
     <main className="min-h-screen pt-28 pb-16 bg-[#EEE3CF] dark:bg-[#221634] flex items-center justify-center">

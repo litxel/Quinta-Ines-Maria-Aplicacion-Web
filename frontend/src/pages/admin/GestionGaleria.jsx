@@ -8,6 +8,9 @@ import {
   fetchCategorias,
   crearCategoria
 } from '../../services/galeria.service';
+import { urlImagen } from '../../utils/urls';
+import { confirmar, avisar, mensajeDeError } from '../../utils/dialogos';
+import { leerImagenComprimida } from '../../utils/imagenes';
 
 export default function GestionGaleria() {
   const [imagenes, setImagenes] = useState([]);
@@ -36,9 +39,9 @@ export default function GestionGaleria() {
       setModalCategoriaAbierto(false);
       setNuevaCategoria({ nombre: '', descripcion: '' });
       cargarDatos();
-      alert('¡Categoría creada con éxito!');
+      avisar({ tipo: 'exito', titulo: '¡Categoría creada!', mensaje: `La categoría "${nuevaCategoria.nombre}" ya está disponible.` });
     } catch (err) {
-      alert('Error al crear categoría: ' + (err.response?.data?.message || err.message));
+      avisar({ tipo: 'error', titulo: 'No se pudo crear la categoría', mensaje: mensajeDeError(err) });
     }
   };
 
@@ -85,13 +88,16 @@ export default function GestionGaleria() {
 
   const abrirModalEdicion = (img) => { setImagenEditando({ ...img }); setModalAbierto(true); };
 
-  const handleFileChange = (e) => {
+  const handleFileChange = async (e) => {
     const file = e.target.files[0];
-    if (file) {
-      if (file.size > 25 * 1024 * 1024) { alert('La imagen es muy pesada. Máximo 25MB.'); return; }
-      const reader = new FileReader();
-      reader.onloadend = () => setImagenEditando({ ...imagenEditando, imagen_base64: reader.result, preview: reader.result });
-      reader.readAsDataURL(file);
+    e.target.value = '';  // permite volver a elegir el mismo archivo
+    if (!file) return;
+    try {
+      // Las fotos de celular se reducen en el navegador (máx. 1920 px) antes de subirlas
+      const base64 = await leerImagenComprimida(file);
+      setImagenEditando((prev) => ({ ...prev, imagen_base64: base64, preview: base64 }));
+    } catch (err) {
+      avisar({ tipo: 'error', titulo: 'Imagen no válida', mensaje: err.message });
     }
   };
 
@@ -102,29 +108,34 @@ export default function GestionGaleria() {
       if (imagenEditando.imagen_id) {
         await actualizarDetallesImagen(imagenEditando.imagen_id, imagenEditando);
       } else {
-        if (!imagenEditando.imagen_base64) { alert("Debes seleccionar una imagen."); setGuardando(false); return; }
+        if (!imagenEditando.imagen_base64) { avisar({ tipo: 'advertencia', titulo: 'Falta la imagen', mensaje: 'Debes seleccionar una imagen para subirla.' }); setGuardando(false); return; }
         await subirImagen(imagenEditando);
       }
       setModalAbierto(false);
       cargarDatos();
     } catch (err) {
-      alert('Error al guardar: ' + (err.response?.data?.message || err.message));
+      avisar({ tipo: 'error', titulo: 'No se pudo guardar', mensaje: mensajeDeError(err) });
     } finally {
       setGuardando(false);
     }
   };
 
   const handleEliminar = async (id, titulo) => {
-    if (window.confirm(`¿Estás seguro de ELIMINAR la foto "${titulo}"? Esta acción no se puede deshacer.`)) {
-      try { await eliminarImagen(id); cargarDatos(); }
-      catch (err) { alert('Error al eliminar: ' + (err.response?.data?.message || err.message)); }
-    }
+    const ok = await confirmar({
+      titulo: '¿Eliminar esta foto?',
+      mensaje: `La foto "${titulo}" se eliminará de la galería. Esta acción no se puede deshacer.`,
+      tipo: 'peligro',
+      textoConfirmar: 'Sí, eliminar',
+    });
+    if (!ok) return;
+    try { await eliminarImagen(id); cargarDatos(); }
+    catch (err) { avisar({ tipo: 'error', titulo: 'No se pudo eliminar', mensaje: mensajeDeError(err) }); }
   };
 
   const getCategoria = (id) => categorias.find(c => c.categoria_id === id);
   const getNombreCategoria = (id) => getCategoria(id)?.nombre || 'Sin categoría';
 
-  const urlImg = (u) => u?.startsWith('http') ? u : `http://localhost:5000${u}`;
+  const urlImg = (u) => urlImagen(u, 800);
 
   // ── Agrupación por categoría ──
   const conteoPorCat = categorias.map(c => ({ ...c, count: imagenes.filter(i => i.categoria_id === c.categoria_id).length }));

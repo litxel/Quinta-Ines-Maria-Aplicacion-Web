@@ -11,6 +11,12 @@ export const crearSolicitudRequest = async (payload) => {
   return data.data;
 };
 
+// ── Enviar la cotización PDF al correo de la cuenta (cliente) ─────────────────
+export const enviarCotizacionRequest = async (id, pdfBase64) => {
+  const { data } = await api.post(`/solicitudes/${id}/cotizacion`, { pdf_base64: pdfBase64 });
+  return data;
+};
+
 // ── Mis solicitudes (cliente) ─────────────────────────────────────────────────
 export const getMisSolicitudes = async () => {
   const { data } = await api.get('/solicitudes/mis-solicitudes');

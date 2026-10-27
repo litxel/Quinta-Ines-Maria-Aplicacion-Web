@@ -168,6 +168,7 @@ export const useConfiguradorStore = create(
     tipo_evento_id:          null,
     paquete_id:              null,
     num_invitados:           100,
+    fecha_evento:            null,
     color_primario:          '#0D2137',
     color_secundario:        '#B7950B',
     estilo_deco_id:          null,

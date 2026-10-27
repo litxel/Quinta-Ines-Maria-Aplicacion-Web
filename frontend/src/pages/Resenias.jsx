@@ -4,7 +4,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Star, MapPin, ExternalLink, Quote, Sparkles, Send, MessageSquarePlus, Clock, ArrowDownWideNarrow, ArrowUpNarrowWide, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useAuthStore } from '../store/useAuthStore';
 import { fetchResenias, crearResenia, fetchGoogleReviews } from '../services/resenias.service';
-import GoogleReviewsWidget from '../components/shared/GoogleReviewsWidget';
 
 // ── Fotos reales de personas para el carrusel del hero ────────────────────────
 import persona1 from '../assets/FotosQuintaInes/PersonasQuinta/gente quinta ines.jpg';
@@ -15,10 +14,10 @@ import persona5 from '../assets/FotosQuintaInes/PersonasQuinta/gente 11 quinta i
 import persona6 from '../assets/FotosQuintaInes/PersonasQuinta/gente 15 quinta ines.jpg';
 import persona7 from '../assets/FotosQuintaInes/PersonasQuinta/gente 16 quinta ines.jpg';
 import persona8 from '../assets/FotosQuintaInes/PersonasQuinta/gente 19 quinta ines.jpg';
+import { urlImagen } from '../utils/urls';
 const FOTOS_PERSONAS = [persona1, persona2, persona3, persona4, persona5, persona6, persona7, persona8];
 
-const BACKEND_URL = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000';
-const resolverFoto = (foto) => !foto ? null : (foto.startsWith('http') ? foto : `${BACKEND_URL}${foto}`);
+const resolverFoto = (foto) => urlImagen(foto, 96);
 
 // ─── Reviews reales curadas de Google Maps y Facebook ───────────────────────
 const REVIEWS_GOOGLE = [
@@ -141,17 +140,42 @@ function StarRating({ rating }) {
   );
 }
 
+const ETIQUETA_CALIFICACION = { 5: 'Excelente', 4: 'Muy buena', 3: 'Buena', 2: 'Regular', 1: 'Mala' };
+const NOMBRE_FUENTE = { google: 'Google', facebook: 'Facebook', app: 'nuestra web' };
+
 function ReviewCard({ review }) {
   const [expanded, setExpanded] = useState(false);
-  const isLong = review.texto.length > 200;
-  const displayText = isLong && !expanded ? review.texto.slice(0, 200) + '…' : review.texto;
+  const texto = (review.texto ?? '').trim();
+  const isLong = texto.length > 200;
+  const displayText = isLong && !expanded ? texto.slice(0, 200) + '…' : texto;
 
   return (
     <div className="bg-white dark:bg-[#332247] rounded-2xl border border-slate-100 dark:border-white/8 shadow-sm p-6 flex flex-col hover:shadow-md hover:-translate-y-1 transition-all duration-300">
       {/* Cita decorativa */}
       <Quote size={24} className="text-[#B7950B]/30 dark:text-[#C9A227]/40 mb-3" strokeWidth={1.5} />
 
-      {/* Texto */}
+      {/* Google permite calificar solo con estrellas: en ese caso se destaca la
+          calificación en lugar de dejar la tarjeta en blanco. */}
+      {!texto ? (
+        <div className="flex-1 flex flex-col items-start justify-center gap-2.5 py-2">
+          <div className="flex gap-1">
+            {[1, 2, 3, 4, 5].map((i) => (
+              <Star
+                key={i}
+                size={22}
+                fill={i <= review.calificacion ? '#F9A825' : 'none'}
+                stroke={i <= review.calificacion ? '#F9A825' : '#CBD5E1'}
+              />
+            ))}
+          </div>
+          <p className="font-display text-xl font-bold text-[#0D2137] dark:text-white leading-tight">
+            {ETIQUETA_CALIFICACION[review.calificacion] ?? 'Calificación'} experiencia
+          </p>
+          <p className="text-xs text-slate-500 dark:text-slate-400">
+            Calificó a la Quinta con {review.calificacion} de 5 estrellas en {NOMBRE_FUENTE[review.fuente] ?? 'línea'}.
+          </p>
+        </div>
+      ) : (
       <p className="text-slate-600 dark:text-slate-300 text-sm leading-relaxed flex-1">
         {displayText}
         {isLong && (
@@ -163,6 +187,7 @@ function ReviewCard({ review }) {
           </button>
         )}
       </p>
+      )}
 
       {/* Footer de la card */}
       <div className="mt-4 pt-4 border-t border-slate-100 dark:border-white/8 flex items-center gap-3">
@@ -286,7 +311,7 @@ export default function Resenias() {
     fetchGoogleReviews().then(setGoogleLive).catch(() => {});
   }, []);
 
-  // Carrusel: cambia a una foto aleatoria (distinta de la actual) cada 2 s.
+  // Carrusel: cambia a una foto aleatoria (distinta de la actual) cada 4,5 s.
   useEffect(() => {
     const t = setInterval(() => {
       setFotoIdx((prev) => {
@@ -294,7 +319,7 @@ export default function Resenias() {
         if (n === prev) n = (n + 1) % FOTOS_PERSONAS.length;
         return n;
       });
-    }, 2000);
+    }, 4500);
     return () => clearInterval(t);
   }, []);
 
@@ -379,17 +404,20 @@ export default function Resenias() {
           <AnimatePresence>
             <motion.div
               key={fotoIdx}
-              initial={{ opacity: 0, scale: 1.14 }}
-              animate={{ opacity: 0.5, scale: 1 }}
-              exit={{ opacity: 0, scale: 1.04 }}
-              transition={{ duration: 1.6, ease: 'easeInOut' }}
+              // La foto nueva aparece ENCIMA de la anterior, que se queda nítida
+              // debajo hasta que la nueva está completa (sin momentos "lavados").
+              initial={{ opacity: 0, scale: 1.12 }}
+              animate={{ opacity: 1, scale: 1, transition: { opacity: { duration: 1.1, ease: 'easeOut' }, scale: { duration: 5.5, ease: 'easeOut' } } }}
+              exit={{ opacity: 0, transition: { delay: 1.1, duration: 0.4 } }}
               className="absolute inset-0 bg-cover bg-center"
               style={{ backgroundImage: `url("${FOTOS_PERSONAS[fotoIdx]}")` }}
               aria-hidden="true"
             />
           </AnimatePresence>
-          {/* Velo para legibilidad del texto */}
-          <div className="absolute inset-0 bg-gradient-to-br from-[#0D2137]/88 via-[#1A3A5C]/72 to-[#0D2137]/92" />
+          {/* Velo suave: las fotos se ven nítidas y el texto sigue legible
+              (más oscuro solo detrás del texto, en el centro) */}
+          <div className="absolute inset-0 bg-gradient-to-b from-[#0D2137]/45 via-[#0D2137]/20 to-[#0D2137]/60" />
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_55%_at_center,rgba(13,33,55,0.55),transparent_75%)]" />
         </div>
 
         {/* Decoración de fondo */}
@@ -399,7 +427,7 @@ export default function Resenias() {
         <div className="absolute top-8 left-8 text-6xl opacity-10">⭐</div>
         <div className="absolute bottom-8 right-16 text-6xl opacity-10">⭐</div>
 
-        <div className="relative max-w-3xl mx-auto text-center">
+        <div className="relative max-w-3xl mx-auto text-center [text-shadow:0_2px_12px_rgba(0,0,0,0.6)]">
           <div className="inline-flex items-center gap-2 bg-[#B7950B]/20 text-[#B7950B] text-xs font-bold uppercase tracking-widest px-4 py-2 rounded-full border border-[#B7950B]/30 mb-6">
             <Star size={12} fill="currentColor" />
             Reseñas verificadas
@@ -634,22 +662,6 @@ export default function Resenias() {
             </button>
           </div>
         )}
-
-        {/* ── TODAS LAS RESEÑAS (widget en vivo Google + Facebook) ────────────── */}
-        <section className="mt-16">
-          <div className="text-center mb-8">
-            <div className="inline-flex items-center gap-2 bg-[#A971D6]/12 dark:bg-[#A971D6]/15 text-[#6B3F7A] dark:text-[#C9A8E6] text-xs font-bold uppercase tracking-widest px-4 py-2 rounded-full border border-[#A971D6]/25 mb-4">
-              <Sparkles size={12} /> En vivo · 100% reales
-            </div>
-            <h2 className="font-display text-2xl md:text-3xl font-bold text-[#0D2137] dark:text-white">
-              Todas nuestras reseñas
-            </h2>
-            <p className="text-slate-500 dark:text-slate-400 text-sm mt-2 max-w-xl mx-auto">
-              El listado completo de reseñas verificadas de Google y Facebook, directo de las plataformas.
-            </p>
-          </div>
-          <GoogleReviewsWidget />
-        </section>
 
         {/* ── CTA: Ver en Google Maps y Facebook ──────────────────────────────── */}
         <div className="mt-16 bg-gradient-to-r from-[#0D2137] to-[#1A3A5C] rounded-3xl p-8 text-center text-white shadow-2xl relative overflow-hidden">

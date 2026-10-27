@@ -1,6 +1,7 @@
 'use strict';
 const svc       = require('./galeria.service');
 const auditoria = require('../../utils/auditoria.service');
+const { guardarImagen, eliminarImagen: eliminarArchivoImagen } = require('../../utils/almacenamiento.service');
 
 const listarImagenesPublicas = async (req, res, next) => {
   try {
@@ -34,51 +35,36 @@ const listarTodasAdmin = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
-const fs = require('fs');
-const path = require('path');
-
 const agregarImagen = async (req, res, next) => {
   try {
-    const { imagen_base64, titulo, alt_text, categoria_id, orden_display } = req.body;
-    
-    if (!imagen_base64 || !titulo || !categoria_id) {
+    const { imagen_base64, alt_text, orden_display } = req.body;
+    const titulo      = typeof req.body.titulo === 'string' ? req.body.titulo.trim().slice(0, 150) : '';
+    const categoriaId = parseInt(req.body.categoria_id, 10);
+
+    if (!imagen_base64 || !titulo || !(categoriaId > 0)) {
       return res.status(400).json({ success: false, message: 'La imagen, título y categoría son requeridos.' });
     }
 
-    // 1. Extraer los datos puros del Base64 (quitar "data:image/jpeg;base64,")
-    const base64Data = imagen_base64.replace(/^data:image\/\w+;base64,/, "");
-    
-    // 2. Generar un nombre único para no sobreescribir fotos (Ej: 1715462529-15-años.jpg)
-    const extension = imagen_base64.split(';')[0].split('/')[1] || 'jpg';
-    const nombreArchivo = `${Date.now()}-${titulo.replace(/\s+/g, '-').toLowerCase()}.${extension}`;
-    
-    // 3. Crear la ruta absoluta donde se guardará (backend/public/uploads/galeria/)
-    const rutaDirectorio = path.join(__dirname, '../../../public/uploads/galeria');
-    const rutaArchivoFisico = path.join(rutaDirectorio, nombreArchivo);
+    // Valida el tipo real de la imagen y genera un nombre seguro en el servidor
+    const url_original = await guardarImagen(imagen_base64, 'galeria');
 
-    // Si la carpeta no existe, la crea automáticamente
-    if (!fs.existsSync(rutaDirectorio)) {
-      fs.mkdirSync(rutaDirectorio, { recursive: true });
-    }
-
-    // 4. Guardar el archivo físicamente en el disco duro del servidor
-    fs.writeFileSync(rutaArchivoFisico, base64Data, { encoding: 'base64' });
-
-    // 5. La URL que guardaremos en la base de datos (Ej: /uploads/galeria/1715462529-15-años.jpg)
-    const url_original = `/uploads/galeria/${nombreArchivo}`;
-
-    // 6. Guardar el registro en PostgreSQL
-    const nueva = await svc.agregarImagen({ url_original, titulo, alt_text, categoria_id, orden_display });
-    
-    await auditoria.registrarLogOperacion({ 
-      schemaTabla: 'eqim_galeria.imagenes', operacion: 'INSERT', usuarioId: req.user.id, 
-      datosNuevos: nueva, ipOrigen: req.ip, userAgent: req.headers['user-agent'], 
-      descripcion: `Imagen agregada: ${titulo}` 
+    const nueva = await svc.agregarImagen({
+      url_original,
+      titulo,
+      alt_text:      typeof alt_text === 'string' ? alt_text.slice(0, 255) : titulo,
+      categoria_id:  categoriaId,
+      orden_display: Number.isInteger(parseInt(orden_display, 10)) ? parseInt(orden_display, 10) : 99,
     });
-    
+
+    await auditoria.registrarLogOperacion({
+      schemaTabla: 'eqim_galeria.imagenes', operacion: 'INSERT', usuarioId: req.user.id,
+      datosNuevos: nueva, ipOrigen: req.ip, userAgent: req.headers['user-agent'],
+      descripcion: `Imagen agregada: ${titulo}`
+    });
+
     return res.status(201).json({ success: true, message: 'Imagen subida exitosamente.', data: nueva });
-  } catch (err) { 
-    next(err); 
+  } catch (err) {
+    next(err);
   }
 };
 
@@ -95,6 +81,7 @@ const eliminarImagen = async (req, res, next) => {
   try {
     const imagenId = parseInt(req.params.id, 10);
     const eliminada = await svc.eliminarImagen(imagenId);
+    await eliminarArchivoImagen(eliminada.url_original);
     await auditoria.registrarLogOperacion({ schemaTabla: 'eqim_galeria.imagenes', operacion: 'DELETE', usuarioId: req.user.id, datosAnteriores: eliminada, ipOrigen: req.ip, userAgent: req.headers['user-agent'], descripcion: `Imagen eliminada` });
     return res.json({ success: true, message: 'Imagen eliminada.' });
   } catch (err) { next(err); }

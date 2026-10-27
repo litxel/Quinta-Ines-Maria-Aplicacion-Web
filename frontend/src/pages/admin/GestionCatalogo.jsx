@@ -9,6 +9,9 @@ import {
   getExtrasAdmin, crearExtra, actualizarExtra, eliminarExtra
 } from '../../services/catalogo.service';
 import { Package, GlassWater, GripHorizontal, Sparkles, Plus, Edit2, Trash2, X, Settings2, Eye, EyeOff } from 'lucide-react';
+import { urlImagen } from '../../utils/urls';
+import { confirmar, avisar, mensajeDeError } from '../../utils/dialogos';
+import { leerImagenComprimida } from '../../utils/imagenes';
 
 const TABS = [
   { id: 'paquetes', label: 'Paquetes Principales', icon: <Package size={18} /> },
@@ -38,7 +41,6 @@ export default function GestionCatalogo() {
   // ── ESTADO DE IMAGEN DE CATÁLOGO ──
   const fileInputRef  = useRef(null);
   const [imagenPreview, setImagenPreview] = useState(null); // URL local para preview
-  const BACKEND_URL = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000';
 
   // ── CARGA DE DATOS SEGÚN LA PESTAÑA ──
   const cargarDatos = async () => {
@@ -73,7 +75,7 @@ export default function GestionCatalogo() {
       setForm({ ...item });
       // Si tiene imagen_url, mostrar como preview
       if (item.imagen_url && ['estilos', 'centros', 'extras', 'tipos', 'paquetes'].includes(activeTab)) {
-        setImagenPreview(`${BACKEND_URL}${item.imagen_url}`);
+        setImagenPreview(urlImagen(item.imagen_url, 600));
       }
     } else {
       if (activeTab === 'paquetes') setForm({ paquete_nombre: '', paquete_codigo: '', descripcion: '', precio_persona: '', minimo_invitados: 100, color_principal: '#B7950B', activo: true });
@@ -103,7 +105,7 @@ export default function GestionCatalogo() {
       setModalAbierto(false);
       cargarDatos();
     } catch (error) {
-      alert(error.response?.data?.message || 'Error al guardar los datos.');
+      avisar({ tipo: 'error', titulo: 'No se pudo guardar', mensaje: mensajeDeError(error, 'Error al guardar los datos.') });
     }
   };
 
@@ -112,11 +114,14 @@ export default function GestionCatalogo() {
   // borrado (respuesta 200) se quita el elemento del estado local. Si el
   // registro está en uso, el backend responde 409 y mostramos su mensaje.
   const handleEliminar = async (id) => {
-    if (!window.confirm(
-      '¿Seguro que deseas ELIMINAR PERMANENTEMENTE este elemento?\n\n' +
-      'Esta acción borra el registro de la base de datos y NO se puede deshacer. ' +
-      'Si solo quieres que deje de mostrarse a los clientes, usa el botón del ojo para ocultarlo.'
-    )) return;
+    const ok = await confirmar({
+      titulo: '¿Eliminar permanentemente?',
+      mensaje: 'Esta acción borra el registro de la base de datos y NO se puede deshacer.\n\n' +
+               'Si solo quieres que deje de mostrarse a los clientes, usa el botón del ojo para ocultarlo.',
+      tipo: 'peligro',
+      textoConfirmar: 'Sí, eliminar',
+    });
+    if (!ok) return;
     try {
       if (activeTab === 'paquetes') await eliminarPaquete(id);
       if (activeTab === 'tipos')    await eliminarTipo(id);
@@ -128,7 +133,7 @@ export default function GestionCatalogo() {
         it => (it.paquete_id || it.tipo_id || it.estilo_id || it.centro_id || it.adicional_id) !== id
       ));
     } catch (error) {
-      alert(error.response?.data?.message || 'No se pudo eliminar el elemento. Intenta nuevamente.');
+      avisar({ tipo: 'error', titulo: 'No se pudo eliminar', mensaje: mensajeDeError(error, 'No se pudo eliminar el elemento. Intenta nuevamente.') });
     }
   };
 
@@ -143,7 +148,7 @@ export default function GestionCatalogo() {
       if (activeTab === 'extras')   await actualizarExtra(item.adicional_id, nuevoEstado);
       cargarDatos();
     } catch (error) {
-      alert('Error al cambiar visibilidad.');
+      avisar({ tipo: 'error', titulo: 'No se pudo cambiar la visibilidad', mensaje: mensajeDeError(error) });
     }
   };
 
@@ -170,7 +175,7 @@ export default function GestionCatalogo() {
       setPaqueteServicios(p);
       setData(pActualizado);
     } catch (error) { 
-      alert('Error al agregar servicio.'); 
+      avisar({ tipo: 'error', titulo: 'No se pudo agregar el servicio', mensaje: mensajeDeError(error) });
     }
   };
 
@@ -183,7 +188,7 @@ export default function GestionCatalogo() {
       setPaqueteServicios(p);
       setData(pActualizado);
     } catch (error) { 
-      alert('Error al eliminar servicio.'); 
+      avisar({ tipo: 'error', titulo: 'No se pudo eliminar el servicio', mensaje: mensajeDeError(error) });
     }
   };
 
@@ -204,7 +209,7 @@ export default function GestionCatalogo() {
       setPaqueteServicios(p);
       setData(pActualizado);
     } catch (error) { 
-      alert('Error al actualizar servicio.'); 
+      avisar({ tipo: 'error', titulo: 'No se pudo actualizar el servicio', mensaje: mensajeDeError(error) });
     }
   };
 
@@ -488,20 +493,18 @@ export default function GestionCatalogo() {
                         type="file"
                         accept="image/jpeg,image/png,image/webp"
                         className="hidden"
-                        onChange={(e) => {
+                        onChange={async (e) => {
                           const file = e.target.files?.[0];
+                          e.target.value = '';  // permite volver a elegir el mismo archivo
                           if (!file) return;
-                          if (file.size > 5 * 1024 * 1024) {
-                            alert('La imagen no puede superar 5MB.');
-                            return;
-                          }
-                          const reader = new FileReader();
-                          reader.onload = (ev) => {
-                            const base64 = ev.target.result;
+                          try {
+                            // Se reduce en el navegador (máx. 1920 px) antes de subirla
+                            const base64 = await leerImagenComprimida(file);
                             setImagenPreview(base64);
                             setForm(f => ({ ...f, imagen_base64: base64 }));
-                          };
-                          reader.readAsDataURL(file);
+                          } catch (err) {
+                            avisar({ tipo: 'error', titulo: 'Imagen no válida', mensaje: err.message });
+                          }
                         }}
                       />
                     </div>

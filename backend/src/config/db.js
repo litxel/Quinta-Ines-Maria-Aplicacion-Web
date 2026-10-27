@@ -1,32 +1,35 @@
 'use strict';
 const { Pool } = require('pg');
-require('dotenv').config();
 
 /**
  * Pool de conexiones a PostgreSQL.
  *
- * SOLUCIÓN UTF-8:
- * La propiedad `options` fuerza al cliente pg a usar UTF-8 desde la
- * cadena de conexión. Esto corrige los caracteres rotos:
- *   bÃ¡sico        → básico
- *   QuinceaÃ±eras  → Quinceañeras
- *   decoraciÃ³n    → decoración
+ * PRODUCCIÓN (Neon): se usa DATABASE_URL con SSL obligatorio. Neon ya trabaja
+ * en UTF-8, así que no se envía el parámetro `options` (su pooler lo rechaza).
  *
- * El evento 'connect' reafirma el encoding en cada nueva conexión
- * del pool para máxima garantía.
+ * LOCAL: se usan las variables DB_*. La propiedad `options` fuerza UTF-8 desde
+ * la conexión para evitar caracteres rotos (bÃ¡sico → básico).
  */
+const conexion = process.env.DATABASE_URL
+  ? {
+      connectionString: process.env.DATABASE_URL,
+      ssl: { rejectUnauthorized: true },
+    }
+  : {
+      host:     process.env.DB_HOST,
+      port:     parseInt(process.env.DB_PORT, 10),
+      database: process.env.DB_NAME,
+      user:     process.env.DB_USER,
+      password: process.env.DB_PASSWORD,
+      options:  '-c client_encoding=UTF8',
+    };
+
 const pool = new Pool({
-  host:                    process.env.DB_HOST,
-  port:                    parseInt(process.env.DB_PORT, 10),
-  database:                process.env.DB_NAME,
-  user:                    process.env.DB_USER,
-  password:                process.env.DB_PASSWORD,
-  // ── LÍNEA CLAVE — fuerza UTF-8 en la conexión ──────────────────────────────
-  options:                 '-c client_encoding=UTF8',
-  // ─────────────────────────────────────────────────────────────────────────────
+  ...conexion,
   max:                     10,
   idleTimeoutMillis:       30000,
-  connectionTimeoutMillis: 3000,
+  // Neon suspende la BD tras 5 min sin uso; despertarla puede tardar unos segundos.
+  connectionTimeoutMillis: 10000,
 });
 
 // Reafirmar encoding en cada conexión nueva del pool
@@ -41,7 +44,7 @@ pool.connect((err, client, release) => {
     console.error('\n❌  Error conectando a PostgreSQL:', err.message);
     process.exit(1);
   }
-  console.log('✅  PostgreSQL conectado:', process.env.DB_NAME);
+  console.log('✅  PostgreSQL conectado');
   release();
 });
 

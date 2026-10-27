@@ -1,13 +1,13 @@
 import { useNavigate } from 'react-router-dom';
 import { CheckCircle2, Eye, ArrowRight, Star, Image as ImageIcon } from 'lucide-react';
 import { useConfiguradorStore } from '../../store/useConfiguradorStore';
+import { urlImagen } from '../../utils/urls';
 
-const BACKEND_URL = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000';
 
 export default function TarjetaPaquete({ paquete, onVerDetalles }) {
   const navigate        = useNavigate();
   const setPaqueteStore = useConfiguradorStore((s) => s.setPaquete);
-  const imagenUrl       = paquete.imagen_url ? `${BACKEND_URL}${paquete.imagen_url}` : null;
+  const imagenUrl       = urlImagen(paquete.imagen_url, 800);
 
   const {
     paquete_nombre,

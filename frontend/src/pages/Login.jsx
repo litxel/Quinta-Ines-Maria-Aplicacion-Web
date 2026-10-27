@@ -1,26 +1,45 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Eye, EyeOff, AlertCircle, ArrowRight, Mail, Lock } from 'lucide-react';
 import { useAuthStore } from '../store/useAuthStore';
-import { loginRequest } from '../services/auth.service';
+import { loginRequest, reenviarVerificacionRequest } from '../services/auth.service';
 
 import bgAuth   from '../assets/FotosQuintaInes/EntradaQuinta/entrada 1 quinta ines.jpg';
 import logoAuth from '../assets/FotosQuintaInes/LogosQuinta/logo quinta ines.png';
+import { urlOAuth } from '../utils/urls';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const API_BASE = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000';
-const irOAuth  = (proveedor) => { window.location.href = `${API_BASE}/api/auth/${proveedor}`; };
+const irOAuth  = (proveedor) => { window.location.href = urlOAuth(proveedor); };
+// Botón de Microsoft: oculto por defecto (requiere un directorio Entra ID
+// configurado). Para reactivarlo, define VITE_MICROSOFT_ENABLED=true en frontend/.env.
+const MICROSOFT_HABILITADO = import.meta.env.VITE_MICROSOFT_ENABLED === 'true';
+
+// Avisos que llegan por la URL (?sesion=expirada, ?error=google_failed)
+const avisoInicial = (params) => {
+  let expiroAlAbrir = false;
+  try {
+    expiroAlAbrir = sessionStorage.getItem('qim_sesion_expirada') === '1';
+    sessionStorage.removeItem('qim_sesion_expirada');
+  } catch { /* sin storage */ }
+  if (params.get('sesion') === 'expirada' || expiroAlAbrir) return 'Tu sesión expiró. Vuelve a iniciar sesión para continuar.';
+  if (params.get('error'))                 return 'No se pudo iniciar sesión con Google. Intenta de nuevo o usa tu correo.';
+  return '';
+};
 
 export default function Login() {
   const navigate  = useNavigate();
+  const [searchParams] = useSearchParams();
   const { login, redirectAfterLogin, clearRedirect } = useAuthStore();
 
   const [form,      setForm]      = useState({ correo: '', password: '' });
   const [errores,   setErrores]   = useState({});
   const [apiError,  setApiError]  = useState('');
+  const [aviso]                   = useState(() => avisoInicial(searchParams));
   const [loading,   setLoading]   = useState(false);
   const [showPass,  setShowPass]  = useState(false);
+  const [sinVerificar, setSinVerificar] = useState(false);
+  const [reenvio,   setReenvio]   = useState({ enviando: false, mensaje: '' });
 
   const validar = (campo, valor) => {
     let msg = '';
@@ -34,6 +53,17 @@ export default function Login() {
     setForm((prev) => ({ ...prev, [name]: value }));
     validar(name, value);
     setApiError('');
+    setSinVerificar(false);
+  };
+
+  const handleReenviar = async () => {
+    setReenvio({ enviando: true, mensaje: '' });
+    try {
+      const data = await reenviarVerificacionRequest(form.correo);
+      setReenvio({ enviando: false, mensaje: data.message });
+    } catch (err) {
+      setReenvio({ enviando: false, mensaje: err.response?.data?.message ?? 'No se pudo reenviar el correo. Intenta más tarde.' });
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -45,14 +75,21 @@ export default function Login() {
 
     setLoading(true);
     setApiError('');
+    setSinVerificar(false);
+    setReenvio({ enviando: false, mensaje: '' });
     try {
       const data    = await loginRequest(form);
       login(data.usuario, data.token);
-      const destino = redirectAfterLogin ?? '/paquetes';
+      const esAdmin = data.usuario?.rol_codigo === 'ADMIN';
+      const destino = esAdmin ? '/admin' : (redirectAfterLogin ?? '/paquetes');
       clearRedirect();
       navigate(destino, { replace: true });
     } catch (err) {
-      setApiError(err.response?.data?.message ?? 'Error al iniciar sesión.');
+      setSinVerificar(err.response?.data?.code === 'EMAIL_NO_VERIFICADO');
+      setApiError(
+        err.response?.data?.message ??
+        (err.code === 'ECONNABORTED' ? 'El servidor tardó demasiado en responder. Intenta de nuevo.' : 'Error al iniciar sesión.')
+      );
     } finally {
       setLoading(false);
     }
@@ -82,15 +119,40 @@ export default function Login() {
           <p className="mt-1.5 text-slate-600 dark:text-slate-300 text-sm font-medium">Ingresa a tu cuenta para continuar</p>
         </div>
 
+        {/* Aviso (sesión expirada, fallo de Google) */}
+        {aviso && !apiError && (
+          <div role="status" className="mb-6 p-4 bg-amber-50/90 border border-amber-200 rounded-2xl flex items-start gap-3">
+            <AlertCircle size={16} className="text-amber-600 mt-0.5 shrink-0" />
+            <p className="text-amber-800 text-sm font-medium">{aviso}</p>
+          </div>
+        )}
+
         {/* Error API */}
         {apiError && (
           <motion.div
+            role="alert"
             initial={{ opacity: 0, y: -8 }}
             animate={{ opacity: 1, y: 0 }}
             className="mb-6 p-4 bg-red-50/90 backdrop-blur-sm border border-red-200 rounded-2xl flex items-start gap-3"
           >
             <AlertCircle size={16} className="text-red-500 mt-0.5 shrink-0" />
-            <p className="text-red-700 text-sm font-medium">{apiError}</p>
+            <div className="text-sm">
+              <p className="text-red-700 font-medium">{apiError}</p>
+              {sinVerificar && (
+                reenvio.mensaje ? (
+                  <p className="mt-2 text-emerald-700 font-medium">{reenvio.mensaje}</p>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleReenviar}
+                    disabled={reenvio.enviando}
+                    className="mt-2 font-bold text-[#1A6BAC] hover:underline disabled:opacity-50"
+                  >
+                    {reenvio.enviando ? 'Enviando…' : 'Reenviar correo de verificación'}
+                  </button>
+                )
+              )}
+            </div>
           </motion.div>
         )}
 
@@ -99,9 +161,11 @@ export default function Login() {
           <OAuthButton onClick={() => irOAuth('google')} label="Continuar con Google">
             <GoogleSVG />
           </OAuthButton>
-          <OAuthButton onClick={() => irOAuth('microsoft')} label="Continuar con Microsoft">
-            <MicrosoftSVG />
-          </OAuthButton>
+          {MICROSOFT_HABILITADO && (
+            <OAuthButton onClick={() => irOAuth('microsoft')} label="Continuar con Microsoft">
+              <MicrosoftSVG />
+            </OAuthButton>
+          )}
         </div>
 
         {/* Divisor */}

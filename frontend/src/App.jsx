@@ -1,49 +1,64 @@
+import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuthStore } from './store/useAuthStore';
 
 // ── Layout ──────────────────────────────────────────────────────────────────
 import Navbar      from './components/layout/Navbar';
 import Footer      from './components/layout/Footer';
-import AdminLayout from './components/admin/AdminLayout';
 import WelcomeModal from './components/shared/WelcomeModal';
 import FloatingActionButtons from './components/shared/FloatingActionButtons';
 import TelefonoRequeridoGate from './components/shared/TelefonoRequeridoGate';
 import PageTransition from './components/shared/PageTransition';
 import ScrollToTop from './components/shared/ScrollToTop';
+import DialogoGlobal from './components/shared/DialogoGlobal';
 
 // ── Guards ──────────────────────────────────────────────────────────────────
 import ProtectedRoute from './components/shared/ProtectedRoute';
 
-// ── Páginas públicas ─────────────────────────────────────────────────────────
+// ── Página de inicio: se carga de inmediato ──────────────────────────────────
 import Home         from './pages/Home';
-import Paquetes     from './pages/Paquetes';
-import Galeria      from './pages/Galeria';
-import Configurador from './pages/Configurador';
-import Resenias     from './pages/Resenias';
+
+// ── El resto se descarga solo cuando se visita (code splitting): así el
+//    celular no baja el panel admin, los gráficos ni el generador de PDF
+//    al abrir la página de inicio.
+const Paquetes     = lazy(() => import('./pages/Paquetes'));
+const Galeria      = lazy(() => import('./pages/Galeria'));
+const Configurador = lazy(() => import('./pages/Configurador'));
+const Resenias     = lazy(() => import('./pages/Resenias'));
 
 // ── Auth ─────────────────────────────────────────────────────────────────────
-import Login           from './pages/Login';
-import Register        from './pages/Register';
-import RecuperarClave  from './pages/RecuperarClave';
-import NuevaClave      from './pages/NuevaClave';
-import VerificarCuenta from './pages/VerificarCuenta';
-import AuthCallback    from './pages/AuthCallback';
+const Login           = lazy(() => import('./pages/Login'));
+const Register        = lazy(() => import('./pages/Register'));
+const RecuperarClave  = lazy(() => import('./pages/RecuperarClave'));
+const NuevaClave      = lazy(() => import('./pages/NuevaClave'));
+const VerificarCuenta = lazy(() => import('./pages/VerificarCuenta'));
+const AuthCallback    = lazy(() => import('./pages/AuthCallback'));
 
 // ── Cliente ───────────────────────────────────────────────────────────────────
-import Solicitar      from './pages/Solicitar';
-import MisSolicitudes from './pages/cliente/MisSolicitudes';
+const Solicitar      = lazy(() => import('./pages/Solicitar'));
+const MisSolicitudes = lazy(() => import('./pages/cliente/MisSolicitudes'));
+const MiPerfil       = lazy(() => import('./pages/cliente/MiPerfil'));
 
 // ── Admin ─────────────────────────────────────────────────────────────────────
-import Dashboard            from './pages/admin/Dashboard';
-import GestionSolicitudes   from './pages/admin/GestionSolicitudes';
-import SolicitudesArchivadas from './pages/admin/SolicitudesArchivadas';
-import GestionCatalogo      from './pages/admin/GestionCatalogo';
-import GestionGaleria       from './pages/admin/GestionGaleria';
-import GestionCalendario    from './pages/admin/GestionCalendario';
-import MiPerfil             from './pages/cliente/MiPerfil';
-import GestionUsuarios      from './pages/admin/GestionUsuarios';
-import Reportes             from './pages/admin/Reportes';
-import PerfilAdmin          from './pages/admin/PerfilAdmin';
+const AdminLayout           = lazy(() => import('./components/admin/AdminLayout'));
+const Dashboard             = lazy(() => import('./pages/admin/Dashboard'));
+const GestionSolicitudes    = lazy(() => import('./pages/admin/GestionSolicitudes'));
+const SolicitudesArchivadas = lazy(() => import('./pages/admin/SolicitudesArchivadas'));
+const GestionCatalogo       = lazy(() => import('./pages/admin/GestionCatalogo'));
+const GestionGaleria        = lazy(() => import('./pages/admin/GestionGaleria'));
+const GestionCalendario     = lazy(() => import('./pages/admin/GestionCalendario'));
+const GestionUsuarios       = lazy(() => import('./pages/admin/GestionUsuarios'));
+const Reportes              = lazy(() => import('./pages/admin/Reportes'));
+const PerfilAdmin           = lazy(() => import('./pages/admin/PerfilAdmin'));
+
+// Indicador mientras se descarga una página
+function CargandoPagina() {
+  return (
+    <div className="min-h-[60vh] flex items-center justify-center" role="status" aria-label="Cargando">
+      <div className="w-10 h-10 border-4 border-[#0D2137]/20 border-t-[#B7950B] rounded-full animate-spin" />
+    </div>
+  );
+}
 
 // =============================================================================
 //  GUARDAS DE RUTA
@@ -65,7 +80,9 @@ function AnimatedOutlet() {
   const location = useLocation();
   return (
     <PageTransition key={location.pathname}>
-      <Outlet />
+      <Suspense fallback={<CargandoPagina />}>
+        <Outlet />
+      </Suspense>
     </PageTransition>
   );
 }
@@ -93,6 +110,8 @@ export default function App() {
   return (
     <BrowserRouter>
       <ScrollToTop />
+      <DialogoGlobal />
+      <Suspense fallback={<CargandoPagina />}>
       <Routes>
 
         {/* ── Rutas públicas y de cliente ── */}
@@ -159,6 +178,7 @@ export default function App() {
         </Route>
 
       </Routes>
+      </Suspense>
     </BrowserRouter>
   );
 }

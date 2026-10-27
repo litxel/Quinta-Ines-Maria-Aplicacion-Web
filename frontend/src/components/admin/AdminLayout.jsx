@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { NavLink, Link, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useAuthStore } from '../../store/useAuthStore';
@@ -10,6 +10,7 @@ import {
   Settings, ChevronLeft, Users, BarChart2, UserCircle, Archive,
   Sun, Moon,
 } from 'lucide-react';
+import { urlImagen } from '../../utils/urls';
 
 const MENU_GROUPS = [
   {
@@ -52,6 +53,8 @@ export default function AdminLayout() {
   const location  = useLocation();
 
   const [isCollapsed, setIsCollapsed] = useState(false);
+  // En celular/tablet (< lg) el menú es un cajón que se abre sobre el contenido
+  const [menuMovil,   setMenuMovil]   = useState(false);
   const [openGroups,  setOpenGroups]  = useState({});
   const { isDark, toggle: toggleDark } = useDarkMode();
 
@@ -60,7 +63,10 @@ export default function AdminLayout() {
       g.items.some((item) => location.pathname.startsWith(item.to) && item.to !== '/admin')
     );
     if (idx !== -1) setOpenGroups((prev) => ({ ...prev, [idx]: true }));
+    setMenuMovil(false);  // al navegar, el cajón móvil se cierra
   }, [location.pathname]);
+
+  const abrirMenuMovil = () => { setIsCollapsed(false); setMenuMovil(true); };
 
   const handleLogout  = () => { logout(); navigate('/login'); };
   const toggleGroup   = (idx) => {
@@ -75,15 +81,25 @@ export default function AdminLayout() {
          Claro: beige oscuro/taupe elegante (contrasta con el dashboard crema).
          Oscuro: púrpura más luminoso que el fondo general (#221634) para mejor
          visibilidad de los iconos. */}
+      {/* Fondo oscuro del cajón en celular */}
+      {menuMovil && (
+        <div
+          className="fixed inset-0 z-40 bg-black/50 backdrop-blur-[1px] lg:hidden"
+          onClick={() => setMenuMovil(false)}
+          aria-hidden
+        />
+      )}
+
       <aside
         className={`fixed inset-y-0 left-0 z-50 bg-[#473A28] dark:bg-[#2E2046] text-white flex flex-col shadow-2xl transition-all duration-300 ease-in-out ${
           isCollapsed ? 'w-[72px]' : 'w-[272px]'
-        }`}
+        } ${menuMovil ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0`}
       >
-        {/* Botón colapsar */}
+        {/* Botón colapsar (solo escritorio) */}
         <button
           onClick={() => setIsCollapsed(!isCollapsed)}
-          className="absolute -right-3.5 top-8 bg-[#C9A227] text-white w-7 h-7 rounded-full shadow-lg hover:bg-[#D4AF37] transition-all z-50 flex items-center justify-center"
+          aria-label={isCollapsed ? 'Expandir menú' : 'Contraer menú'}
+          className="absolute -right-3.5 top-8 bg-[#C9A227] text-white w-7 h-7 rounded-full shadow-lg hover:bg-[#D4AF37] transition-all z-50 hidden lg:flex items-center justify-center"
         >
           <ChevronLeft size={15} className={`transition-transform duration-300 ${isCollapsed ? 'rotate-180' : ''}`} />
         </button>
@@ -210,7 +226,7 @@ export default function AdminLayout() {
               <div className="w-9 h-9 rounded-full overflow-hidden border border-slate-700 shrink-0">
                 {user?.foto_perfil ? (
                   <img
-                    src={`${import.meta.env.VITE_API_URL?.replace('/api','') || 'http://localhost:5000'}${user.foto_perfil}`}
+                    src={urlImagen(user.foto_perfil, 96)}
                     alt="" className="w-full h-full object-cover"
                   />
                 ) : (
@@ -239,13 +255,14 @@ export default function AdminLayout() {
       </aside>
 
       {/* ── CONTENIDO PRINCIPAL ── */}
-      <main className={`flex-1 flex flex-col transition-all duration-300 ease-in-out ${isCollapsed ? 'ml-[72px]' : 'ml-[272px]'}`}>
+      <main className={`flex-1 min-w-0 flex flex-col transition-all duration-300 ease-in-out ${isCollapsed ? 'lg:ml-[72px]' : 'lg:ml-[272px]'}`}>
 
         {/* Topbar */}
-        <header className="h-16 bg-white/85 dark:bg-[#221634]/85 backdrop-blur-md border-b border-slate-200 dark:border-white/8 flex items-center justify-between px-6 sticky top-0 z-40 shadow-sm transition-colors duration-300">
+        <header className="h-16 bg-white/85 dark:bg-[#221634]/85 backdrop-blur-md border-b border-slate-200 dark:border-white/8 flex items-center justify-between px-4 sm:px-6 sticky top-0 z-40 shadow-sm transition-colors duration-300">
           <div className="flex items-center gap-3">
             <button
-              onClick={() => setIsCollapsed(!isCollapsed)}
+              onClick={abrirMenuMovil}
+              aria-label="Abrir menú"
               className="lg:hidden p-2 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/8 rounded-lg transition-colors"
             >
               <Menu size={19} />
@@ -296,7 +313,10 @@ export default function AdminLayout() {
 
         {/* Outlet */}
         <div className="p-4 sm:p-7 flex-1 overflow-x-hidden">
-          <Outlet />
+          {/* Las páginas del panel se descargan al visitarlas: el menú queda visible */}
+          <Suspense fallback={<div className="py-24 flex justify-center"><div className="w-9 h-9 border-4 border-[#0D2137]/20 border-t-[#B7950B] rounded-full animate-spin" /></div>}>
+            <Outlet />
+          </Suspense>
         </div>
       </main>
     </div>

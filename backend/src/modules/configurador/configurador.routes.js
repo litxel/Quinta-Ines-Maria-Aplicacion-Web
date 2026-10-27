@@ -1,8 +1,8 @@
 'use strict';
 const router      = require('express').Router();
 const ctrl        = require('./configurador.controller');
-const { verifyToken } = require('../../middlewares/auth');
-// ↑ El middleware está en src/middlewares/auth.js (SIN .middleware en el nombre)
+const limites     = require('../../middlewares/rateLimit');
+const { verifyToken, isAdmin } = require('../../middlewares/auth');
 
 // =============================================================================
 //  RUTAS DEL CONFIGURADOR — EventPlanner QIM
@@ -10,14 +10,19 @@ const { verifyToken } = require('../../middlewares/auth');
 //  PÚBLICAS (sin token):
 //    GET  /api/configurador/datos              → catálogos para el configurador
 //    POST /api/configurador/calcular-precio    → precio desde el servidor
+//    GET  /api/configurador/fechas-ocupadas    → fechas no disponibles
+//    POST /api/configurador/recomendar         → asistente IA (con límite de uso)
 //
 //  OPCIONALES (token si está logueado, null si no):
 //    POST /api/configurador/sesion             → crear sesión
 //    PUT  /api/configurador/sesion/:sesionId   → actualizar sesión
 //    GET  /api/configurador/sesion/:sesionId   → recuperar sesión
 //
-//  NOTA: Las rutas de sesión usan un middleware "soft auth" — si el usuario
-//  está logueado se guarda su ID, si no se guarda null (sesión anónima).
+//  ADMIN:
+//    GET/POST/DELETE /api/configurador/admin/calendario
+//
+//  NOTA: el envío de la cotización por correo está en
+//  POST /api/solicitudes/:id/cotizacion (requiere sesión y solo envía al dueño).
 // =============================================================================
 
 // Middleware "soft auth": intenta verificar el token pero no bloquea si no hay
@@ -30,11 +35,10 @@ const softAuth = (req, res, next) => {
 // Rutas públicas
 router.get( '/datos',              ctrl.getDatosConfiguracion);
 router.post('/calcular-precio',    ctrl.calcularPrecio);
+router.get( '/fechas-ocupadas',    ctrl.getFechasOcupadas);
 
-// ── NUEVO — Asistente IA (público: el asistente es accesible para todos) ─────
-// No requiere login para que el usuario pueda consultar antes de registrarse.
-// Tiene su propio manejo de errores y fallback controlado en gemini.js.
-router.post('/recomendar', ctrl.recomendarConIA);
+// Asistente IA — público, con límite de consultas para no agotar la cuota de Gemini
+router.post('/recomendar', limites.ia, softAuth, ctrl.recomendarConIA);
 
 // Rutas con soft auth (funcionan con y sin login)
 router.post('/sesion',             softAuth, ctrl.crearSesion);
@@ -42,15 +46,8 @@ router.put( '/sesion/:sesionId',   softAuth, ctrl.actualizarSesion);
 router.get( '/sesion/:sesionId',   softAuth, ctrl.getSesion);
 
 // ── RUTAS ADMIN CALENDARIO ───────────────────────────────────────────────────
-// Usamos verifyToken para asegurar que solo usuarios logueados (admins) accedan
-router.get('/admin/calendario', verifyToken, ctrl.getCalendarioAdmin);
-router.post('/admin/calendario', verifyToken, ctrl.bloquearFecha);
-router.delete('/admin/calendario/:id', verifyToken, ctrl.desbloquearFecha);
-
-// --RUTA enviar solicitud--
-router.post('/enviar-solicitud', ctrl.enviarSolicitudFinal);
-
-//calendario rutas 
-router.get('/fechas-ocupadas', ctrl.getFechasOcupadas);
+router.get(   '/admin/calendario',     verifyToken, isAdmin, ctrl.getCalendarioAdmin);
+router.post(  '/admin/calendario',     verifyToken, isAdmin, ctrl.bloquearFecha);
+router.delete('/admin/calendario/:id', verifyToken, isAdmin, ctrl.desbloquearFecha);
 
 module.exports = router;

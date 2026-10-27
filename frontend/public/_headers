@@ -1,0 +1,12 @@
+# Cabeceras para Cloudflare Pages (este archivo se copia tal cual a dist/)
+
+/*
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(), microphone=(), geolocation=()
+
+# Los archivos de /assets llevan un hash en el nombre: se pueden guardar en
+# caché un año (cada versión nueva cambia de nombre)
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable

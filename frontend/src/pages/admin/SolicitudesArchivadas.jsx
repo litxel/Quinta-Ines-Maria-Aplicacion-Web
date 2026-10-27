@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback } from 'react';
 import { getSolicitudesArchivadas, desarchivarSolicitud } from '../../services/solicitudes.service';
 import { Archive, ArchiveRestore, RefreshCw, Search, ChevronLeft, ChevronRight, Calendar, Users, DollarSign, CheckCircle, AlertCircle } from 'lucide-react';
 
-const BACKEND_URL = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000';
 
 const ESTADOS_COLOR = {
   PENDIENTE:   'bg-amber-100 dark:bg-amber-500/15 text-amber-800 dark:text-amber-400 border-amber-200 dark:border-amber-500/25',

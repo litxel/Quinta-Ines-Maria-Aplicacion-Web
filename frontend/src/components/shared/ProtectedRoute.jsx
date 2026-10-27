@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../../store/useAuthStore';
 
@@ -17,10 +18,15 @@ import { useAuthStore } from '../../store/useAuthStore';
 export default function ProtectedRoute({ children, rol = null }) {
   const location                             = useLocation();
   const { isAuthenticated, user, setRedirectAfterLogin } = useAuthStore();
+  const sinSesion = !isAuthenticated || !user;
+
+  // Guardar la ruta pendiente en un efecto (no durante el render)
+  useEffect(() => {
+    if (sinSesion) setRedirectAfterLogin(location.pathname + location.search);
+  }, [sinSesion, location.pathname, location.search, setRedirectAfterLogin]);
 
   // ── No autenticado → login ────────────────────────────────────────────────
-  if (!isAuthenticated || !user) {
-    setRedirectAfterLogin(location.pathname + location.search);
+  if (sinSesion) {
     return <Navigate to="/login" replace state={{ from: location }} />;
   }
 
